@@ -87,9 +87,9 @@ class CSVETLService {
         inserted: insertResult.inserted
       };
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('CSV processing failed:', error);
-      throw new Error(`Failed to process CSV: ${error.message}`);
+      throw new Error(`Failed to process CSV: ${error?.message || String(error)}`);
     }
   }
 
@@ -98,7 +98,7 @@ class CSVETLService {
     try {
       const response = await fetch(`${this.baseUrl}/supabase-etl?op=refresh`);
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Staging refresh failed:', error);
       throw new Error('Failed to refresh staging data');
     }
@@ -109,7 +109,7 @@ class CSVETLService {
     try {
       const response = await fetch(`${this.baseUrl}/supabase-etl?op=load`);
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fact table load failed:', error);
       throw new Error('Failed to load fact table');
     }
@@ -120,7 +120,7 @@ class CSVETLService {
     try {
       const response = await fetch(`${this.baseUrl}/supabase-etl?op=qa`);
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Quality checks failed:', error);
       throw new Error('Failed to run quality checks');
     }
@@ -131,7 +131,7 @@ class CSVETLService {
     try {
       const response = await fetch(`${this.baseUrl}/supabase-etl?op=report`);
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Report generation failed:', error);
       throw new Error('Failed to generate income statement report');
     }
@@ -188,7 +188,7 @@ class CSVETLService {
     try {
       const response = await fetch(`${this.baseUrl}/supabase-etl`);
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Status check failed:', error);
       throw new Error('Failed to get ETL pipeline status');
     }

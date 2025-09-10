@@ -86,8 +86,8 @@ const CSVETLUpload: React.FC = () => {
         isProcessing: false,
         currentStep: 'Complete!',
         progress: 100,
-        success: result.message,
-        qualityChecks: qaResult.qa,
+        success: result.message || null,
+        qualityChecks: qaResult.qa || null,
         reportData: reportResult.rows || []
       }));
 
