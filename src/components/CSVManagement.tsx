@@ -166,7 +166,7 @@ const CSVManagement: React.FC = () => {
           setUploadProgress(0);
         }, 3000);
       } else {
-        setError(response.error || 'Upload failed');
+        setError(response.error || response.message || 'Upload failed');
         setUploadStatus('Upload failed');
       }
     } catch (error: any) {

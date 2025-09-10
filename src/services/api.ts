@@ -92,7 +92,7 @@ class ApiService {
   }
 
   // CSV upload API
-  async uploadCSV(file: File, propertyId: string): Promise<{ success: boolean; data: any; message: string }> {
+  async uploadCSV(file: File, propertyId: string): Promise<ApiResponse> {
     const formData = new FormData();
     formData.append('csvFile', file);
     formData.append('propertyId', propertyId);
