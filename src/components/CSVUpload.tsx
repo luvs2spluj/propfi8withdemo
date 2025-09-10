@@ -188,7 +188,7 @@ const CSVUpload: React.FC = () => {
       
       // Trigger dashboard update
       window.dispatchEvent(new CustomEvent('dataUpdated', { 
-        detail: { propertyId: propertyKey, data: data } 
+        detail: { propertyId: selectedProperty, data: data } 
       }));
 
       setValidationResult({
