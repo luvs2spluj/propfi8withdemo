@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Trash2, 
-  Download, 
-  Eye, 
   Upload, 
   AlertTriangle, 
   CheckCircle, 
@@ -59,7 +57,7 @@ const CSVManagement: React.FC = () => {
     if (selectedProperty) {
       loadUploads();
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, loadUploads]);
 
   const loadData = async () => {
     try {
@@ -81,7 +79,7 @@ const CSVManagement: React.FC = () => {
     }
   };
 
-  const loadUploads = async () => {
+  const loadUploads = useCallback(async () => {
     try {
       const response = await ApiService.getUploadHistory();
       if (response.success && response.data) {
@@ -94,7 +92,7 @@ const CSVManagement: React.FC = () => {
     } catch (error: any) {
       console.error('Error loading uploads:', error);
     }
-  };
+  }, [selectedProperty]);
 
   const handleDeleteUpload = async (uploadId: string) => {
     try {

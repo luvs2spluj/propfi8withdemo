@@ -1,7 +1,7 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Check if we're in a browser environment
-const isBrowser = typeof window !== 'undefined';
+// Check if we're in a browser environment (unused but kept for future use)
+// const isBrowser = typeof window !== 'undefined';
 
 // API Response Types
 interface ApiResponse<T = any> {
@@ -215,4 +215,5 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;
