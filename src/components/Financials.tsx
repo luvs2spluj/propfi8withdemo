@@ -1,47 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
   TrendingDown,
   Calendar,
-  Download
+  Download,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import ApiService from '../services/api';
+
+interface PropertyData {
+  id: string;
+  property_id: string;
+  date: string;
+  revenue: string;
+  occupancy_rate: string;
+  maintenance_cost: string;
+  utilities_cost: string;
+  insurance_cost: string;
+  property_tax: string;
+  other_expenses: string;
+  notes: string;
+  property_name: string;
+}
+
+interface Property {
+  id: string;
+  name: string;
+  address?: string;
+  type?: string;
+  total_units?: number;
+}
 
 const Financials: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('2024');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<string>('');
+  const [propertyData, setPropertyData] = useState<PropertyData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const financialSummary = {
-    totalRevenue: 1527450,
-    totalExpenses: 483200,
-    netIncome: 1044250,
-    profitMargin: 68.4,
-    monthlyAverage: 127287
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  useEffect(() => {
+    if (selectedProperty) {
+      loadPropertyData();
+    }
+  }, [selectedProperty]);
+
+  const loadProperties = async () => {
+    try {
+      const response = await ApiService.getProperties();
+      if (response.success && response.data) {
+        setProperties(response.data);
+        if (response.data.length > 0) {
+          setSelectedProperty(response.data[0].id);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+      setError('Failed to load properties');
+    }
   };
 
-  const monthlyData = [
-    { month: 'Jan', revenue: 95000, expenses: 35000, net: 60000 },
-    { month: 'Feb', revenue: 102000, expenses: 38000, net: 64000 },
-    { month: 'Mar', revenue: 98000, expenses: 36000, net: 62000 },
-    { month: 'Apr', revenue: 115000, expenses: 42000, net: 73000 },
-    { month: 'May', revenue: 108000, expenses: 39000, net: 69000 },
-    { month: 'Jun', revenue: 125000, expenses: 45000, net: 80000 },
-    { month: 'Jul', revenue: 118000, expenses: 43000, net: 75000 },
-    { month: 'Aug', revenue: 127450, expenses: 46000, net: 81450 },
-    { month: 'Sep', revenue: 132000, expenses: 48000, net: 84000 },
-    { month: 'Oct', revenue: 128000, expenses: 47000, net: 81000 },
-    { month: 'Nov', revenue: 135000, expenses: 49000, net: 86000 },
-    { month: 'Dec', revenue: 142000, expenses: 52000, net: 90000 },
-  ];
+  const loadPropertyData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await ApiService.getPropertyData(selectedProperty);
+      if (response.success && response.data) {
+        setPropertyData(response.data);
+      } else {
+        setError('Failed to load property data');
+        setPropertyData([]);
+      }
+    } catch (error: any) {
+      console.error('Error loading property data:', error);
+      setError('Failed to load property data');
+      setPropertyData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const expenseCategories = [
-    { category: 'Maintenance & Repairs', amount: 125000, percentage: 25.9, color: 'red' },
-    { category: 'Property Management', amount: 95000, percentage: 19.7, color: 'blue' },
-    { category: 'Insurance', amount: 78000, percentage: 16.1, color: 'green' },
-    { category: 'Utilities', amount: 65000, percentage: 13.5, color: 'yellow' },
-    { category: 'Marketing & Advertising', amount: 45000, percentage: 9.3, color: 'purple' },
-    { category: 'Legal & Professional', amount: 35000, percentage: 7.2, color: 'orange' },
-    { category: 'Other', amount: 50200, percentage: 10.4, color: 'gray' },
-  ];
+  // Calculate financial summary from real data
+  const calculateFinancialSummary = () => {
+    if (!propertyData || propertyData.length === 0) {
+      return {
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netIncome: 0,
+        profitMargin: 0,
+        monthlyAverage: 0
+      };
+    }
+
+    const totalRevenue = propertyData.reduce((sum, record) => sum + parseFloat(record.revenue), 0);
+    const totalExpenses = propertyData.reduce((sum, record) => {
+      const maintenance = parseFloat(record.maintenance_cost) || 0;
+      const utilities = parseFloat(record.utilities_cost) || 0;
+      const insurance = parseFloat(record.insurance_cost) || 0;
+      const propertyTax = parseFloat(record.property_tax) || 0;
+      const other = parseFloat(record.other_expenses) || 0;
+      return sum + maintenance + utilities + insurance + propertyTax + other;
+    }, 0);
+    
+    const netIncome = totalRevenue - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
+    const monthlyAverage = propertyData.length > 0 ? totalRevenue / propertyData.length : 0;
+
+    return {
+      totalRevenue,
+      totalExpenses,
+      netIncome,
+      profitMargin,
+      monthlyAverage
+    };
+  };
+
+  // Generate monthly data from real CSV data
+  const generateMonthlyData = () => {
+    if (!propertyData || propertyData.length === 0) {
+      return [];
+    }
+
+    return propertyData
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .map(record => {
+        const date = new Date(record.date);
+        const month = date.toLocaleDateString('en-US', { month: 'short' });
+        const revenue = parseFloat(record.revenue);
+        const expenses = (parseFloat(record.maintenance_cost) || 0) +
+                       (parseFloat(record.utilities_cost) || 0) +
+                       (parseFloat(record.insurance_cost) || 0) +
+                       (parseFloat(record.property_tax) || 0) +
+                       (parseFloat(record.other_expenses) || 0);
+        const net = revenue - expenses;
+        const margin = revenue > 0 ? (net / revenue) * 100 : 0;
+
+        return {
+          month,
+          revenue,
+          expenses,
+          net,
+          margin
+        };
+      });
+  };
+
+  const financialSummary = calculateFinancialSummary();
+  const monthlyData = generateMonthlyData();
+
+  // Calculate expense categories from real data
+  const calculateExpenseCategories = () => {
+    if (!propertyData || propertyData.length === 0) {
+      return [];
+    }
+
+    const totalMaintenance = propertyData.reduce((sum, record) => sum + (parseFloat(record.maintenance_cost) || 0), 0);
+    const totalUtilities = propertyData.reduce((sum, record) => sum + (parseFloat(record.utilities_cost) || 0), 0);
+    const totalInsurance = propertyData.reduce((sum, record) => sum + (parseFloat(record.insurance_cost) || 0), 0);
+    const totalPropertyTax = propertyData.reduce((sum, record) => sum + (parseFloat(record.property_tax) || 0), 0);
+    const totalOther = propertyData.reduce((sum, record) => sum + (parseFloat(record.other_expenses) || 0), 0);
+    
+    const totalExpenses = totalMaintenance + totalUtilities + totalInsurance + totalPropertyTax + totalOther;
+
+    return [
+      { category: 'Maintenance & Repairs', amount: totalMaintenance, percentage: totalExpenses > 0 ? (totalMaintenance / totalExpenses) * 100 : 0, color: 'red' },
+      { category: 'Utilities', amount: totalUtilities, percentage: totalExpenses > 0 ? (totalUtilities / totalExpenses) * 100 : 0, color: 'yellow' },
+      { category: 'Insurance', amount: totalInsurance, percentage: totalExpenses > 0 ? (totalInsurance / totalExpenses) * 100 : 0, color: 'green' },
+      { category: 'Property Tax', amount: totalPropertyTax, percentage: totalExpenses > 0 ? (totalPropertyTax / totalExpenses) * 100 : 0, color: 'blue' },
+      { category: 'Other Expenses', amount: totalOther, percentage: totalExpenses > 0 ? (totalOther / totalExpenses) * 100 : 0, color: 'gray' },
+    ];
+  };
+
+  const expenseCategories = calculateExpenseCategories();
 
   const revenueSources = [
     { source: 'Rent Payments', amount: 1420000, percentage: 93.0 },
@@ -70,9 +207,24 @@ const Financials: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Financials</h1>
-          <p className="text-gray-600 mt-1">Comprehensive financial overview and reporting</p>
+          <p className="text-gray-600 mt-1">Real-time financial data from CSV uploads</p>
         </div>
         <div className="flex space-x-3">
+          <div className="flex items-center space-x-2">
+            <select
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              disabled={isLoading}
+            >
+              <option value="">Select Property</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center space-x-2">
             <Calendar className="w-4 h-4 text-gray-400" />
             <select
@@ -85,6 +237,14 @@ const Financials: React.FC = () => {
               <option value="2022">2022</option>
             </select>
           </div>
+          <button 
+            onClick={loadPropertyData}
+            disabled={isLoading || !selectedProperty}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
           <button className="btn-secondary flex items-center space-x-2">
             <Download className="w-4 h-4" />
             <span>Export</span>
@@ -92,8 +252,38 @@ const Financials: React.FC = () => {
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-400 mr-3" />
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading financial data...</p>
+          </div>
+        </div>
+      )}
+
+      {/* No Data State */}
+      {!isLoading && !error && propertyData.length === 0 && (
+        <div className="text-center py-12">
+          <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Financial Data</h3>
+          <p className="text-gray-500 mb-4">Upload CSV files to see financial data for this property.</p>
+          <button className="btn-primary">Upload CSV Data</button>
+        </div>
+      )}
+
+      {/* Financial Summary Cards - Only show when data is available */}
+      {!isLoading && !error && propertyData.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="metric-card">
           <div className="flex items-center justify-between">
             <div>
@@ -240,6 +430,8 @@ const Financials: React.FC = () => {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };
