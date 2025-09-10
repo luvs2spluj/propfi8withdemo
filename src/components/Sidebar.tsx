@@ -12,7 +12,7 @@ import {
   Trash2
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'enhanced-upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 interface SidebarProps {
   currentPage: Page;
@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
+    { id: 'enhanced-upload' as Page, label: 'Enhanced Upload', icon: Upload },
     { id: 'csv-data' as Page, label: 'CSV Data Table', icon: Table },
     { id: 'csv-management' as Page, label: 'CSV Management', icon: Trash2 },
     { id: 'property-management' as Page, label: 'Manage Properties', icon: Settings },

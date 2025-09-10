@@ -6,6 +6,7 @@ import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVUpload from './components/CSVUpload';
+import EnhancedCSVUpload from './components/EnhancedCSVUpload';
 import PropertyManagement from './components/PropertyManagement';
 import CSVDataViewer from './components/CSVDataViewer';
 import CSVManagement from './components/CSVManagement';
@@ -15,7 +16,7 @@ if (process.env.NODE_ENV === 'development') {
   import('./dev-logger').then(m => m.installDevLogger('/api/dev-logs'));
 }
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'enhanced-upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -34,6 +35,8 @@ function App() {
         return <Reports />;
       case 'upload':
         return <CSVUpload />;
+      case 'enhanced-upload':
+        return <EnhancedCSVUpload />;
       case 'property-management':
         return <PropertyManagement />;
       case 'csv-data':

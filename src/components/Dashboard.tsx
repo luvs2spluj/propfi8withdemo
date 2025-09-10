@@ -69,49 +69,67 @@ const Dashboard: React.FC = () => {
   };
 
   const totalProperties = properties.length;
-  const totalOccupied = properties.reduce((sum, p) => sum + (p.total_units || 0), 0);
+  const totalUnits = properties.reduce((sum, p) => sum + (p.total_units || 0), 0);
   const avgOccupancy = parseFloat(financialData?.avg_occupancy_rate || '0');
+  const totalRevenue = parseFloat(financialData?.total_revenue || '0');
+  const totalExpenses = parseFloat(financialData?.total_expenses || '0');
+  const totalNetIncome = parseFloat(financialData?.total_net_income || '0');
+  const totalRecords = parseInt(financialData?.total_records || '0');
+
+  // Calculate additional metrics
+  const avgMonthlyRevenue = totalRecords > 0 ? totalRevenue / totalRecords : 0;
+  const profitMargin = totalRevenue > 0 ? (totalNetIncome / totalRevenue) * 100 : 0;
+  const avgMonthlyExpenses = totalRecords > 0 ? totalExpenses / totalRecords : 0;
 
   const metrics = [
     {
       title: 'Total Properties',
       value: totalProperties.toString(),
-      change: '+2',
-      changeType: 'positive' as const,
+      change: totalProperties > 0 ? 'Active' : 'None',
+      changeType: totalProperties > 0 ? 'positive' as const : 'neutral' as const,
       icon: Building2,
       color: 'blue'
     },
     {
       title: 'Total Revenue',
-      value: `$${(parseFloat(financialData?.total_revenue || 0)).toLocaleString()}`,
-      change: '+8.2%',
+      value: `$${totalRevenue.toLocaleString()}`,
+      change: `$${avgMonthlyRevenue.toLocaleString()}/month avg`,
       changeType: 'positive' as const,
       icon: DollarSign,
       color: 'green'
     },
     {
-      title: 'Occupancy Rate',
-      value: `${avgOccupancy.toFixed(1)}%`,
-      change: '+1.5%',
+      title: 'Net Income',
+      value: `$${totalNetIncome.toLocaleString()}`,
+      change: `${profitMargin.toFixed(1)}% margin`,
       changeType: 'positive' as const,
       icon: TrendingUp,
       color: 'purple'
     },
     {
-      title: 'Total Units',
-      value: totalOccupied.toString(),
-      change: '+12',
+      title: 'Occupancy Rate',
+      value: `${avgOccupancy.toFixed(1)}%`,
+      change: `${totalUnits} total units`,
       changeType: 'positive' as const,
       icon: Users,
       color: 'orange'
+    },
+    {
+      title: 'Data Records',
+      value: totalRecords.toString(),
+      change: 'CSV uploads',
+      changeType: 'positive' as const,
+      icon: Calendar,
+      color: 'indigo'
     }
   ];
 
   const recentActivities = [
-    { id: 1, type: 'data', message: 'CSV data uploaded for Chico property', time: 'Recently', icon: Calendar },
-    { id: 2, type: 'property', message: 'Chico property added to system', time: 'Recently', icon: Building2 },
-    { id: 3, type: 'revenue', message: `Total revenue: $${(parseFloat(financialData?.total_revenue || 0)).toLocaleString()}`, time: 'Current', icon: DollarSign },
-    { id: 4, type: 'occupancy', message: `Occupancy rate: ${avgOccupancy.toFixed(1)}%`, time: 'Current', icon: TrendingUp },
+    { id: 1, type: 'data', message: `${totalRecords} CSV records uploaded for Chico property`, time: 'Current', icon: Calendar },
+    { id: 2, type: 'property', message: `${totalProperties} active property in system`, time: 'Current', icon: Building2 },
+    { id: 3, type: 'revenue', message: `Total revenue: $${totalRevenue.toLocaleString()}`, time: 'Current', icon: DollarSign },
+    { id: 4, type: 'income', message: `Net income: $${totalNetIncome.toLocaleString()} (${profitMargin.toFixed(1)}% margin)`, time: 'Current', icon: TrendingUp },
+    { id: 5, type: 'occupancy', message: `Average occupancy: ${avgOccupancy.toFixed(1)}%`, time: 'Current', icon: Users },
   ];
 
   if (isLoading) {
