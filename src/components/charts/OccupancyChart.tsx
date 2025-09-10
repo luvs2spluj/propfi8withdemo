@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import DataManager from '../../utils/dataManager';
 
 ChartJS.register(
   CategoryScale,
@@ -20,12 +21,14 @@ ChartJS.register(
 );
 
 const OccupancyChart: React.FC = () => {
+  const occupancyData = DataManager.getInstance().getOccupancyData();
+  
   const data = {
-    labels: ['Downtown Plaza', 'Garden Apartments', 'Riverside Complex', 'Oakwood Manor', 'Sunset Heights', 'Pine Valley'],
+    labels: occupancyData.map(item => item.property),
     datasets: [
       {
         label: 'Occupancy Rate',
-        data: [96, 94, 92, 95, 93, 97],
+        data: occupancyData.map(item => item.rate),
         backgroundColor: [
           'rgba(34, 197, 94, 0.8)',
           'rgba(34, 197, 94, 0.8)',

@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import DataManager from '../../utils/dataManager';
 
 ChartJS.register(
   CategoryScale,
@@ -22,12 +23,14 @@ ChartJS.register(
 );
 
 const PropertyPerformanceChart: React.FC = () => {
+  const performanceData = DataManager.getInstance().getPerformanceData();
+  
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    labels: performanceData.months,
     datasets: [
       {
         label: 'Revenue',
-        data: [95000, 102000, 98000, 115000, 108000, 125000, 118000, 127450, 132000, 128000, 135000, 142000],
+        data: performanceData.revenue,
         borderColor: 'rgb(14, 165, 233)',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
         borderWidth: 2,
@@ -37,7 +40,7 @@ const PropertyPerformanceChart: React.FC = () => {
       },
       {
         label: 'Expenses',
-        data: [35000, 38000, 36000, 42000, 39000, 45000, 43000, 46000, 48000, 47000, 49000, 52000],
+        data: performanceData.expenses,
         borderColor: 'rgb(239, 68, 68)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         borderWidth: 2,
@@ -47,7 +50,7 @@ const PropertyPerformanceChart: React.FC = () => {
       },
       {
         label: 'Net Income',
-        data: [60000, 64000, 62000, 73000, 69000, 80000, 75000, 81450, 84000, 81000, 86000, 90000],
+        data: performanceData.netIncome,
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         borderWidth: 3,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   DollarSign, 
@@ -10,12 +10,40 @@ import {
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
+import DataManager from '../utils/dataManager';
 
 const Dashboard: React.FC = () => {
+  const [properties, setProperties] = useState(DataManager.getInstance().getProperties());
+  const [financialData, setFinancialData] = useState(DataManager.getInstance().getFinancialData());
+
+  useEffect(() => {
+    const unsubscribe = DataManager.getInstance().subscribe((updatedProperties) => {
+      setProperties(updatedProperties);
+      setFinancialData(DataManager.getInstance().getFinancialData());
+    });
+
+    // Listen for data updates from CSV uploads
+    const handleDataUpdate = () => {
+      setProperties(DataManager.getInstance().getProperties());
+      setFinancialData(DataManager.getInstance().getFinancialData());
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
+  }, []);
+
+  const totalProperties = properties.length;
+  const totalOccupied = properties.reduce((sum, p) => sum + p.occupied, 0);
+  const avgOccupancy = properties.reduce((sum, p) => sum + p.occupancyRate, 0) / properties.length;
+
   const metrics = [
     {
       title: 'Total Properties',
-      value: '24',
+      value: totalProperties.toString(),
       change: '+2',
       changeType: 'positive' as const,
       icon: Building2,
@@ -23,7 +51,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Monthly Revenue',
-      value: '$127,450',
+      value: `$${financialData.totalRevenue.toLocaleString()}`,
       change: '+8.2%',
       changeType: 'positive' as const,
       icon: DollarSign,
@@ -31,7 +59,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Occupancy Rate',
-      value: '94.2%',
+      value: `${avgOccupancy.toFixed(1)}%`,
       change: '+1.5%',
       changeType: 'positive' as const,
       icon: TrendingUp,
@@ -39,7 +67,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Active Tenants',
-      value: '186',
+      value: totalOccupied.toString(),
       change: '+12',
       changeType: 'positive' as const,
       icon: Users,

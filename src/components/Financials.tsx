@@ -4,15 +4,11 @@ import {
   TrendingUp, 
   TrendingDown,
   Calendar,
-  Download,
-  Filter,
-  Eye,
-  FileText
+  Download
 } from 'lucide-react';
 
 const Financials: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('2024');
-  const [viewMode, setViewMode] = useState('summary');
 
   const financialSummary = {
     totalRevenue: 1527450,

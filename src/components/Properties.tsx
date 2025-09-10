@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   MapPin, 
@@ -11,91 +11,30 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  units: number;
-  occupied: number;
-  monthlyRevenue: number;
-  occupancyRate: number;
-  status: 'active' | 'maintenance' | 'vacant';
-}
+import DataManager, { Property } from '../utils/dataManager';
 
 const Properties: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [properties, setProperties] = useState<Property[]>(DataManager.getInstance().getProperties());
 
-  const properties: Property[] = [
-    {
-      id: '1',
-      name: 'Downtown Plaza',
-      address: '123 Main St, Downtown',
-      type: 'Apartment Complex',
-      units: 24,
-      occupied: 23,
-      monthlyRevenue: 45600,
-      occupancyRate: 95.8,
-      status: 'active'
-    },
-    {
-      id: '2',
-      name: 'Garden Apartments',
-      address: '456 Oak Ave, Garden District',
-      type: 'Apartment Complex',
-      units: 18,
-      occupied: 17,
-      monthlyRevenue: 32400,
-      occupancyRate: 94.4,
-      status: 'active'
-    },
-    {
-      id: '3',
-      name: 'Riverside Complex',
-      address: '789 River Rd, Riverside',
-      type: 'Townhouse Complex',
-      units: 12,
-      occupied: 11,
-      monthlyRevenue: 19800,
-      occupancyRate: 91.7,
-      status: 'maintenance'
-    },
-    {
-      id: '4',
-      name: 'Oakwood Manor',
-      address: '321 Pine St, Oakwood',
-      type: 'Single Family',
-      units: 8,
-      occupied: 8,
-      monthlyRevenue: 16800,
-      occupancyRate: 100,
-      status: 'active'
-    },
-    {
-      id: '5',
-      name: 'Sunset Heights',
-      address: '654 Sunset Blvd, Heights',
-      type: 'Apartment Complex',
-      units: 30,
-      occupied: 28,
-      monthlyRevenue: 58800,
-      occupancyRate: 93.3,
-      status: 'active'
-    },
-    {
-      id: '6',
-      name: 'Pine Valley',
-      address: '987 Valley Rd, Pine Valley',
-      type: 'Condo Complex',
-      units: 16,
-      occupied: 16,
-      monthlyRevenue: 28800,
-      occupancyRate: 100,
-      status: 'active'
-    }
-  ];
+  useEffect(() => {
+    const unsubscribe = DataManager.getInstance().subscribe((updatedProperties) => {
+      setProperties(updatedProperties);
+    });
+
+    // Listen for data updates from CSV uploads
+    const handleDataUpdate = () => {
+      setProperties(DataManager.getInstance().getProperties());
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
+  }, []);
 
   const filteredProperties = properties.filter(property => {
     const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

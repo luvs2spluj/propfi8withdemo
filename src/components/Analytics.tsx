@@ -3,7 +3,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   Calendar,
-  Filter,
   Download
 } from 'lucide-react';
 import RevenueChart from './charts/RevenueChart';

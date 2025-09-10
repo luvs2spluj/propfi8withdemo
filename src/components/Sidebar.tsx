@@ -5,10 +5,11 @@ import {
   BarChart3, 
   DollarSign, 
   FileText,
+  Upload,
   Home
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload';
 
 interface SidebarProps {
   currentPage: Page;
@@ -22,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
     { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
+    { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
   ];
 
   return (

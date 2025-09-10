@@ -11,6 +11,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import DataManager from '../../utils/dataManager';
 
 ChartJS.register(
   CategoryScale,
@@ -24,12 +25,14 @@ ChartJS.register(
 );
 
 const RevenueChart: React.FC = () => {
+  const revenueData = DataManager.getInstance().getRevenueData();
+  
   const data = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
     datasets: [
       {
         label: 'Revenue',
-        data: [95000, 102000, 98000, 115000, 108000, 125000, 118000, 127450, 132000, 128000, 135000, 142000],
+        data: revenueData,
         borderColor: 'rgb(14, 165, 233)',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
         borderWidth: 3,
