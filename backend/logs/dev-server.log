@@ -1,0 +1,6 @@
+[2025-09-10T23:27:21.127Z] LOG Log hook installed - writing to logs/dev-server.log
+[2025-09-10T23:27:21.775Z] LOG ✅ Supabase PostgreSQL connected successfully
+[2025-09-10T23:27:22.019Z] ERROR ❌ Supabase initialization failed: column "data_date" does not exist
+[2025-09-10T23:27:22.022Z] LOG 🚀 Server running on port 5000
+[2025-09-10T23:27:22.022Z] LOG 📊 API available at http://localhost:5000/api
+[2025-09-10T23:27:22.022Z] LOG 🏥 Health check: http://localhost:5000/api/health

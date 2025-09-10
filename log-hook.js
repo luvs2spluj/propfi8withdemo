@@ -1,6 +1,6 @@
 // log-hook.js - Captures all Node console.* and errors to logs/dev-server.log
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 const file = path.resolve('logs/dev-server.log');
 fs.mkdirSync('logs', { recursive: true });
