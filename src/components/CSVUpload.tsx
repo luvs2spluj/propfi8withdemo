@@ -205,6 +205,9 @@ const CSVUpload: React.FC = () => {
 
       setUploadError(null);
       
+      // Trigger dashboard refresh
+      window.dispatchEvent(new CustomEvent('dataUpdated'));
+      
     } catch (error) {
       setUploadError('Error processing CSV file locally');
       console.error('Local processing error:', error);
