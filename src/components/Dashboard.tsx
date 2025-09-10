@@ -198,18 +198,18 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
-          <RevenueChart />
+          <RevenueChart properties={properties} />
         </div>
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
-          <OccupancyChart />
+          <OccupancyChart properties={properties} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Performance</h3>
-          <PropertyPerformanceChart />
+          <PropertyPerformanceChart properties={properties} />
         </div>
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>

@@ -32,25 +32,48 @@ interface PropertyData {
   property_name: string;
 }
 
-const RevenueChart: React.FC = () => {
+interface Property {
+  id: string;
+  name: string;
+  address?: string;
+  type?: string;
+  total_units?: number;
+}
+
+interface RevenueChartProps {
+  properties: Property[];
+}
+
+const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
   const [chartData, setChartData] = useState<PropertyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadChartData();
-  }, []);
+    if (properties.length > 0) {
+      loadChartData();
+    }
+  }, [properties]);
 
   const loadChartData = async () => {
     try {
       setIsLoading(true);
-      // Get the Chico property ID first
-      const propertiesResponse = await ApiService.getProperties();
-      if (propertiesResponse.success && propertiesResponse.data && propertiesResponse.data.length > 0) {
-        const chicoProperty = propertiesResponse.data[0]; // Should be Chico
+      console.log('Loading chart data for properties:', properties);
+      
+      if (properties.length > 0) {
+        const chicoProperty = properties[0]; // Should be Chico
+        console.log('Chico property:', chicoProperty);
+        
         const dataResponse = await ApiService.getPropertyData(chicoProperty.id);
+        console.log('Property data response:', dataResponse);
+        
         if (dataResponse.success && dataResponse.data) {
+          console.log('Setting chart data:', dataResponse.data);
           setChartData(dataResponse.data);
+        } else {
+          console.error('No data received:', dataResponse);
         }
+      } else {
+        console.error('No properties available');
       }
     } catch (error) {
       console.error('Error loading chart data:', error);
@@ -148,6 +171,17 @@ const RevenueChart: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
           <p className="text-gray-600 text-sm">Loading chart data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 text-sm">No chart data available</p>
+          <p className="text-gray-400 text-xs mt-1">Check console for errors</p>
         </div>
       </div>
     );

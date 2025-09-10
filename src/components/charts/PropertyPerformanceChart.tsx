@@ -35,21 +35,33 @@ interface PropertyData {
   property_name: string;
 }
 
-const PropertyPerformanceChart: React.FC = () => {
+interface Property {
+  id: string;
+  name: string;
+  address?: string;
+  type?: string;
+  total_units?: number;
+}
+
+interface PropertyPerformanceChartProps {
+  properties: Property[];
+}
+
+const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ properties }) => {
   const [chartData, setChartData] = useState<PropertyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadChartData();
-  }, []);
+    if (properties.length > 0) {
+      loadChartData();
+    }
+  }, [properties]);
 
   const loadChartData = async () => {
     try {
       setIsLoading(true);
-      // Get the Chico property ID first
-      const propertiesResponse = await ApiService.getProperties();
-      if (propertiesResponse.success && propertiesResponse.data && propertiesResponse.data.length > 0) {
-        const chicoProperty = propertiesResponse.data[0]; // Should be Chico
+      if (properties.length > 0) {
+        const chicoProperty = properties[0]; // Should be Chico
         const dataResponse = await ApiService.getPropertyData(chicoProperty.id);
         if (dataResponse.success && dataResponse.data) {
           setChartData(dataResponse.data);
