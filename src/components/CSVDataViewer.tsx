@@ -2,10 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Table, Eye, Download, Calendar, DollarSign } from 'lucide-react';
 import ApiService from '../services/api';
 
-interface CSVDataViewerProps {
-  propertyId?: string;
-}
-
 interface PropertyData {
   id: string;
   property_id: string;
@@ -21,17 +17,47 @@ interface PropertyData {
   property_name: string;
 }
 
-const CSVDataViewer: React.FC<CSVDataViewerProps> = ({ propertyId }) => {
+interface Property {
+  id: string;
+  name: string;
+  address?: string;
+  type?: string;
+  total_units?: number;
+}
+
+const CSVDataViewer: React.FC = () => {
   const [data, setData] = useState<PropertyData[]>([]);
+  const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProperty, setSelectedProperty] = useState<string>(propertyId || '');
+  const [selectedProperty, setSelectedProperty] = useState<string>('');
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
 
   useEffect(() => {
     if (selectedProperty) {
       loadPropertyData();
     }
   }, [selectedProperty]);
+
+  const loadProperties = async () => {
+    try {
+      setIsLoading(true);
+      const response = await ApiService.getProperties();
+      if (response.success && response.data) {
+        setProperties(response.data);
+        if (response.data.length > 0) {
+          setSelectedProperty(response.data[0].id); // Auto-select first property
+        }
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadPropertyData = async () => {
     try {
@@ -130,7 +156,7 @@ const CSVDataViewer: React.FC<CSVDataViewerProps> = ({ propertyId }) => {
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <Table className="w-5 h-5 text-primary-600 mr-2" />
             <h3 className="text-lg font-semibold text-gray-900">CSV Data Table</h3>
@@ -147,6 +173,29 @@ const CSVDataViewer: React.FC<CSVDataViewerProps> = ({ propertyId }) => {
               <Eye className="w-4 h-4" />
             </button>
           </div>
+        </div>
+        
+        {/* Property Selector */}
+        <div className="flex items-center space-x-4">
+          <label className="text-sm font-medium text-gray-700">Property:</label>
+          <select
+            value={selectedProperty}
+            onChange={(e) => setSelectedProperty(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            disabled={properties.length === 0}
+          >
+            <option value="">Select Property</option>
+            {properties.map(property => (
+              <option key={property.id} value={property.id}>
+                {property.name}
+              </option>
+            ))}
+          </select>
+          {selectedProperty && (
+            <span className="text-sm text-gray-500">
+              Showing data for: {properties.find(p => p.id === selectedProperty)?.name}
+            </span>
+          )}
         </div>
       </div>
 
