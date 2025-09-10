@@ -68,27 +68,27 @@ class ApiService {
     return this.request('/properties-with-data');
   }
 
-  async getFinancialSummary(startDate?: string, endDate?: string) {
+  async getFinancialSummary(startDate?: string, endDate?: string): Promise<ApiResponse<any>> {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
     
     const queryString = params.toString();
-    return this.request<{ success: boolean; data: any }>(`/financial-summary${queryString ? `?${queryString}` : ''}`);
+    return this.request(`/financial-summary${queryString ? `?${queryString}` : ''}`);
   }
 
   // Property data API
-  async getPropertyData(propertyId: string, page: number = 1, limit: number = 50) {
-    return this.request<{ success: boolean; data: any[] }>(`/properties/${propertyId}/data?page=${page}&limit=${limit}`);
+  async getPropertyData(propertyId: string, page: number = 1, limit: number = 50): Promise<ApiResponse<any[]>> {
+    return this.request(`/properties/${propertyId}/data?page=${page}&limit=${limit}`);
   }
 
-  async getPropertyAggregated(propertyId: string, startDate?: string, endDate?: string) {
+  async getPropertyAggregated(propertyId: string, startDate?: string, endDate?: string): Promise<ApiResponse<any>> {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
     
     const queryString = params.toString();
-    return this.request<{ success: boolean; data: any }>(`/properties/${propertyId}/aggregated${queryString ? `?${queryString}` : ''}`);
+    return this.request(`/properties/${propertyId}/aggregated${queryString ? `?${queryString}` : ''}`);
   }
 
   // CSV upload API
