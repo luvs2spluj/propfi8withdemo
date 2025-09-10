@@ -62,7 +62,7 @@ const CSVUpload: React.FC = () => {
   const loadProperties = async () => {
     try {
       const response = await ApiService.getProperties();
-      if (response.success) {
+      if (response.success && response.data) {
         setProperties(response.data);
       }
     } catch (error) {

@@ -60,7 +60,7 @@ const PropertyManagement: React.FC = () => {
       const response = await ApiService.getProperties();
       console.log('Properties API response:', response);
       
-      if (response.success) {
+      if (response.success && response.data) {
         setProperties(response.data);
         console.log('Properties loaded from database:', response.data.length);
       } else {
