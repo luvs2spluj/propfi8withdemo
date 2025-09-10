@@ -107,7 +107,7 @@ const Dashboard: React.FC = () => {
     },
     {
       title: 'Monthly Revenue',
-      value: `$${financialData.totalRevenue.toLocaleString()}`,
+      value: `$${(financialData?.totalRevenue || 0).toLocaleString()}`,
       change: '+8.2%',
       changeType: 'positive' as const,
       icon: DollarSign,
@@ -137,6 +137,19 @@ const Dashboard: React.FC = () => {
     { id: 3, type: 'maintenance', message: 'Maintenance request completed for Unit 2A', time: '6 hours ago', icon: AlertCircle },
     { id: 4, type: 'lease', message: 'Lease renewal signed for Unit 8C - Garden Apartments', time: '1 day ago', icon: Calendar },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading dashboard data...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
