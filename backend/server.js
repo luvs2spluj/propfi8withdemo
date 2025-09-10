@@ -1,0 +1,306 @@
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
+require('dotenv').config({ path: './config.env' });
+
+const { testConnection, initializeDatabase } = require('./config/database');
+const PropertyService = require('./services/propertyService');
+const CSVService = require('./services/csvService');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Security middleware
+app.use(helmet());
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.'
+});
+app.use('/api/', limiter);
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!require('fs').existsSync(uploadDir)) {
+      require('fs').mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || path.extname(file.originalname).toLowerCase() === '.csv') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
+
+// Initialize services
+const propertyService = new PropertyService();
+const csvService = new CSVService();
+
+// Routes
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Properties routes
+app.get('/api/properties', async (req, res) => {
+  try {
+    const properties = await propertyService.getAllProperties();
+    res.json({ success: true, data: properties });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/properties/:id', async (req, res) => {
+  try {
+    const property = await propertyService.getPropertyById(req.params.id);
+    if (!property) {
+      return res.status(404).json({ success: false, error: 'Property not found' });
+    }
+    res.json({ success: true, data: property });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/properties-with-data', async (req, res) => {
+  try {
+    const properties = await propertyService.getPropertiesWithLatestData();
+    res.json({ success: true, data: properties });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Financial summary
+app.get('/api/financial-summary', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const summary = await propertyService.getFinancialSummary(startDate, endDate);
+    res.json({ success: true, data: summary });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// CSV upload route
+app.post('/api/upload-csv', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
+    }
+
+    const { propertyId } = req.body;
+    if (!propertyId) {
+      return res.status(400).json({ success: false, error: 'Property ID is required' });
+    }
+
+    // Validate property exists
+    const property = await propertyService.getPropertyById(propertyId);
+    if (!property) {
+      return res.status(404).json({ success: false, error: 'Property not found' });
+    }
+
+    // Process CSV upload
+    const result = await csvService.processCSVUpload(
+      req.file.path,
+      propertyId,
+      req.file.originalname,
+      req.file.size
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'CSV uploaded and processed successfully',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('CSV upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to process CSV file'
+    });
+  }
+});
+
+// CSV validation route
+app.post('/api/validate-csv', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
+    }
+
+    const validation = await csvService.validateCSV(req.file.path);
+    
+    // Clean up file
+    require('fs').unlinkSync(req.file.path);
+
+    res.json({ 
+      success: true, 
+      data: validation
+    });
+
+  } catch (error) {
+    console.error('CSV validation error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to validate CSV file'
+    });
+  }
+});
+
+// Property data routes
+app.get('/api/properties/:id/data', async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const data = await propertyService.getPropertyData(req.params.id, page, limit);
+    res.json({ success: true, data: data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/properties/:id/aggregated', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const data = await propertyService.getAggregatedPropertyData(req.params.id, startDate, endDate);
+    res.json({ success: true, data: data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Chart data routes
+app.get('/api/chart-data', async (req, res) => {
+  try {
+    const { propertyId, startDate, endDate } = req.query;
+    const data = await csvService.getChartData(propertyId, startDate, endDate);
+    res.json({ success: true, data: data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/monthly-data', async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    const data = await csvService.getMonthlyData(propertyId);
+    res.json({ success: true, data: data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Upload history
+app.get('/api/upload-history', async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    const history = await csvService.getUploadHistory(propertyId);
+    res.json({ success: true, data: history });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Error handling middleware
+app.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'File size too large. Maximum size is 10MB.' 
+      });
+    }
+  }
+  
+  console.error('Unhandled error:', error);
+  res.status(500).json({ 
+    success: false, 
+    error: 'Internal server error' 
+  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    error: 'API endpoint not found' 
+  });
+});
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Test database connection
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      console.error('❌ Failed to connect to database. Please check your configuration.');
+      process.exit(1);
+    }
+
+    // Initialize database schema
+    await initializeDatabase();
+
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📊 API available at http://localhost:${PORT}/api`);
+      console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n🛑 Shutting down server...');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down server...');
+  process.exit(0);
+});
+
+startServer();

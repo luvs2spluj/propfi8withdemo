@@ -1,15 +1,13 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, 
   FileText, 
   CheckCircle, 
   AlertCircle, 
   X,
-  Building2,
-  DollarSign,
-  Users,
-  Calendar
+  Loader2
 } from 'lucide-react';
+import ApiService from '../services/api';
 
 interface CSVData {
   propertyName: string;
@@ -24,12 +22,15 @@ interface CSVData {
 }
 
 interface UploadedFile {
-  id: string;
-  name: string;
-  size: number;
-  data: CSVData[];
-  uploadedAt: Date;
-  propertyId: string;
+  id: number;
+  file_name: string;
+  file_size: number;
+  records_processed: number;
+  records_skipped: number;
+  upload_status: 'processing' | 'completed' | 'failed';
+  error_message?: string;
+  uploaded_at: string;
+  property_name: string;
 }
 
 const CSVUpload: React.FC = () => {
@@ -37,45 +38,36 @@ const CSVUpload: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
+  const [properties, setProperties] = useState<any[]>([]);
+  const [validationResult, setValidationResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const properties = [
-    { id: '1', name: 'Downtown Plaza' },
-    { id: '2', name: 'Garden Apartments' },
-    { id: '3', name: 'Riverside Complex' },
-    { id: '4', name: 'Oakwood Manor' },
-    { id: '5', name: 'Sunset Heights' },
-    { id: '6', name: 'Pine Valley' },
-  ];
+  // Load properties and upload history on component mount
+  useEffect(() => {
+    loadProperties();
+    loadUploadHistory();
+  }, []);
 
-  const parseCSV = (csvText: string): CSVData[] => {
-    const lines = csvText.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    
-    const data: CSVData[] = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length === headers.length && values[0]) {
-        try {
-          data.push({
-            propertyName: values[0] || '',
-            address: values[1] || '',
-            monthlyRevenue: parseFloat(values[2]) || 0,
-            occupancyRate: parseFloat(values[3]) || 0,
-            totalUnits: parseInt(values[4]) || 0,
-            occupiedUnits: parseInt(values[5]) || 0,
-            expenses: parseFloat(values[6]) || 0,
-            netIncome: parseFloat(values[7]) || 0,
-            date: values[8] || new Date().toISOString().split('T')[0]
-          });
-        } catch (error) {
-          console.error('Error parsing row:', error);
-        }
+  const loadProperties = async () => {
+    try {
+      const response = await ApiService.getProperties();
+      if (response.success) {
+        setProperties(response.data);
       }
+    } catch (error) {
+      console.error('Failed to load properties:', error);
     }
-    
-    return data;
+  };
+
+  const loadUploadHistory = async () => {
+    try {
+      const response = await ApiService.getUploadHistory();
+      if (response.success) {
+        setUploadedFiles(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load upload history:', error);
+    }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -89,40 +81,38 @@ const CSVUpload: React.FC = () => {
 
     setIsUploading(true);
     setUploadError(null);
+    setValidationResult(null);
 
     try {
-      const text = await file.text();
-      const csvData = parseCSV(text);
-      
-      if (csvData.length === 0) {
-        setUploadError('No valid data found in CSV file');
+      // First validate the CSV
+      const validation = await ApiService.validateCSV(file);
+      setValidationResult(validation.data);
+
+      if (!validation.data.isValid) {
+        setUploadError(`CSV validation failed: ${validation.data.errors.length} errors found`);
         setIsUploading(false);
         return;
       }
 
-      const newFile: UploadedFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        size: file.size,
-        data: csvData,
-        uploadedAt: new Date(),
-        propertyId: selectedProperty
-      };
-
-      setUploadedFiles(prev => [...prev, newFile]);
+      // Upload the CSV
+      const result = await ApiService.uploadCSV(file, selectedProperty);
       
-      // Store in localStorage for persistence
-      const existingData = JSON.parse(localStorage.getItem('propertyData') || '{}');
-      existingData[selectedProperty] = csvData;
-      localStorage.setItem('propertyData', JSON.stringify(existingData));
-      
-      // Trigger dashboard update
-      window.dispatchEvent(new CustomEvent('dataUpdated', { 
-        detail: { propertyId: selectedProperty, data: csvData } 
-      }));
+      if (result.success) {
+        // Reload upload history
+        await loadUploadHistory();
+        
+        // Trigger dashboard update
+        window.dispatchEvent(new CustomEvent('dataUpdated', { 
+          detail: { propertyId: selectedProperty, uploadResult: result.data } 
+        }));
 
-    } catch (error) {
-      setUploadError('Error processing CSV file');
+        setUploadError(null);
+      } else {
+        setUploadError(result.message || 'Upload failed');
+      }
+
+    } catch (error: any) {
+      setUploadError(error.message || 'Error processing CSV file');
       console.error('Upload error:', error);
     } finally {
       setIsUploading(false);
@@ -130,10 +120,6 @@ const CSVUpload: React.FC = () => {
         fileInputRef.current.value = '';
       }
     }
-  };
-
-  const removeFile = (fileId: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -144,8 +130,17 @@ const CSVUpload: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const getPropertyName = (propertyId: string) => {
-    return properties.find(p => p.id === propertyId)?.name || 'Unknown Property';
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
@@ -201,8 +196,12 @@ const CSVUpload: React.FC = () => {
                 disabled={isUploading || !selectedProperty}
                 className="btn-primary flex items-center space-x-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Upload className="w-4 h-4" />
-                <span>{isUploading ? 'Uploading...' : 'Choose CSV File'}</span>
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                <span>{isUploading ? 'Processing...' : 'Choose CSV File'}</span>
               </button>
               <p className="text-sm text-gray-500 mt-2">
                 Supported format: CSV files only
@@ -215,6 +214,31 @@ const CSVUpload: React.FC = () => {
             <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-red-600" />
               <span className="text-sm text-red-600">{uploadError}</span>
+            </div>
+          )}
+
+          {/* Validation Results */}
+          {validationResult && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <h4 className="font-medium text-blue-900 mb-2">Validation Results</h4>
+              <div className="text-sm text-blue-800 space-y-1">
+                <p><strong>Total Rows:</strong> {validationResult.totalRows}</p>
+                <p><strong>Valid Rows:</strong> {validationResult.validRows}</p>
+                <p><strong>Invalid Rows:</strong> {validationResult.invalidRows}</p>
+                {validationResult.errors && validationResult.errors.length > 0 && (
+                  <div className="mt-2">
+                    <p><strong>Errors:</strong></p>
+                    <ul className="list-disc list-inside ml-4">
+                      {validationResult.errors.slice(0, 3).map((error: any, index: number) => (
+                        <li key={index}>{error.error}</li>
+                      ))}
+                      {validationResult.errors.length > 3 && (
+                        <li>... and {validationResult.errors.length - 3} more errors</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -242,7 +266,7 @@ const CSVUpload: React.FC = () => {
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Uploaded Files</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload History</h3>
           <div className="space-y-3">
             {uploadedFiles.map(file => (
               <div key={file.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -251,26 +275,25 @@ const CSVUpload: React.FC = () => {
                     <FileText className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{file.name}</h4>
+                    <h4 className="font-medium text-gray-900">{file.file_name}</h4>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{getPropertyName(file.propertyId)}</span>
-                      <span>{formatFileSize(file.size)}</span>
-                      <span>{file.uploadedAt.toLocaleDateString()}</span>
-                      <span>{file.data.length} records</span>
+                      <span>{file.property_name}</span>
+                      <span>{formatFileSize(file.file_size)}</span>
+                      <span>{new Date(file.uploaded_at).toLocaleDateString()}</span>
+                      <span>{file.records_processed} processed</span>
+                      {file.records_skipped > 0 && (
+                        <span className="text-orange-600">{file.records_skipped} skipped</span>
+                      )}
                     </div>
+                    {file.error_message && (
+                      <p className="text-sm text-red-600 mt-1">{file.error_message}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1 text-green-600">
-                    <CheckCircle className="w-4 h-4" />
-                    <span className="text-sm">Uploaded</span>
-                  </div>
-                  <button
-                    onClick={() => removeFile(file.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 transition-colors duration-200"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(file.upload_status)}`}>
+                    {file.upload_status}
+                  </span>
                 </div>
               </div>
             ))}
@@ -278,44 +301,6 @@ const CSVUpload: React.FC = () => {
         </div>
       )}
 
-      {/* Data Preview */}
-      {uploadedFiles.length > 0 && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {uploadedFiles.map(file => {
-              const totalRevenue = file.data.reduce((sum, record) => sum + record.monthlyRevenue, 0);
-              const avgOccupancy = file.data.reduce((sum, record) => sum + record.occupancyRate, 0) / file.data.length;
-              const totalUnits = file.data.reduce((sum, record) => sum + record.totalUnits, 0);
-              const totalExpenses = file.data.reduce((sum, record) => sum + record.expenses, 0);
-
-              return (
-                <div key={file.id} className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 mb-3">{getPropertyName(file.propertyId)}</h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Total Revenue:</span>
-                      <span className="font-medium">${totalRevenue.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Avg Occupancy:</span>
-                      <span className="font-medium">{avgOccupancy.toFixed(1)}%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Total Units:</span>
-                      <span className="font-medium">{totalUnits}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Total Expenses:</span>
-                      <span className="font-medium">${totalExpenses.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
