@@ -1,6 +1,6 @@
 // src/dev-logger.js - Captures browser console logs and errors
 export function installDevLogger(endpoint = '/api/dev-logs') {
-  if (import.meta.env.PROD) return;
+  if (process.env.NODE_ENV === 'production') return;
 
   const send = (payload) => {
     try {
