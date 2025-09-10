@@ -3,6 +3,14 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 // Check if we're in a browser environment
 const isBrowser = typeof window !== 'undefined';
 
+// API Response Types
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -48,16 +56,16 @@ class ApiService {
   }
 
   // Properties API
-  async getProperties() {
-    return this.request<{ success: boolean; data: any[] }>('/properties');
+  async getProperties(): Promise<ApiResponse<any[]>> {
+    return this.request('/properties');
   }
 
-  async getProperty(id: string) {
-    return this.request<{ success: boolean; data: any }>(`/properties/${id}`);
+  async getProperty(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/properties/${id}`);
   }
 
-  async getPropertiesWithData() {
-    return this.request<{ success: boolean; data: any[] }>('/properties-with-data');
+  async getPropertiesWithData(): Promise<ApiResponse<any[]>> {
+    return this.request('/properties-with-data');
   }
 
   async getFinancialSummary(startDate?: string, endDate?: string) {
@@ -162,22 +170,22 @@ class ApiService {
   }
 
   // Property management API
-  async addProperty(propertyData: any) {
-    return this.request<{ success: boolean; data: any }>('/properties', {
+  async addProperty(propertyData: any): Promise<ApiResponse<any>> {
+    return this.request('/properties', {
       method: 'POST',
       body: JSON.stringify(propertyData)
     });
   }
 
-  async updateProperty(id: string, propertyData: any) {
-    return this.request<{ success: boolean; data: any }>(`/properties/${id}`, {
+  async updateProperty(id: string, propertyData: any): Promise<ApiResponse<any>> {
+    return this.request(`/properties/${id}`, {
       method: 'PUT',
       body: JSON.stringify(propertyData)
     });
   }
 
-  async deleteProperty(id: string) {
-    return this.request<{ success: boolean }>(`/properties/${id}`, {
+  async deleteProperty(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/properties/${id}`, {
       method: 'DELETE'
     });
   }
