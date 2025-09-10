@@ -10,6 +10,11 @@ import PropertyManagement from './components/PropertyManagement';
 import CSVDataViewer from './components/CSVDataViewer';
 import CSVManagement from './components/CSVManagement';
 
+// Install dev logger in development
+if (process.env.NODE_ENV === 'development') {
+  import('./dev-logger').then(m => m.installDevLogger('/api/dev-logs'));
+}
+
 type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 function App() {

@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:log": "node server.js 2>&1 | tee -a ../logs/dev-server.log",
     "dev": "nodemon server.js",
+    "dev:log": "NODE_OPTIONS=\"-r ../log-hook.js\" nodemon server.js",
     "test": "jest"
   },
   "dependencies": {

@@ -49,6 +49,21 @@ const CSVManagement: React.FC = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<string>('');
 
+  const loadUploads = useCallback(async () => {
+    try {
+      const response = await ApiService.getUploadHistory();
+      if (response.success && response.data) {
+        // Filter uploads by selected property
+        const filteredUploads = selectedProperty 
+          ? response.data.filter((upload: CSVUpload) => upload.property_id === selectedProperty)
+          : response.data;
+        setUploads(filteredUploads);
+      }
+    } catch (error: any) {
+      console.error('Error loading uploads:', error);
+    }
+  }, [selectedProperty]);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -78,21 +93,6 @@ const CSVManagement: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  const loadUploads = useCallback(async () => {
-    try {
-      const response = await ApiService.getUploadHistory();
-      if (response.success && response.data) {
-        // Filter uploads by selected property
-        const filteredUploads = selectedProperty 
-          ? response.data.filter((upload: CSVUpload) => upload.property_id === selectedProperty)
-          : response.data;
-        setUploads(filteredUploads);
-      }
-    } catch (error: any) {
-      console.error('Error loading uploads:', error);
-    }
-  }, [selectedProperty]);
 
   const handleDeleteUpload = async (uploadId: string) => {
     try {
