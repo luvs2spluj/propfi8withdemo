@@ -184,11 +184,7 @@ const CSVUpload: React.FC = () => {
         return;
       }
 
-      // Store in localStorage as fallback
-      const existingData = JSON.parse(localStorage.getItem('propertyData') || '{}');
-      const propertyKey = selectedProperty || 'default';
-      existingData[propertyKey] = data;
-      localStorage.setItem('propertyData', JSON.stringify(existingData));
+      // Data processed successfully
       
       // Trigger dashboard update
       window.dispatchEvent(new CustomEvent('dataUpdated', { 

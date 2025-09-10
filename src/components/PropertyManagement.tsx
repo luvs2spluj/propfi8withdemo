@@ -68,33 +68,8 @@ const PropertyManagement: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Error loading properties from API:', error);
-      
-      // Try to load from localStorage first
-      try {
-        const localData = localStorage.getItem('properties');
-        if (localData) {
-          const localProperties = JSON.parse(localData);
-          setProperties(localProperties);
-          console.log('Properties loaded from localStorage:', localProperties.length);
-          setError('Using local data (database unavailable)');
-        } else {
-          // Fallback to default data
-          const defaultProperties = [
-            { id: '1', name: 'Downtown Plaza', address: '123 Main St, Downtown', type: 'Apartment Complex', total_units: 24 },
-            { id: '2', name: 'Garden Apartments', address: '456 Oak Ave, Garden District', type: 'Apartment Complex', total_units: 18 },
-            { id: '3', name: 'Riverside Complex', address: '789 River Rd, Riverside', type: 'Townhouse Complex', total_units: 12 },
-            { id: '4', name: 'Oakwood Manor', address: '321 Pine St, Oakwood', type: 'Single Family', total_units: 8 },
-            { id: '5', name: 'Sunset Heights', address: '654 Sunset Blvd, Heights', type: 'Apartment Complex', total_units: 30 },
-            { id: '6', name: 'Pine Valley', address: '987 Valley Rd, Pine Valley', type: 'Condo Complex', total_units: 16 }
-          ];
-          setProperties(defaultProperties);
-          console.log('Using default properties:', defaultProperties.length);
-          setError('Using default data (no local data found)');
-        }
-      } catch (localError) {
-        console.error('Error loading from localStorage:', localError);
-        setError('Failed to load properties');
-      }
+      setError('Failed to load properties from database. Please check if the backend server is running.');
+      setProperties([]);
     } finally {
       setIsLoading(false);
     }
@@ -180,8 +155,7 @@ const PropertyManagement: React.FC = () => {
         const updatedProperties = [...properties, newProperty];
         setProperties(updatedProperties);
         
-        // Store in localStorage
-        localStorage.setItem('properties', JSON.stringify(updatedProperties));
+        // Property added successfully
         
         setSuccess('Property added successfully (saved locally)!');
         setShowAddForm(false);
@@ -239,7 +213,6 @@ const PropertyManagement: React.FC = () => {
         );
         
         setProperties(updatedProperties);
-        localStorage.setItem('properties', JSON.stringify(updatedProperties));
         
         setSuccess('Property updated successfully (saved locally)!');
         setShowAddForm(false);
@@ -274,7 +247,6 @@ const PropertyManagement: React.FC = () => {
       // Fallback to local storage
       const updatedProperties = properties.filter(p => p.id !== property.id);
       setProperties(updatedProperties);
-      localStorage.setItem('properties', JSON.stringify(updatedProperties));
       
       setSuccess('Property deleted successfully!');
 
