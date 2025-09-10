@@ -70,7 +70,7 @@ const Dashboard: React.FC = () => {
 
   const totalProperties = properties.length;
   const totalOccupied = properties.reduce((sum, p) => sum + (p.total_units || 0), 0);
-  const avgOccupancy = financialData?.avg_occupancy_rate || 0;
+  const avgOccupancy = parseFloat(financialData?.avg_occupancy_rate || '0');
 
   const metrics = [
     {
