@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
         setProperties(propertiesResponse.data);
         console.log('✅ Properties loaded from API:', propertiesResponse.data);
       } else {
-        console.error('❌ Failed to load properties from API:', propertiesResponse.error);
+        console.error('❌ Failed to load properties from API:', propertiesResponse.error || 'Unknown error');
         setProperties([]);
       }
 
@@ -55,7 +55,7 @@ const Dashboard: React.FC = () => {
         setFinancialData(financialResponse.data);
         console.log('✅ Financial data loaded from API:', financialResponse.data);
       } else {
-        console.error('❌ Failed to load financial data from API:', financialResponse.error);
+        console.error('❌ Failed to load financial data from API:', financialResponse.error || 'Unknown error');
         setFinancialData(null);
       }
     } catch (error: any) {
