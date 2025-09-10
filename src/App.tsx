@@ -6,8 +6,9 @@ import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVUpload from './components/CSVUpload';
+import PropertyManagement from './components/PropertyManagement';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -26,6 +27,8 @@ function App() {
         return <Reports />;
       case 'upload':
         return <CSVUpload />;
+      case 'property-management':
+        return <PropertyManagement />;
       default:
         return <Dashboard />;
     }

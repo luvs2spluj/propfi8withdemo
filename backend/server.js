@@ -88,6 +88,28 @@ app.get('/api/properties', async (req, res) => {
   }
 });
 
+app.post('/api/properties', async (req, res) => {
+  try {
+    const { name, address, type, total_units } = req.body;
+    
+    if (!name || !address) {
+      return res.status(400).json({ success: false, error: 'Name and address are required' });
+    }
+
+    const propertyId = await propertyService.createProperty({
+      name,
+      address,
+      type: type || 'Apartment Complex',
+      totalUnits: total_units || 0
+    });
+
+    const newProperty = await propertyService.getPropertyById(propertyId);
+    res.status(201).json({ success: true, data: newProperty });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/api/properties/:id', async (req, res) => {
   try {
     const property = await propertyService.getPropertyById(req.params.id);
@@ -95,6 +117,46 @@ app.get('/api/properties/:id', async (req, res) => {
       return res.status(404).json({ success: false, error: 'Property not found' });
     }
     res.json({ success: true, data: property });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.put('/api/properties/:id', async (req, res) => {
+  try {
+    const { name, address, type, total_units } = req.body;
+    
+    if (!name || !address) {
+      return res.status(400).json({ success: false, error: 'Name and address are required' });
+    }
+
+    const success = await propertyService.updateProperty(req.params.id, {
+      name,
+      address,
+      type: type || 'Apartment Complex',
+      totalUnits: total_units || 0
+    });
+
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Property not found' });
+    }
+
+    const updatedProperty = await propertyService.getPropertyById(req.params.id);
+    res.json({ success: true, data: updatedProperty });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/properties/:id', async (req, res) => {
+  try {
+    const success = await propertyService.deleteProperty(req.params.id);
+    
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Property not found' });
+    }
+
+    res.json({ success: true, message: 'Property deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

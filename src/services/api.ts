@@ -1,5 +1,8 @@
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// Check if we're in a browser environment
+const isBrowser = typeof window !== 'undefined';
+
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
@@ -13,7 +16,16 @@ class ApiService {
     };
 
     try {
-      const response = await fetch(url, config);
+      // Add timeout for better error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Network error' }));
@@ -21,8 +33,16 @@ class ApiService {
       }
 
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('API request failed:', error);
+      
+      // Provide more specific error messages
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - server may be unavailable');
+      } else if (error.message.includes('fetch')) {
+        throw new Error('Network error - unable to connect to server');
+      }
+      
       throw error;
     }
   }
@@ -139,6 +159,27 @@ class ApiService {
     
     const queryString = params.toString();
     return this.request<{ success: boolean; data: any[] }>(`/upload-history${queryString ? `?${queryString}` : ''}`);
+  }
+
+  // Property management API
+  async addProperty(propertyData: any) {
+    return this.request<{ success: boolean; data: any }>('/properties', {
+      method: 'POST',
+      body: JSON.stringify(propertyData)
+    });
+  }
+
+  async updateProperty(id: string, propertyData: any) {
+    return this.request<{ success: boolean; data: any }>(`/properties/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(propertyData)
+    });
+  }
+
+  async deleteProperty(id: string) {
+    return this.request<{ success: boolean }>(`/properties/${id}`, {
+      method: 'DELETE'
+    });
   }
 
   // Health check

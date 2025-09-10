@@ -40,13 +40,24 @@ const CSVUpload: React.FC = () => {
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [properties, setProperties] = useState<any[]>([]);
   const [validationResult, setValidationResult] = useState<any>(null);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load properties and upload history on component mount
   useEffect(() => {
+    checkBackendStatus();
     loadProperties();
     loadUploadHistory();
   }, []);
+
+  const checkBackendStatus = async () => {
+    try {
+      await ApiService.getHealth();
+      setBackendStatus('connected');
+    } catch (error) {
+      setBackendStatus('disconnected');
+    }
+  };
 
   const loadProperties = async () => {
     try {
@@ -74,16 +85,27 @@ const CSVUpload: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!selectedProperty) {
-      setUploadError('Please select a property first');
-      return;
-    }
-
     setIsUploading(true);
     setUploadError(null);
     setValidationResult(null);
 
     try {
+      // Check if backend is available
+      try {
+        await ApiService.getHealth();
+      } catch (healthError) {
+        // Backend not available, use local processing as fallback
+        console.warn('Backend not available, using local processing');
+        await handleLocalProcessing(file);
+        return;
+      }
+
+      if (!selectedProperty) {
+        setUploadError('Please select a property first');
+        setIsUploading(false);
+        return;
+      }
+
       // First validate the CSV
       const validation = await ApiService.validateCSV(file);
       setValidationResult(validation.data);
@@ -112,13 +134,80 @@ const CSVUpload: React.FC = () => {
       }
 
     } catch (error: any) {
-      setUploadError(error.message || 'Error processing CSV file');
       console.error('Upload error:', error);
+      
+      // Fallback to local processing if backend fails
+      if (error.message.includes('fetch') || error.message.includes('Network')) {
+        console.warn('Network error, falling back to local processing');
+        await handleLocalProcessing(file);
+      } else {
+        setUploadError(error.message || 'Error processing CSV file');
+      }
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const handleLocalProcessing = async (file: File) => {
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      const data = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        if (values.length === headers.length && values[0]) {
+          try {
+            data.push({
+              propertyName: values[0] || '',
+              address: values[1] || '',
+              monthlyRevenue: parseFloat(values[2]) || 0,
+              occupancyRate: parseFloat(values[3]) || 0,
+              totalUnits: parseInt(values[4]) || 0,
+              occupiedUnits: parseInt(values[5]) || 0,
+              expenses: parseFloat(values[6]) || 0,
+              netIncome: parseFloat(values[7]) || 0,
+              date: values[8] || new Date().toISOString().split('T')[0]
+            });
+          } catch (error) {
+            console.error('Error parsing row:', error);
+          }
+        }
+      }
+      
+      if (data.length === 0) {
+        setUploadError('No valid data found in CSV file');
+        return;
+      }
+
+      // Store in localStorage as fallback
+      const existingData = JSON.parse(localStorage.getItem('propertyData') || '{}');
+      const propertyKey = selectedProperty || 'default';
+      existingData[propertyKey] = data;
+      localStorage.setItem('propertyData', JSON.stringify(existingData));
+      
+      // Trigger dashboard update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { propertyId: propertyKey, data: data } 
+      }));
+
+      setValidationResult({
+        isValid: true,
+        totalRows: data.length,
+        validRows: data.length,
+        invalidRows: 0,
+        errors: []
+      });
+
+      setUploadError(null);
+      
+    } catch (error) {
+      setUploadError('Error processing CSV file locally');
+      console.error('Local processing error:', error);
     }
   };
 
@@ -150,6 +239,18 @@ const CSVUpload: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">CSV Data Upload</h1>
           <p className="text-gray-600 mt-1">Upload CSV files to populate your dashboard with real property data</p>
+          <div className="flex items-center space-x-2 mt-2">
+            <div className={`w-2 h-2 rounded-full ${
+              backendStatus === 'connected' ? 'bg-green-500' :
+              backendStatus === 'disconnected' ? 'bg-red-500' :
+              'bg-yellow-500'
+            }`}></div>
+            <span className="text-sm text-gray-500">
+              {backendStatus === 'connected' ? 'Backend Connected' :
+               backendStatus === 'disconnected' ? 'Using Local Processing' :
+               'Checking Connection...'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -193,7 +294,7 @@ const CSVUpload: React.FC = () => {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading || !selectedProperty}
+                disabled={isUploading}
                 className="btn-primary flex items-center space-x-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? (
@@ -206,6 +307,11 @@ const CSVUpload: React.FC = () => {
               <p className="text-sm text-gray-500 mt-2">
                 Supported format: CSV files only
               </p>
+              {!selectedProperty && (
+                <p className="text-sm text-orange-600 mt-1">
+                  ⚠️ Select a property above for best results
+                </p>
+              )}
             </div>
           </div>
 
