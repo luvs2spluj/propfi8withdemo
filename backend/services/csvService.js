@@ -24,16 +24,6 @@ class CSVService {
       const uploadId = uploadResult.rows[0].id;
 
       try {
-        // Parse CSV file
-        const parseResult = await this.csvProcessor.parseCSV(filePath);
-        
-        if (parseResult.errors.length > 0) {
-          console.warn(`CSV parsing warnings: ${parseResult.errors.length} errors`);
-        }
-
-        // Clean and deduplicate data
-        const cleanedData = this.csvProcessor.cleanData(parseResult.data);
-        
         // Get property name for validation
         const propertyResult = await client.query(
           'SELECT name FROM properties WHERE id = $1',
@@ -45,14 +35,24 @@ class CSVService {
         }
 
         const propertyName = propertyResult.rows[0].name;
+
+        // Parse CSV file with property name context
+        const parseResult = await this.csvProcessor.parseCSV(filePath, propertyName);
+        
+        if (parseResult.errors.length > 0) {
+          console.warn(`CSV parsing warnings: ${parseResult.errors.length} errors`);
+        }
+
+        // Clean and deduplicate data
+        const cleanedData = this.csvProcessor.cleanData(parseResult.data);
         let processedCount = 0;
         let skippedCount = 0;
 
         // Process each row
         for (const row of cleanedData) {
           try {
-            // Validate property name matches
-            if (row.propertyName.toLowerCase() !== propertyName.toLowerCase()) {
+            // Validate property name matches (if property name exists in CSV)
+            if (row.propertyName && row.propertyName.toLowerCase() !== propertyName.toLowerCase()) {
               console.warn(`Property name mismatch: ${row.propertyName} vs ${propertyName}`);
               skippedCount++;
               continue;

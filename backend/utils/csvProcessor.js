@@ -11,7 +11,7 @@ class CSVProcessor {
   }
 
   // Parse CSV file and return structured data
-  async parseCSV(filePath) {
+  async parseCSV(filePath, defaultPropertyName = null) {
     return new Promise((resolve, reject) => {
       const results = [];
       const errors = [];
@@ -20,7 +20,7 @@ class CSVProcessor {
         .pipe(csv())
         .on('data', (data) => {
           try {
-            const processedRow = this.processRow(data);
+            const processedRow = this.processRow(data, defaultPropertyName);
             if (processedRow) {
               results.push(processedRow);
             }
@@ -46,8 +46,8 @@ class CSVProcessor {
     });
   }
 
-  // Process individual CSV row
-  processRow(row) {
+  // Process individual CSV row with enhanced flexibility
+  processRow(row, defaultPropertyName = null) {
     // Normalize column names (case insensitive, trim whitespace)
     const normalizedRow = {};
     Object.keys(row).forEach(key => {
@@ -55,24 +55,37 @@ class CSVProcessor {
       normalizedRow[normalizedKey] = row[key];
     });
 
-    // Extract and validate data
-    const propertyName = this.extractString(normalizedRow, ['property name', 'property_name', 'property']);
-    const address = this.extractString(normalizedRow, ['address', 'property_address']);
-    const monthlyRevenue = this.extractNumber(normalizedRow, ['monthly revenue', 'monthly_revenue', 'revenue']);
-    const occupancyRate = this.extractNumber(normalizedRow, ['occupancy rate', 'occupancy_rate', 'occupancy']);
-    const totalUnits = this.extractNumber(normalizedRow, ['total units', 'total_units', 'units']);
-    const occupiedUnits = this.extractNumber(normalizedRow, ['occupied units', 'occupied_units', 'occupied']);
-    const expenses = this.extractNumber(normalizedRow, ['expenses', 'expense', 'costs']);
-    const netIncome = this.extractNumber(normalizedRow, ['net income', 'net_income', 'profit']);
-    const date = this.extractDate(normalizedRow, ['date', 'data_date', 'month', 'period']);
+    // Extract and validate data with enhanced field mapping
+    const propertyName = this.extractString(normalizedRow, ['property name', 'property_name', 'property', 'building', 'site']) || defaultPropertyName;
+    const address = this.extractString(normalizedRow, ['address', 'property_address', 'location']);
+    const monthlyRevenue = this.extractNumber(normalizedRow, ['monthly revenue', 'monthly_revenue', 'revenue', 'income', 'rental income', 'gross revenue']);
+    const occupancyRate = this.extractNumber(normalizedRow, ['occupancy rate', 'occupancy_rate', 'occupancy', 'occupancy %', 'occupancy_percent']);
+    const totalUnits = this.extractNumber(normalizedRow, ['total units', 'total_units', 'units', 'total_apartments', 'apartments']);
+    const occupiedUnits = this.extractNumber(normalizedRow, ['occupied units', 'occupied_units', 'occupied', 'rented units', 'rented']);
+    const expenses = this.extractNumber(normalizedRow, ['expenses', 'expense', 'costs', 'total expenses', 'operating expenses']);
+    const netIncome = this.extractNumber(normalizedRow, ['net income', 'net_income', 'profit', 'net profit', 'net_operating_income']);
+    const date = this.extractDate(normalizedRow, ['date', 'data_date', 'month', 'period', 'reporting_date', 'period_end']);
 
-    // Validate required fields
+    // Enhanced validation with better error messages
     if (!propertyName) {
-      throw new Error('Property name is required');
+      throw new Error('Property name is required. Either include it in the CSV or select a property before uploading.');
     }
 
     if (!date) {
-      throw new Error('Date is required');
+      throw new Error('Date is required. Please include a date column (e.g., "Date", "Month", "Period").');
+    }
+
+    // Validate data ranges for 26-unit building context
+    if (monthlyRevenue && (monthlyRevenue < 1000 || monthlyRevenue > 100000)) {
+      throw new Error(`Revenue $${monthlyRevenue} seems unrealistic for a 26-unit building. Expected range: $1,000 - $100,000`);
+    }
+
+    if (occupancyRate && (occupancyRate < 0 || occupancyRate > 100)) {
+      throw new Error(`Invalid occupancy rate: ${occupancyRate}%. Must be between 0-100%.`);
+    }
+
+    if (totalUnits && (totalUnits < 1 || totalUnits > 100)) {
+      throw new Error(`Invalid total units: ${totalUnits}. Expected range: 1-100 units.`);
     }
 
     // Calculate missing values if possible
