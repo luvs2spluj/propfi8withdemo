@@ -190,6 +190,25 @@ class ApiService {
     });
   }
 
+  // CSV Management API
+  async deleteUpload(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/uploads/${uploadId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async deletePropertyDataByUpload(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/uploads/${uploadId}/data`, {
+      method: 'DELETE'
+    });
+  }
+
+  async reprocessUpload(uploadId: string): Promise<ApiResponse<any>> {
+    return this.request(`/uploads/${uploadId}/reprocess`, {
+      method: 'POST'
+    });
+  }
+
   // Health check
   async getHealth() {
     return this.request<{ status: string; timestamp: string; environment: string }>('/health');

@@ -302,6 +302,62 @@ app.get('/api/upload-history', async (req, res) => {
   }
 });
 
+// CSV Management routes
+app.get('/api/upload-history', async (req, res) => {
+  try {
+    const { propertyId } = req.query;
+    const uploads = await csvService.getUploadHistory(propertyId);
+    res.json({ success: true, data: uploads });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/uploads/:id', async (req, res) => {
+  try {
+    const uploadId = req.params.id;
+    const success = await csvService.deleteUpload(uploadId);
+    
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'Upload not found' });
+    }
+
+    res.json({ success: true, message: 'Upload deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.delete('/api/uploads/:id/data', async (req, res) => {
+  try {
+    const uploadId = req.params.id;
+    const success = await csvService.deletePropertyDataByUpload(uploadId);
+    
+    if (!success) {
+      return res.status(404).json({ success: false, error: 'No data found for this upload' });
+    }
+
+    res.json({ success: true, message: 'Property data deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.post('/api/uploads/:id/reprocess', async (req, res) => {
+  try {
+    const uploadId = req.params.id;
+    const result = await csvService.reprocessUpload(uploadId);
+    
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {

@@ -8,8 +8,9 @@ import Reports from './components/Reports';
 import CSVUpload from './components/CSVUpload';
 import PropertyManagement from './components/PropertyManagement';
 import CSVDataViewer from './components/CSVDataViewer';
+import CSVManagement from './components/CSVManagement';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -32,6 +33,8 @@ function App() {
         return <PropertyManagement />;
       case 'csv-data':
         return <CSVDataViewer />;
+      case 'csv-management':
+        return <CSVManagement />;
       default:
         return <Dashboard />;
     }

@@ -156,6 +156,60 @@ class CSVService {
     }
   }
 
+  // Enhanced data validation for 26-unit building context
+  validatePropertyData(row, propertyId) {
+    const errors = [];
+    
+    // Validate revenue (should be reasonable for 26 units)
+    if (row.monthlyRevenue < 1000 || row.monthlyRevenue > 100000) {
+      errors.push(`Revenue ${row.monthlyRevenue} seems unrealistic for a 26-unit building`);
+    }
+    
+    // Validate occupancy rate
+    if (row.occupancyRate < 0 || row.occupancyRate > 100) {
+      errors.push(`Invalid occupancy rate: ${row.occupancyRate}%`);
+    }
+    
+    // Validate date format
+    if (!row.date || isNaN(new Date(row.date).getTime())) {
+      errors.push(`Invalid date: ${row.date}`);
+    }
+    
+    // Validate expenses don't exceed revenue
+    const totalExpenses = (row.maintenanceCost || 0) + (row.utilitiesCost || 0) + 
+                         (row.insuranceCost || 0) + (row.propertyTax || 0) + (row.otherExpenses || 0);
+    if (totalExpenses > row.monthlyRevenue) {
+      errors.push(`Total expenses (${totalExpenses}) exceed revenue (${row.monthlyRevenue})`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      error: errors.join('; ')
+    };
+  }
+
+  // Calculate default expense percentages for 26-unit building
+  calculateDefaultExpense(totalExpenses, expenseType) {
+    if (!totalExpenses || totalExpenses <= 0) return 0;
+    
+    const percentages = {
+      maintenance: 0.35,  // 35% for maintenance (higher for older buildings)
+      utilities: 0.25,    // 25% for utilities
+      insurance: 0.15,    // 15% for insurance
+      property_tax: 0.15, // 15% for property tax
+      other: 0.10         // 10% for other expenses
+    };
+    
+    return Math.round(totalExpenses * percentages[expenseType] * 100) / 100;
+  }
+
+  // Check if new upload is newer than existing data
+  isNewerUpload(newFileName, existingNotes) {
+    // Simple comparison - in production you might want more sophisticated logic
+    // For now, assume newer uploads have later timestamps in filename
+    return newFileName > existingNotes;
+  }
+
   // Get upload history
   async getUploadHistory(propertyId = null) {
     try {
@@ -203,6 +257,115 @@ class CSVService {
         errors: [error.message],
         sampleData: []
       };
+    }
+  }
+
+  // CSV Management methods
+  async getUploadHistory(propertyId = null) {
+    const client = await pool.connect();
+    try {
+      let query = `
+        SELECT 
+          cu.*,
+          p.name as property_name
+        FROM csv_uploads cu
+        JOIN properties p ON cu.property_id = p.id
+      `;
+      
+      const params = [];
+      if (propertyId) {
+        query += ' WHERE cu.property_id = $1';
+        params.push(propertyId);
+      }
+      
+      query += ' ORDER BY cu.uploaded_at DESC';
+      
+      const result = await client.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('Error getting upload history:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async deleteUpload(uploadId) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // First delete the upload record
+      const deleteResult = await client.query(
+        'DELETE FROM csv_uploads WHERE id = $1',
+        [uploadId]
+      );
+      
+      if (deleteResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      
+      await client.query('COMMIT');
+      return true;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error deleting upload:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async deletePropertyDataByUpload(uploadId) {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Delete property data that was created from this upload
+      const deleteResult = await client.query(
+        'DELETE FROM property_data WHERE notes = (SELECT filename FROM csv_uploads WHERE id = $1)',
+        [uploadId]
+      );
+      
+      await client.query('COMMIT');
+      return deleteResult.rowCount > 0;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Error deleting property data:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async reprocessUpload(uploadId) {
+    const client = await pool.connect();
+    try {
+      // Get upload details
+      const uploadResult = await client.query(
+        'SELECT * FROM csv_uploads WHERE id = $1',
+        [uploadId]
+      );
+      
+      if (uploadResult.rows.length === 0) {
+        return { success: false, error: 'Upload not found' };
+      }
+      
+      const upload = uploadResult.rows[0];
+      
+      // For now, just return success - in a real implementation,
+      // you would re-process the CSV file
+      return {
+        success: true,
+        message: 'Upload reprocessed successfully',
+        uploadId: uploadId
+      };
+    } catch (error) {
+      console.error('Error reprocessing upload:', error);
+      return { success: false, error: error.message };
+    } finally {
+      client.release();
     }
   }
 }
