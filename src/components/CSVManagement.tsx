@@ -43,6 +43,13 @@ const CSVManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  
+  // Upload states
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadProperty, setUploadProperty] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<string>('');
 
   useEffect(() => {
     loadData();
@@ -105,6 +112,68 @@ const CSVManagement: React.FC = () => {
       }
     } catch (error: any) {
       setError('Failed to delete upload: ' + error.message);
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+      setError(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFile || !uploadProperty) {
+      setError('Please select both a file and a property');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus('Uploading file...');
+    setError(null);
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const response = await ApiService.uploadCSV(uploadFile, uploadProperty);
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      setUploadStatus('Processing complete!');
+
+      if (response.success) {
+        setUploadStatus('Upload successful!');
+        setUploadFile(null);
+        setUploadProperty('');
+        
+        // Refresh the uploads list
+        await loadData();
+        
+        // Clear status after 3 seconds
+        setTimeout(() => {
+          setUploadStatus('');
+          setUploadProgress(0);
+        }, 3000);
+      } else {
+        setError(response.error || 'Upload failed');
+        setUploadStatus('Upload failed');
+      }
+    } catch (error: any) {
+      setError('Upload failed: ' + error.message);
+      setUploadStatus('Upload failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -171,7 +240,7 @@ const CSVManagement: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">CSV Management</h1>
-          <p className="text-gray-600 mt-1">Manage uploaded CSV files and data processing.</p>
+          <p className="text-gray-600 mt-1">Upload, manage, and process CSV files for your properties.</p>
         </div>
         <button
           onClick={loadData}
@@ -180,6 +249,104 @@ const CSVManagement: React.FC = () => {
           <RefreshCw className="w-4 h-4 mr-2" />
           Refresh
         </button>
+      </div>
+
+      {/* Upload Section */}
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center mb-4">
+          <Upload className="w-5 h-5 text-primary-600 mr-2" />
+          <h2 className="text-xl font-semibold text-gray-900">Upload New CSV File</h2>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Property
+            </label>
+            <select
+              value={uploadProperty}
+              onChange={(e) => setUploadProperty(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              disabled={isUploading}
+            >
+              <option value="">Choose a property...</option>
+              {properties.map(property => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select CSV File
+            </label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileSelect}
+              disabled={isUploading}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+            />
+          </div>
+        </div>
+
+        {uploadFile && (
+          <div className="mb-4 p-3 bg-gray-50 rounded-md">
+            <div className="flex items-center">
+              <FileText className="w-4 h-4 text-gray-500 mr-2" />
+              <span className="text-sm text-gray-700">
+                Selected: <strong>{uploadFile.name}</strong> ({(uploadFile.size / 1024).toFixed(1)} KB)
+              </span>
+            </div>
+          </div>
+        )}
+
+        {uploadStatus && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">{uploadStatus}</span>
+              <span className="text-sm text-gray-500">{uploadProgress}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={handleUpload}
+          disabled={!uploadFile || !uploadProperty || isUploading}
+          className="btn-primary flex items-center"
+        >
+          {isUploading ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            <>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload CSV
+            </>
+          )}
+        </button>
+
+        <div className="mt-4 text-sm text-gray-600">
+          <p><strong>Expected CSV format:</strong></p>
+          <ul className="list-disc list-inside mt-1 space-y-1">
+            <li>Date (YYYY-MM-DD format)</li>
+            <li>Monthly Revenue (or Revenue, Income)</li>
+            <li>Occupancy Rate (0-100%)</li>
+            <li>Total Units (optional)</li>
+            <li>Expenses (optional)</li>
+            <li>Net Income (optional - calculated automatically)</li>
+          </ul>
+        </div>
       </div>
 
       {error && (
