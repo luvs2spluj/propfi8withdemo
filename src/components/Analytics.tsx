@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -8,10 +8,39 @@ import {
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
+import ApiService from '../services/api';
+
+interface Property {
+  id: string;
+  name: string;
+  address?: string;
+  type?: string;
+  total_units?: number;
+}
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('12m');
   const [selectedMetric, setSelectedMetric] = useState('revenue');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    try {
+      setIsLoading(true);
+      const response = await ApiService.getProperties();
+      if (response.success && response.data) {
+        setProperties(response.data);
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const analyticsMetrics = [
     {
@@ -172,11 +201,11 @@ const Analytics: React.FC = () => {
               </button>
             </div>
           </div>
-          {selectedMetric === 'revenue' ? <RevenueChart /> : <OccupancyChart />}
+          {selectedMetric === 'revenue' ? <RevenueChart properties={properties} /> : <OccupancyChart properties={properties} />}
         </div>
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Performance</h3>
-          <PropertyPerformanceChart />
+          <PropertyPerformanceChart properties={properties} />
         </div>
       </div>
 
