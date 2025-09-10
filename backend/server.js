@@ -64,8 +64,8 @@ const upload = multer({
 });
 
 // Initialize services
-const propertyService = new PropertyService();
-const csvService = new CSVService();
+const propertyService = PropertyService;
+const csvService = CSVService;
 
 // Routes
 
@@ -164,7 +164,7 @@ app.delete('/api/properties/:id', async (req, res) => {
 
 app.get('/api/properties-with-data', async (req, res) => {
   try {
-    const properties = await propertyService.getPropertiesWithLatestData();
+    const properties = await propertyService.getPropertiesWithData();
     res.json({ success: true, data: properties });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -270,26 +270,26 @@ app.get('/api/properties/:id/aggregated', async (req, res) => {
   }
 });
 
-// Chart data routes
-app.get('/api/chart-data', async (req, res) => {
-  try {
-    const { propertyId, startDate, endDate } = req.query;
-    const data = await csvService.getChartData(propertyId, startDate, endDate);
-    res.json({ success: true, data: data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// Chart data routes (commented out - methods not implemented in CSV service)
+// app.get('/api/chart-data', async (req, res) => {
+//   try {
+//     const { propertyId, startDate, endDate } = req.query;
+//     const data = await csvService.getChartData(propertyId, startDate, endDate);
+//     res.json({ success: true, data: data });
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
-app.get('/api/monthly-data', async (req, res) => {
-  try {
-    const { propertyId } = req.query;
-    const data = await csvService.getMonthlyData(propertyId);
-    res.json({ success: true, data: data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+// app.get('/api/monthly-data', async (req, res) => {
+//   try {
+//     const { propertyId } = req.query;
+//     const data = await csvService.getMonthlyData(propertyId);
+//     res.json({ success: true, data: data });
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
 // Upload history
 app.get('/api/upload-history', async (req, res) => {

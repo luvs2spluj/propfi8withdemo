@@ -17,7 +17,7 @@ class CSVService {
 
       // Create upload record
       const uploadResult = await client.query(
-        'INSERT INTO csv_uploads (property_id, file_name, file_size, upload_status) VALUES ($1, $2, $3, $4) RETURNING id',
+        'INSERT INTO csv_uploads (property_id, filename, file_size, upload_status) VALUES ($1, $2, $3, $4) RETURNING id',
         [propertyId, fileName, fileSize, 'processing']
       );
       
@@ -60,7 +60,7 @@ class CSVService {
 
             // Check for existing data (prevent duplicates)
             const existingResult = await client.query(
-              'SELECT id FROM property_data WHERE property_id = $1 AND data_date = $2',
+              'SELECT id FROM property_data WHERE property_id = $1 AND date = $2',
               [propertyId, row.date]
             );
 
@@ -68,20 +68,24 @@ class CSVService {
               // Update existing record
               await client.query(
                 `UPDATE property_data SET 
-                 monthly_revenue = $1, 
+                 revenue = $1, 
                  occupancy_rate = $2, 
-                 occupied_units = $3, 
-                 expenses = $4, 
-                 net_income = $5,
-                 csv_file_name = $6,
+                 maintenance_cost = $3, 
+                 utilities_cost = $4, 
+                 insurance_cost = $5,
+                 property_tax = $6,
+                 other_expenses = $7,
+                 notes = $8,
                  updated_at = NOW()
-                 WHERE property_id = $7 AND data_date = $8`,
+                 WHERE property_id = $9 AND date = $10`,
                 [
                   row.monthlyRevenue,
                   row.occupancyRate,
-                  row.occupiedUnits,
-                  row.expenses,
-                  row.netIncome,
+                  row.maintenanceCost || (row.expenses * 0.3), // Default 30% for maintenance
+                  row.utilitiesCost || (row.expenses * 0.2), // Default 20% for utilities
+                  row.insuranceCost || (row.expenses * 0.1), // Default 10% for insurance
+                  row.propertyTax || (row.expenses * 0.2), // Default 20% for property tax
+                  row.otherExpenses || (row.expenses * 0.2), // Default 20% for other expenses
                   fileName,
                   propertyId,
                   row.date
@@ -91,16 +95,18 @@ class CSVService {
               // Insert new record
               await client.query(
                 `INSERT INTO property_data 
-                 (property_id, data_date, monthly_revenue, occupancy_rate, occupied_units, expenses, net_income, csv_file_name) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                 (property_id, date, revenue, occupancy_rate, maintenance_cost, utilities_cost, insurance_cost, property_tax, other_expenses, notes) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
                 [
                   propertyId,
                   row.date,
                   row.monthlyRevenue,
                   row.occupancyRate,
-                  row.occupiedUnits,
-                  row.expenses,
-                  row.netIncome,
+                  row.maintenanceCost || (row.expenses * 0.3), // Default 30% for maintenance
+                  row.utilitiesCost || (row.expenses * 0.2), // Default 20% for utilities
+                  row.insuranceCost || (row.expenses * 0.1), // Default 10% for insurance
+                  row.propertyTax || (row.expenses * 0.2), // Default 20% for property tax
+                  row.otherExpenses || (row.expenses * 0.2), // Default 20% for other expenses
                   fileName
                 ]
               );
@@ -115,8 +121,8 @@ class CSVService {
 
         // Update upload record with results
         await client.query(
-          'UPDATE csv_uploads SET records_processed = $1, records_skipped = $2, upload_status = $3, processed_at = NOW() WHERE id = $4',
-          [processedCount, skippedCount, 'completed', uploadId]
+          'UPDATE csv_uploads SET rows_processed = $1, rows_inserted = $2, rows_skipped = $3, upload_status = $4, processed_at = NOW() WHERE id = $5',
+          [processedCount + skippedCount, processedCount, skippedCount, 'completed', uploadId]
         );
 
         await client.query('COMMIT');

@@ -89,7 +89,7 @@ class PropertyService {
          FROM property_data pd 
          JOIN properties p ON pd.property_id = p.id 
          WHERE pd.property_id = $1 
-         ORDER BY pd.data_date DESC 
+         ORDER BY pd.date DESC 
          LIMIT $2 OFFSET $3`,
         [propertyId, parseInt(limit), offset]
       );
@@ -106,11 +106,11 @@ class PropertyService {
         SELECT 
           p.name as property_name,
           COUNT(pd.id) as total_records,
-          AVG(pd.monthly_revenue) as avg_revenue,
+          AVG(pd.revenue) as avg_revenue,
           AVG(pd.occupancy_rate) as avg_occupancy,
-          SUM(pd.monthly_revenue) as total_revenue,
-          SUM(pd.expenses) as total_expenses,
-          SUM(pd.net_income) as total_net_income
+          SUM(pd.revenue) as total_revenue,
+          SUM(pd.maintenance_cost + pd.utilities_cost + pd.insurance_cost + pd.property_tax + pd.other_expenses) as total_expenses,
+          SUM(pd.revenue - (pd.maintenance_cost + pd.utilities_cost + pd.insurance_cost + pd.property_tax + pd.other_expenses)) as total_net_income
         FROM properties p
         LEFT JOIN property_data pd ON p.id = pd.property_id
         WHERE p.id = $1
@@ -120,13 +120,13 @@ class PropertyService {
       let paramIndex = 2;
       
       if (startDate) {
-        query += ` AND pd.data_date >= $${paramIndex}`;
+        query += ` AND pd.date >= $${paramIndex}`;
         params.push(startDate);
         paramIndex++;
       }
       
       if (endDate) {
-        query += ` AND pd.data_date <= $${paramIndex}`;
+        query += ` AND pd.date <= $${paramIndex}`;
         params.push(endDate);
         paramIndex++;
       }
@@ -147,8 +147,8 @@ class PropertyService {
         SELECT 
           p.*,
           COUNT(pd.id) as data_count,
-          MAX(pd.data_date) as latest_data_date,
-          AVG(pd.monthly_revenue) as avg_revenue,
+          MAX(pd.date) as latest_data_date,
+          AVG(pd.revenue) as avg_revenue,
           AVG(pd.occupancy_rate) as avg_occupancy
         FROM properties p
         LEFT JOIN property_data pd ON p.id = pd.property_id
@@ -168,9 +168,9 @@ class PropertyService {
         SELECT 
           COUNT(DISTINCT p.id) as total_properties,
           COUNT(pd.id) as total_records,
-          SUM(pd.monthly_revenue) as total_revenue,
-          SUM(pd.expenses) as total_expenses,
-          SUM(pd.net_income) as total_net_income,
+          SUM(pd.revenue) as total_revenue,
+          SUM(pd.maintenance_cost + pd.utilities_cost + pd.insurance_cost + pd.property_tax + pd.other_expenses) as total_expenses,
+          SUM(pd.revenue - (pd.maintenance_cost + pd.utilities_cost + pd.insurance_cost + pd.property_tax + pd.other_expenses)) as total_net_income,
           AVG(pd.occupancy_rate) as avg_occupancy_rate
         FROM properties p
         LEFT JOIN property_data pd ON p.id = pd.property_id
@@ -184,13 +184,13 @@ class PropertyService {
         const conditions = [];
         
         if (startDate) {
-          conditions.push(`pd.data_date >= $${paramIndex}`);
+          conditions.push(`pd.date >= $${paramIndex}`);
           params.push(startDate);
           paramIndex++;
         }
         
         if (endDate) {
-          conditions.push(`pd.data_date <= $${paramIndex}`);
+          conditions.push(`pd.date <= $${paramIndex}`);
           params.push(endDate);
           paramIndex++;
         }
