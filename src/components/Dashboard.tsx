@@ -39,8 +39,11 @@ const Dashboard: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
+      console.log('🔄 Loading dashboard data from API...');
+      
       // Load properties from database
       const propertiesResponse = await ApiService.getProperties();
+      console.log('📊 Properties API response:', propertiesResponse);
       if (propertiesResponse.success && propertiesResponse.data) {
         setProperties(propertiesResponse.data);
         console.log('✅ Properties loaded from API:', propertiesResponse.data);
@@ -51,15 +54,18 @@ const Dashboard: React.FC = () => {
 
       // Load financial data
       const financialResponse = await ApiService.getFinancialSummary();
+      console.log('💰 Financial API response:', financialResponse);
       if (financialResponse.success && financialResponse.data) {
         setFinancialData(financialResponse.data);
         console.log('✅ Financial data loaded from API:', financialResponse.data);
+        console.log('📈 Total Revenue from API:', financialResponse.data.total_revenue);
+        console.log('📈 Net Income from API:', financialResponse.data.total_net_income);
       } else {
         console.error('❌ Failed to load financial data from API:', financialResponse.error || 'Unknown error');
         setFinancialData(null);
       }
     } catch (error: any) {
-      console.error('Failed to load dashboard data:', error);
+      console.error('❌ Failed to load dashboard data:', error);
       setError('Failed to load dashboard data. Please check if the backend server is running.');
       setProperties([]);
       setFinancialData(null);
@@ -75,6 +81,16 @@ const Dashboard: React.FC = () => {
   const totalExpenses = parseFloat(financialData?.total_expenses || '0');
   const totalNetIncome = parseFloat(financialData?.total_net_income || '0');
   const totalRecords = parseInt(financialData?.total_records || '0');
+
+  // Debug logging
+  console.log('🔍 Dashboard calculated values:');
+  console.log('  - totalProperties:', totalProperties);
+  console.log('  - totalUnits:', totalUnits);
+  console.log('  - avgOccupancy:', avgOccupancy);
+  console.log('  - totalRevenue:', totalRevenue);
+  console.log('  - totalExpenses:', totalExpenses);
+  console.log('  - totalNetIncome:', totalNetIncome);
+  console.log('  - totalRecords:', totalRecords);
 
   // Calculate additional metrics
   const avgMonthlyRevenue = totalRecords > 0 ? totalRevenue / totalRecords : 0;
