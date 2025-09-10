@@ -91,12 +91,15 @@ const CSVManagement: React.FC = () => {
 
   const handleDeleteUpload = async (uploadId: string) => {
     try {
+      // First delete the associated property data
+      await ApiService.deletePropertyDataByUpload(uploadId);
+      
+      // Then delete the upload record
       const response = await ApiService.deleteUpload(uploadId);
       if (response.success) {
         setUploads(uploads.filter(upload => upload.id !== uploadId));
         setDeleteConfirm(null);
-        // Also delete the associated data
-        await ApiService.deletePropertyDataByUpload(uploadId);
+        setError(null); // Clear any previous errors
       } else {
         setError('Failed to delete upload: ' + response.error);
       }
@@ -294,7 +297,7 @@ const CSVManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => handleDeleteUpload(upload.id)}
+                          onClick={() => setDeleteConfirm(upload.id)}
                           className="text-red-600 hover:text-red-900 flex items-center"
                           title="Delete upload and data"
                         >
