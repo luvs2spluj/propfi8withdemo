@@ -43,58 +43,34 @@ const Dashboard: React.FC = () => {
       const propertiesResponse = await ApiService.getProperties();
       if (propertiesResponse.success && propertiesResponse.data) {
         setProperties(propertiesResponse.data);
+        console.log('✅ Properties loaded from API:', propertiesResponse.data);
       } else {
-        // Fallback to default data if API fails
-        setProperties([
-          { id: '1', name: 'Downtown Plaza', address: '123 Main St, Downtown', type: 'Apartment Complex', total_units: 24, occupied: 20, occupancyRate: 83.3 },
-          { id: '2', name: 'Garden Apartments', address: '456 Oak Ave, Garden District', type: 'Apartment Complex', total_units: 18, occupied: 15, occupancyRate: 83.3 },
-          { id: '3', name: 'Riverside Complex', address: '789 River Rd, Riverside', type: 'Townhouse Complex', total_units: 12, occupied: 10, occupancyRate: 83.3 },
-          { id: '4', name: 'Oakwood Manor', address: '321 Pine St, Oakwood', type: 'Single Family', total_units: 8, occupied: 7, occupancyRate: 87.5 },
-          { id: '5', name: 'Sunset Heights', address: '654 Sunset Blvd, Heights', type: 'Apartment Complex', total_units: 30, occupied: 25, occupancyRate: 83.3 },
-          { id: '6', name: 'Pine Valley', address: '987 Valley Rd, Pine Valley', type: 'Condo Complex', total_units: 16, occupied: 14, occupancyRate: 87.5 }
-        ]);
+        console.error('❌ Failed to load properties from API:', propertiesResponse.error);
+        setProperties([]);
       }
 
       // Load financial data
       const financialResponse = await ApiService.getFinancialSummary();
       if (financialResponse.success && financialResponse.data) {
         setFinancialData(financialResponse.data);
+        console.log('✅ Financial data loaded from API:', financialResponse.data);
       } else {
-        // Fallback financial data
-        setFinancialData({
-          totalRevenue: 125000,
-          totalExpenses: 85000,
-          netIncome: 40000,
-          occupancyRate: 85.2
-        });
+        console.error('❌ Failed to load financial data from API:', financialResponse.error);
+        setFinancialData(null);
       }
     } catch (error: any) {
       console.error('Failed to load dashboard data:', error);
-      setError('Failed to load dashboard data');
-      
-      // Use fallback data on error
-      setProperties([
-        { id: '1', name: 'Downtown Plaza', address: '123 Main St, Downtown', type: 'Apartment Complex', total_units: 24, occupied: 20, occupancyRate: 83.3 },
-        { id: '2', name: 'Garden Apartments', address: '456 Oak Ave, Garden District', type: 'Apartment Complex', total_units: 18, occupied: 15, occupancyRate: 83.3 },
-        { id: '3', name: 'Riverside Complex', address: '789 River Rd, Riverside', type: 'Townhouse Complex', total_units: 12, occupied: 10, occupancyRate: 83.3 },
-        { id: '4', name: 'Oakwood Manor', address: '321 Pine St, Oakwood', type: 'Single Family', total_units: 8, occupied: 7, occupancyRate: 87.5 },
-        { id: '5', name: 'Sunset Heights', address: '654 Sunset Blvd, Heights', type: 'Apartment Complex', total_units: 30, occupied: 25, occupancyRate: 83.3 },
-        { id: '6', name: 'Pine Valley', address: '987 Valley Rd, Pine Valley', type: 'Condo Complex', total_units: 16, occupied: 14, occupancyRate: 87.5 }
-      ]);
-      setFinancialData({
-        totalRevenue: 125000,
-        totalExpenses: 85000,
-        netIncome: 40000,
-        occupancyRate: 85.2
-      });
+      setError('Failed to load dashboard data. Please check if the backend server is running.');
+      setProperties([]);
+      setFinancialData(null);
     } finally {
       setIsLoading(false);
     }
   };
 
   const totalProperties = properties.length;
-  const totalOccupied = properties.reduce((sum, p) => sum + (p.occupied || 0), 0);
-  const avgOccupancy = properties.length > 0 ? properties.reduce((sum, p) => sum + (p.occupancyRate || 0), 0) / properties.length : 0;
+  const totalOccupied = properties.reduce((sum, p) => sum + (p.total_units || 0), 0);
+  const avgOccupancy = financialData?.avg_occupancy_rate || 0;
 
   const metrics = [
     {
@@ -106,8 +82,8 @@ const Dashboard: React.FC = () => {
       color: 'blue'
     },
     {
-      title: 'Monthly Revenue',
-      value: `$${(financialData?.totalRevenue || 0).toLocaleString()}`,
+      title: 'Total Revenue',
+      value: `$${(parseFloat(financialData?.total_revenue || 0)).toLocaleString()}`,
       change: '+8.2%',
       changeType: 'positive' as const,
       icon: DollarSign,
@@ -122,7 +98,7 @@ const Dashboard: React.FC = () => {
       color: 'purple'
     },
     {
-      title: 'Active Tenants',
+      title: 'Total Units',
       value: totalOccupied.toString(),
       change: '+12',
       changeType: 'positive' as const,
@@ -132,10 +108,10 @@ const Dashboard: React.FC = () => {
   ];
 
   const recentActivities = [
-    { id: 1, type: 'lease', message: 'New lease signed for Unit 4B - Downtown Plaza', time: '2 hours ago', icon: Calendar },
-    { id: 2, type: 'payment', message: 'Rent payment received from Tenant #142', time: '4 hours ago', icon: DollarSign },
-    { id: 3, type: 'maintenance', message: 'Maintenance request completed for Unit 2A', time: '6 hours ago', icon: AlertCircle },
-    { id: 4, type: 'lease', message: 'Lease renewal signed for Unit 8C - Garden Apartments', time: '1 day ago', icon: Calendar },
+    { id: 1, type: 'data', message: 'CSV data uploaded for Chico property', time: 'Recently', icon: Calendar },
+    { id: 2, type: 'property', message: 'Chico property added to system', time: 'Recently', icon: Building2 },
+    { id: 3, type: 'revenue', message: `Total revenue: $${(parseFloat(financialData?.total_revenue || 0)).toLocaleString()}`, time: 'Current', icon: DollarSign },
+    { id: 4, type: 'occupancy', message: `Occupancy rate: ${avgOccupancy.toFixed(1)}%`, time: 'Current', icon: TrendingUp },
   ];
 
   if (isLoading) {

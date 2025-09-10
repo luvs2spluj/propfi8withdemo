@@ -7,10 +7,11 @@ import {
   FileText,
   Upload,
   Settings,
-  Home
+  Home,
+  Table
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management';
+type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data';
 
 interface SidebarProps {
   currentPage: Page;
@@ -25,6 +26,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
+    { id: 'csv-data' as Page, label: 'CSV Data Table', icon: Table },
     { id: 'property-management' as Page, label: 'Manage Properties', icon: Settings },
   ];
 

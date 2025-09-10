@@ -11,30 +11,61 @@ import {
   Edit,
   Trash2
 } from 'lucide-react';
-import DataManager, { Property } from '../utils/dataManager';
+import ApiService from '../services/api';
+
+interface Property {
+  id: string;
+  name: string;
+  address: string;
+  type: string;
+  total_units: number;
+  created_at: string;
+  updated_at: string;
+}
 
 const Properties: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [properties, setProperties] = useState<Property[]>(DataManager.getInstance().getProperties());
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = DataManager.getInstance().subscribe((updatedProperties) => {
-      setProperties(updatedProperties);
-    });
-
+    loadProperties();
+    
     // Listen for data updates from CSV uploads
     const handleDataUpdate = () => {
-      setProperties(DataManager.getInstance().getProperties());
+      loadProperties();
     };
 
     window.addEventListener('dataUpdated', handleDataUpdate);
 
     return () => {
-      unsubscribe();
       window.removeEventListener('dataUpdated', handleDataUpdate);
     };
   }, []);
+
+  const loadProperties = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await ApiService.getProperties();
+      if (response.success && response.data) {
+        setProperties(response.data);
+        console.log('✅ Properties loaded from API:', response.data);
+      } else {
+        setError('Failed to load properties');
+        setProperties([]);
+      }
+    } catch (error: any) {
+      console.error('Error loading properties:', error);
+      setError('Failed to load properties');
+      setProperties([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredProperties = properties.filter(property => {
     const matchesSearch = property.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,8 +133,46 @@ const Properties: React.FC = () => {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex justify-center items-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading properties...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading properties</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={loadProperties}
+                  className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {!isLoading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProperties.map((property) => (
           <div key={property.id} className="card hover:shadow-lg transition-shadow duration-200">
             <div className="flex justify-between items-start mb-4">
@@ -114,8 +183,8 @@ const Properties: React.FC = () => {
                   {property.address}
                 </div>
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(property.status)}`}>
-                {property.status}
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Active
               </span>
             </div>
 
@@ -125,7 +194,7 @@ const Properties: React.FC = () => {
                   <Building2 className="w-4 h-4 mr-2" />
                   <span className="text-sm">{property.type}</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">{property.units} units</span>
+                <span className="text-sm font-medium text-gray-900">{property.total_units} units</span>
               </div>
 
               <div className="flex items-center justify-between">
@@ -134,7 +203,7 @@ const Properties: React.FC = () => {
                   <span className="text-sm">Occupied</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900">
-                  {property.occupied}/{property.units} ({property.occupancyRate}%)
+                  {property.total_units} units
                 </span>
               </div>
 
@@ -144,7 +213,7 @@ const Properties: React.FC = () => {
                   <span className="text-sm">Monthly Revenue</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900">
-                  ${property.monthlyRevenue.toLocaleString()}
+                  View Data
                 </span>
               </div>
             </div>
@@ -164,9 +233,10 @@ const Properties: React.FC = () => {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
 
-      {filteredProperties.length === 0 && (
+      {!isLoading && !error && filteredProperties.length === 0 && (
         <div className="text-center py-12">
           <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
