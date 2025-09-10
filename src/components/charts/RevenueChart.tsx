@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,7 +11,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import DataManager from '../../utils/dataManager';
+import ApiService from '../../services/api';
 
 ChartJS.register(
   CategoryScale,
@@ -24,14 +24,54 @@ ChartJS.register(
   Filler
 );
 
+interface PropertyData {
+  id: string;
+  date: string;
+  revenue: string;
+  occupancy_rate: string;
+  property_name: string;
+}
+
 const RevenueChart: React.FC = () => {
-  const revenueData = DataManager.getInstance().getRevenueData();
-  
+  const [chartData, setChartData] = useState<PropertyData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadChartData();
+  }, []);
+
+  const loadChartData = async () => {
+    try {
+      setIsLoading(true);
+      // Get the Chico property ID first
+      const propertiesResponse = await ApiService.getProperties();
+      if (propertiesResponse.success && propertiesResponse.data && propertiesResponse.data.length > 0) {
+        const chicoProperty = propertiesResponse.data[0]; // Should be Chico
+        const dataResponse = await ApiService.getPropertyData(chicoProperty.id);
+        if (dataResponse.success && dataResponse.data) {
+          setChartData(dataResponse.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Sort data by date and prepare chart data
+  const sortedData = chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const labels = sortedData.map(item => {
+    const date = new Date(item.date);
+    return date.toLocaleDateString('en-US', { month: 'short' });
+  });
+  const revenueData = sortedData.map(item => parseFloat(item.revenue));
+
   const data = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    labels: labels,
     datasets: [
       {
-        label: 'Revenue',
+        label: 'Chico Revenue',
         data: revenueData,
         borderColor: 'rgb(14, 165, 233)',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
@@ -101,6 +141,17 @@ const RevenueChart: React.FC = () => {
       mode: 'index' as const,
     },
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-64 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+          <p className="text-gray-600 text-sm">Loading chart data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-64">
