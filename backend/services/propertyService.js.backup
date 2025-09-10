@@ -29,11 +29,11 @@ class PropertyService {
   // Get property by name
   async getPropertyByName(name) {
     try {
-      const result = await pool.query(
-        'SELECT * FROM properties WHERE name = $1',
+      const [rows] = await pool.execute(
+        'SELECT * FROM properties WHERE name = ?',
         [name]
       );
-      return result.rows[0] || null;
+      return rows[0] || null;
     } catch (error) {
       throw new Error(`Failed to fetch property by name: ${error.message}`);
     }
@@ -43,12 +43,15 @@ class PropertyService {
   async createProperty(propertyData) {
     try {
       const { name, address, type, totalUnits } = propertyData;
-      const result = await pool.query(
-        'INSERT INTO properties (name, address, type, total_units) VALUES ($1, $2, $3, $4) RETURNING id',
+      const [result] = await pool.execute(
+        'INSERT INTO properties (name, address, type, total_units) VALUES (?, ?, ?, ?)',
         [name, address, type, totalUnits]
       );
-      return result.rows[0].id;
+      return result.insertId;
     } catch (error) {
+      if (error.code === 'ER_DUP_ENTRY') {
+        throw new Error('Property with this name already exists');
+      }
       throw new Error(`Failed to create property: ${error.message}`);
     }
   }
@@ -57,11 +60,11 @@ class PropertyService {
   async updateProperty(id, propertyData) {
     try {
       const { name, address, type, totalUnits } = propertyData;
-      const result = await pool.query(
-        'UPDATE properties SET name = $1, address = $2, type = $3, total_units = $4, updated_at = NOW() WHERE id = $5 RETURNING *',
+      const [result] = await pool.execute(
+        'UPDATE properties SET name = ?, address = ?, type = ?, total_units = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [name, address, type, totalUnits, id]
       );
-      return result.rows[0];
+      return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Failed to update property: ${error.message}`);
     }
@@ -70,11 +73,11 @@ class PropertyService {
   // Delete property
   async deleteProperty(id) {
     try {
-      const result = await pool.query(
-        'DELETE FROM properties WHERE id = $1',
+      const [result] = await pool.execute(
+        'DELETE FROM properties WHERE id = ?',
         [id]
       );
-      return result.rowCount > 0;
+      return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Failed to delete property: ${error.message}`);
     }
@@ -84,16 +87,16 @@ class PropertyService {
   async getPropertyData(propertyId, page = 1, limit = 50) {
     try {
       const offset = (parseInt(page) - 1) * parseInt(limit);
-      const result = await pool.query(
+      const [rows] = await pool.execute(
         `SELECT pd.*, p.name as property_name 
          FROM property_data pd 
          JOIN properties p ON pd.property_id = p.id 
-         WHERE pd.property_id = $1 
+         WHERE pd.property_id = ? 
          ORDER BY pd.data_date DESC 
-         LIMIT $2 OFFSET $3`,
+         LIMIT ? OFFSET ?`,
         [propertyId, parseInt(limit), offset]
       );
-      return result.rows;
+      return rows;
     } catch (error) {
       throw new Error(`Failed to fetch property data: ${error.message}`);
     }
@@ -104,113 +107,113 @@ class PropertyService {
     try {
       let query = `
         SELECT 
-          p.name as property_name,
-          COUNT(pd.id) as total_records,
-          AVG(pd.monthly_revenue) as avg_revenue,
-          AVG(pd.occupancy_rate) as avg_occupancy,
-          SUM(pd.monthly_revenue) as total_revenue,
-          SUM(pd.expenses) as total_expenses,
-          SUM(pd.net_income) as total_net_income
-        FROM properties p
-        LEFT JOIN property_data pd ON p.id = pd.property_id
-        WHERE p.id = $1
+          COUNT(*) as total_records,
+          AVG(monthly_revenue) as avg_monthly_revenue,
+          AVG(occupancy_rate) as avg_occupancy_rate,
+          AVG(occupied_units) as avg_occupied_units,
+          SUM(monthly_revenue) as total_revenue,
+          SUM(expenses) as total_expenses,
+          SUM(net_income) as total_net_income,
+          MIN(data_date) as earliest_date,
+          MAX(data_date) as latest_date
+        FROM property_data 
+        WHERE property_id = ?
       `;
       
       const params = [propertyId];
-      let paramIndex = 2;
       
       if (startDate) {
-        query += ` AND pd.data_date >= $${paramIndex}`;
+        query += ' AND data_date >= ?';
         params.push(startDate);
-        paramIndex++;
       }
       
       if (endDate) {
-        query += ` AND pd.data_date <= $${paramIndex}`;
+        query += ' AND data_date <= ?';
         params.push(endDate);
-        paramIndex++;
       }
-      
-      query += ' GROUP BY p.id, p.name';
-      
-      const result = await pool.query(query, params);
-      return result.rows[0] || null;
+
+      const [rows] = await pool.execute(query, params);
+      return rows[0];
     } catch (error) {
-      throw new Error(`Failed to fetch aggregated property data: ${error.message}`);
+      throw new Error(`Failed to fetch aggregated data: ${error.message}`);
     }
   }
 
-  // Get properties with data
-  async getPropertiesWithData() {
+  // Get all properties with their latest data
+  async getPropertiesWithLatestData() {
     try {
-      const result = await pool.query(`
+      const [rows] = await pool.execute(`
         SELECT 
           p.*,
-          COUNT(pd.id) as data_count,
-          MAX(pd.data_date) as latest_data_date,
-          AVG(pd.monthly_revenue) as avg_revenue,
-          AVG(pd.occupancy_rate) as avg_occupancy
+          pd.monthly_revenue,
+          pd.occupancy_rate,
+          pd.occupied_units,
+          pd.expenses,
+          pd.net_income,
+          pd.data_date as latest_data_date
         FROM properties p
-        LEFT JOIN property_data pd ON p.id = pd.property_id
-        GROUP BY p.id, p.name, p.address, p.type, p.total_units, p.created_at, p.updated_at
+        LEFT JOIN (
+          SELECT 
+            property_id,
+            monthly_revenue,
+            occupancy_rate,
+            occupied_units,
+            expenses,
+            net_income,
+            data_date,
+            ROW_NUMBER() OVER (PARTITION BY property_id ORDER BY data_date DESC) as rn
+          FROM property_data
+        ) pd ON p.id = pd.property_id AND pd.rn = 1
         ORDER BY p.name ASC
       `);
-      return result.rows;
+      return rows;
     } catch (error) {
-      throw new Error(`Failed to fetch properties with data: ${error.message}`);
+      throw new Error(`Failed to fetch properties with latest data: ${error.message}`);
     }
   }
 
-  // Get financial summary
+  // Get financial summary for all properties
   async getFinancialSummary(startDate = null, endDate = null) {
     try {
       let query = `
         SELECT 
-          COUNT(DISTINCT p.id) as total_properties,
-          COUNT(pd.id) as total_records,
-          SUM(pd.monthly_revenue) as total_revenue,
-          SUM(pd.expenses) as total_expenses,
-          SUM(pd.net_income) as total_net_income,
-          AVG(pd.occupancy_rate) as avg_occupancy_rate
-        FROM properties p
-        LEFT JOIN property_data pd ON p.id = pd.property_id
+          COUNT(DISTINCT property_id) as total_properties,
+          COUNT(*) as total_records,
+          SUM(monthly_revenue) as total_revenue,
+          SUM(expenses) as total_expenses,
+          SUM(net_income) as total_net_income,
+          AVG(occupancy_rate) as avg_occupancy_rate,
+          SUM(occupied_units) as total_occupied_units,
+          SUM(p.total_units) as total_units
+        FROM property_data pd
+        JOIN properties p ON pd.property_id = p.id
       `;
       
       const params = [];
-      let paramIndex = 1;
       
       if (startDate || endDate) {
         query += ' WHERE ';
         const conditions = [];
         
         if (startDate) {
-          conditions.push(`pd.data_date >= $${paramIndex}`);
+          conditions.push('pd.data_date >= ?');
           params.push(startDate);
-          paramIndex++;
         }
         
         if (endDate) {
-          conditions.push(`pd.data_date <= $${paramIndex}`);
+          conditions.push('pd.data_date <= ?');
           params.push(endDate);
-          paramIndex++;
         }
         
         query += conditions.join(' AND ');
       }
-      
-      const result = await pool.query(query, params);
-      return result.rows[0] || {
-        total_properties: 0,
-        total_records: 0,
-        total_revenue: 0,
-        total_expenses: 0,
-        total_net_income: 0,
-        avg_occupancy_rate: 0
-      };
+
+      const [rows] = await pool.execute(query, params);
+      return rows[0];
     } catch (error) {
       throw new Error(`Failed to fetch financial summary: ${error.message}`);
     }
   }
 }
 
-module.exports = new PropertyService();
+module.exports = PropertyService;

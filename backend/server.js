@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config({ path: './config.env' });
 
-const { testConnection, initializeDatabase } = require('./config/database');
+const { testConnection, initializeDatabase } = require('./config/supabase');
 const PropertyService = require('./services/propertyService');
 const CSVService = require('./services/csvService');
 

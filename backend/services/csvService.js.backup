@@ -1,0 +1,284 @@
+const { pool } = require('../config/supabase');
+const CSVProcessor = require('../utils/csvProcessor');
+const fs = require('fs');
+const path = require('path');
+
+class CSVService {
+  constructor() {
+    this.csvProcessor = new CSVProcessor();
+  }
+
+  // Process and store CSV data
+  async processCSVUpload(filePath, propertyId, fileName, fileSize) {
+    const connection = await pool.getConnection();
+    
+    try {
+      await connection.beginTransaction();
+
+      // Create upload record
+      const [uploadResult] = await connection.execute(
+        'INSERT INTO csv_uploads (property_id, file_name, file_size, upload_status) VALUES (?, ?, ?, ?)',
+        [propertyId, fileName, fileSize, 'processing']
+      );
+      
+      const uploadId = uploadResult.insertId;
+
+      try {
+        // Parse CSV file
+        const parseResult = await this.csvProcessor.parseCSV(filePath);
+        
+        if (parseResult.errors.length > 0) {
+          console.warn(`CSV parsing warnings: ${parseResult.errors.length} errors`);
+        }
+
+        // Clean and deduplicate data
+        const cleanedData = this.csvProcessor.cleanData(parseResult.data);
+        
+        // Get property name for validation
+        const [property] = await connection.execute(
+          'SELECT name FROM properties WHERE id = ?',
+          [propertyId]
+        );
+
+        if (!property[0]) {
+          throw new Error('Property not found');
+        }
+
+        const propertyName = property[0].name;
+        let processedCount = 0;
+        let skippedCount = 0;
+
+        // Process each row
+        for (const row of cleanedData) {
+          try {
+            // Validate property name matches
+            if (row.propertyName.toLowerCase() !== propertyName.toLowerCase()) {
+              console.warn(`Property name mismatch: ${row.propertyName} vs ${propertyName}`);
+              skippedCount++;
+              continue;
+            }
+
+            // Check for existing data (prevent duplicates)
+            const [existing] = await connection.execute(
+              'SELECT id FROM property_data WHERE property_id = ? AND data_date = ?',
+              [propertyId, row.date]
+            );
+
+            if (existing.length > 0) {
+              // Update existing record
+              await connection.execute(
+                `UPDATE property_data SET 
+                 monthly_revenue = ?, 
+                 occupancy_rate = ?, 
+                 occupied_units = ?, 
+                 expenses = ?, 
+                 net_income = ?,
+                 csv_file_name = ?,
+                 updated_at = CURRENT_TIMESTAMP
+                 WHERE property_id = ? AND data_date = ?`,
+                [
+                  row.monthlyRevenue,
+                  row.occupancyRate,
+                  row.occupiedUnits,
+                  row.expenses,
+                  row.netIncome,
+                  fileName,
+                  propertyId,
+                  row.date
+                ]
+              );
+            } else {
+              // Insert new record
+              await connection.execute(
+                `INSERT INTO property_data 
+                 (property_id, data_date, monthly_revenue, occupancy_rate, occupied_units, expenses, net_income, csv_file_name) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  propertyId,
+                  row.date,
+                  row.monthlyRevenue,
+                  row.occupancyRate,
+                  row.occupiedUnits,
+                  row.expenses,
+                  row.netIncome,
+                  fileName
+                ]
+              );
+            }
+
+            processedCount++;
+
+          } catch (rowError) {
+            console.error(`Error processing row:`, rowError);
+            skippedCount++;
+          }
+        }
+
+        // Update upload record
+        await connection.execute(
+          'UPDATE csv_uploads SET upload_status = ?, records_processed = ?, records_skipped = ? WHERE id = ?',
+          ['completed', processedCount, skippedCount, uploadId]
+        );
+
+        await connection.commit();
+
+        return {
+          uploadId,
+          totalRows: parseResult.totalRows,
+          processedCount,
+          skippedCount,
+          errors: parseResult.errors.length,
+          status: 'completed'
+        };
+
+      } catch (error) {
+        // Update upload record with error
+        await connection.execute(
+          'UPDATE csv_uploads SET upload_status = ?, error_message = ? WHERE id = ?',
+          ['failed', error.message, uploadId]
+        );
+        
+        await connection.commit();
+        throw error;
+      }
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+      
+      // Clean up uploaded file
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (cleanupError) {
+        console.error('Error cleaning up file:', cleanupError);
+      }
+    }
+  }
+
+  // Get upload history
+  async getUploadHistory(propertyId = null) {
+    try {
+      let query = `
+        SELECT 
+          cu.*,
+          p.name as property_name
+        FROM csv_uploads cu
+        JOIN properties p ON cu.property_id = p.id
+      `;
+      
+      const params = [];
+      
+      if (propertyId) {
+        query += ' WHERE cu.property_id = ?';
+        params.push(propertyId);
+      }
+      
+      query += ' ORDER BY cu.uploaded_at DESC LIMIT 50';
+
+      const [rows] = await pool.execute(query, params);
+      return rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch upload history: ${error.message}`);
+    }
+  }
+
+  // Get data for charts
+  async getChartData(propertyId = null, startDate = null, endDate = null) {
+    try {
+      let query = `
+        SELECT 
+          pd.data_date,
+          pd.monthly_revenue,
+          pd.occupancy_rate,
+          pd.expenses,
+          pd.net_income,
+          p.name as property_name
+        FROM property_data pd
+        JOIN properties p ON pd.property_id = p.id
+      `;
+      
+      const params = [];
+      const conditions = [];
+      
+      if (propertyId) {
+        conditions.push('pd.property_id = ?');
+        params.push(propertyId);
+      }
+      
+      if (startDate) {
+        conditions.push('pd.data_date >= ?');
+        params.push(startDate);
+      }
+      
+      if (endDate) {
+        conditions.push('pd.data_date <= ?');
+        params.push(endDate);
+      }
+      
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
+      
+      query += ' ORDER BY pd.data_date ASC';
+
+      const [rows] = await pool.execute(query, params);
+      return rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch chart data: ${error.message}`);
+    }
+  }
+
+  // Get monthly aggregated data
+  async getMonthlyData(propertyId = null) {
+    try {
+      let query = `
+        SELECT 
+          DATE_FORMAT(pd.data_date, '%Y-%m') as month,
+          SUM(pd.monthly_revenue) as total_revenue,
+          AVG(pd.occupancy_rate) as avg_occupancy_rate,
+          SUM(pd.expenses) as total_expenses,
+          SUM(pd.net_income) as total_net_income,
+          COUNT(*) as record_count
+        FROM property_data pd
+      `;
+      
+      const params = [];
+      
+      if (propertyId) {
+        query += ' WHERE pd.property_id = ?';
+        params.push(propertyId);
+      }
+      
+      query += ' GROUP BY DATE_FORMAT(pd.data_date, "%Y-%m") ORDER BY month ASC';
+
+      const [rows] = await pool.execute(query, params);
+      return rows;
+    } catch (error) {
+      throw new Error(`Failed to fetch monthly data: ${error.message}`);
+    }
+  }
+
+  // Validate CSV file before processing
+  async validateCSV(filePath) {
+    try {
+      const parseResult = await this.csvProcessor.parseCSV(filePath);
+      
+      return {
+        isValid: parseResult.errors.length === 0,
+        totalRows: parseResult.totalRows,
+        validRows: parseResult.validRows,
+        invalidRows: parseResult.invalidRows,
+        errors: parseResult.errors,
+        sampleData: parseResult.data.slice(0, 3) // First 3 rows as sample
+      };
+    } catch (error) {
+      throw new Error(`CSV validation failed: ${error.message}`);
+    }
+  }
+}
+
+module.exports = CSVService;
