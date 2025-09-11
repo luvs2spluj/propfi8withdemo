@@ -23,6 +23,7 @@ const Analytics: React.FC = () => {
   const [selectedMetric, setSelectedMetric] = useState('revenue');
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [financialData, setFinancialData] = useState<any>(null);
 
   useEffect(() => {
     loadProperties();
@@ -35,6 +36,12 @@ const Analytics: React.FC = () => {
       if (response.success && response.data) {
         setProperties(response.data);
       }
+      
+      // Load financial data for metrics
+      const financialResponse = await ApiService.getFinancialSummary();
+      if (financialResponse.success && financialResponse.data) {
+        setFinancialData(financialResponse.data);
+      }
     } catch (error) {
       console.error('Error loading properties:', error);
     } finally {
@@ -42,52 +49,59 @@ const Analytics: React.FC = () => {
     }
   };
 
+  const totalRevenue = parseFloat(financialData?.total_revenue || '0');
+  const avgOccupancy = parseFloat(financialData?.avg_occupancy_rate || '0');
+  const totalNetIncome = parseFloat(financialData?.total_net_income || '0');
+  const totalExpenses = parseFloat(financialData?.total_expenses || '0');
+  const profitMargin = totalRevenue > 0 ? (totalNetIncome / totalRevenue) * 100 : 0;
+
   const analyticsMetrics = [
     {
       title: 'Total Revenue',
-      value: '$1,527,450',
-      change: '+12.5%',
+      value: `$${totalRevenue.toLocaleString()}`,
+      change: totalRevenue > 0 ? 'Real Data' : 'No Data',
       changeType: 'positive' as const,
-      period: 'vs last year',
+      period: 'from CSV uploads',
       icon: TrendingUp,
       color: 'green'
     },
     {
       title: 'Average Occupancy',
-      value: '94.2%',
-      change: '+2.1%',
+      value: `${avgOccupancy.toFixed(1)}%`,
+      change: avgOccupancy > 0 ? 'Real Data' : 'No Data',
       changeType: 'positive' as const,
-      period: 'vs last year',
+      period: 'from CSV uploads',
       icon: TrendingUp,
       color: 'blue'
     },
     {
       title: 'Net Profit Margin',
-      value: '68.4%',
-      change: '+5.2%',
+      value: `${profitMargin.toFixed(1)}%`,
+      change: profitMargin > 0 ? 'Real Data' : 'No Data',
       changeType: 'positive' as const,
-      period: 'vs last year',
+      period: 'from CSV uploads',
       icon: TrendingUp,
       color: 'purple'
     },
     {
-      title: 'Maintenance Costs',
-      value: '$45,200',
-      change: '-8.3%',
+      title: 'Total Expenses',
+      value: `$${totalExpenses.toLocaleString()}`,
+      change: totalExpenses > 0 ? 'Real Data' : 'No Data',
       changeType: 'positive' as const,
-      period: 'vs last year',
+      period: 'from CSV uploads',
       icon: TrendingDown,
       color: 'orange'
     }
   ];
 
-  const topPerformers = [
-    { name: 'Pine Valley', revenue: 28800, occupancy: 100, growth: '+15.2%' },
-    { name: 'Oakwood Manor', revenue: 16800, occupancy: 100, growth: '+12.8%' },
-    { name: 'Downtown Plaza', revenue: 45600, occupancy: 95.8, growth: '+11.5%' },
-    { name: 'Sunset Heights', revenue: 58800, occupancy: 93.3, growth: '+9.7%' },
-    { name: 'Garden Apartments', revenue: 32400, occupancy: 94.4, growth: '+8.3%' },
-  ];
+  const topPerformers = properties.length > 0 ? [
+    { 
+      name: properties[0].name, 
+      revenue: totalRevenue, 
+      occupancy: avgOccupancy, 
+      growth: totalRevenue > 0 ? 'Real Data' : 'No Data' 
+    }
+  ] : [];
 
   const marketInsights = [
     {

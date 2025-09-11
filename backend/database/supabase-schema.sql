@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Properties table
 CREATE TABLE IF NOT EXISTS properties (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL UNIQUE,
     address TEXT NOT NULL,
     type VARCHAR(100) NOT NULL,
     total_units INTEGER DEFAULT 0,
