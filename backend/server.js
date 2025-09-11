@@ -303,15 +303,6 @@ app.get('/api/upload-history', async (req, res) => {
 });
 
 // CSV Management routes
-app.get('/api/upload-history', async (req, res) => {
-  try {
-    const { propertyId } = req.query;
-    const uploads = await csvService.getUploadHistory(propertyId);
-    res.json({ success: true, data: uploads });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 app.delete('/api/uploads/:id', async (req, res) => {
   try {
