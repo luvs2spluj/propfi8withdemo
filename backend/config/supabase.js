@@ -34,16 +34,10 @@ const initializeDatabase = async () => {
     const schemaPath = path.join(__dirname, '../database/supabase-schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    // Split schema into individual statements
-    const statements = schema.split(';').filter(stmt => stmt.trim().length > 0);
-    
     const client = await pool.connect();
     try {
-      for (const statement of statements) {
-        if (statement.trim()) {
-          await client.query(statement);
-        }
-      }
+      // Execute the entire schema as one statement
+      await client.query(schema);
       console.log('✅ Supabase schema initialized successfully');
     } finally {
       client.release();
