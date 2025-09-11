@@ -18,14 +18,15 @@ CREATE TABLE IF NOT EXISTS properties (
 CREATE TABLE IF NOT EXISTS property_data (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
-    data_date DATE NOT NULL,
-    monthly_revenue DECIMAL(10,2) DEFAULT 0,
+    date DATE NOT NULL,
+    revenue DECIMAL(10,2) DEFAULT 0,
     occupancy_rate DECIMAL(5,2) DEFAULT 0,
-    occupied_units INTEGER DEFAULT 0,
-    expenses DECIMAL(10,2) DEFAULT 0,
-    net_income DECIMAL(10,2) DEFAULT 0,
-    csv_file_name VARCHAR(255),
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    maintenance_cost DECIMAL(10,2) DEFAULT 0,
+    utilities_cost DECIMAL(10,2) DEFAULT 0,
+    insurance_cost DECIMAL(10,2) DEFAULT 0,
+    property_tax DECIMAL(10,2) DEFAULT 0,
+    other_expenses DECIMAL(10,2) DEFAULT 0,
+    notes VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -46,7 +47,7 @@ CREATE TABLE IF NOT EXISTS csv_uploads (
 
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_property_data_property_id ON property_data(property_id);
-CREATE INDEX IF NOT EXISTS idx_property_data_date ON property_data(data_date);
+CREATE INDEX IF NOT EXISTS idx_property_data_date ON property_data(date);
 CREATE INDEX IF NOT EXISTS idx_csv_uploads_property_id ON csv_uploads(property_id);
 CREATE INDEX IF NOT EXISTS idx_csv_uploads_uploaded_at ON csv_uploads(uploaded_at);
 
