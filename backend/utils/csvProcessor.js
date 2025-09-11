@@ -66,6 +66,12 @@ class CSVProcessor {
     const netIncome = this.extractNumber(normalizedRow, ['net income', 'net_income', 'profit', 'net profit', 'net_operating_income']);
     const date = this.extractDate(normalizedRow, ['date', 'data_date', 'month', 'period', 'reporting_date', 'period_end']);
 
+    // Debug logging for troubleshooting
+    if (!date) {
+      console.log('Debug: Available keys in row:', Object.keys(normalizedRow));
+      console.log('Debug: Looking for date in keys:', ['date', 'data_date', 'month', 'period', 'reporting_date', 'period_end']);
+    }
+
     // Enhanced validation with better error messages
     if (!propertyName) {
       throw new Error('Property name is required. Either include it in the CSV or select a property before uploading.');
@@ -146,7 +152,7 @@ class CSVProcessor {
     for (const key of possibleKeys) {
       if (row[key] && row[key].toString().trim()) {
         const dateStr = row[key].toString().trim();
-        const parsedDate = moment(dateStr, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM', 'MM/YYYY'], true);
+        const parsedDate = moment(dateStr, ['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM', 'MM/YYYY', 'YYYY/MM/DD', 'DD-MM-YYYY'], true);
         
         if (parsedDate.isValid()) {
           return parsedDate.format('YYYY-MM-DD');

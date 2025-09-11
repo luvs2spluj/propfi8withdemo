@@ -230,7 +230,8 @@ app.post('/api/validate-csv', upload.single('csvFile'), async (req, res) => {
       return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
     }
 
-    const validation = await csvService.validateCSV(req.file.path);
+    const { propertyName } = req.body;
+    const validation = await csvService.validateCSV(req.file.path, propertyName);
     
     // Clean up file
     require('fs').unlinkSync(req.file.path);

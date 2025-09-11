@@ -106,8 +106,12 @@ const CSVUpload: React.FC = () => {
         return;
       }
 
+      // Get property name for validation
+      const selectedPropertyData = properties.find(p => p.id === selectedProperty);
+      const propertyName = selectedPropertyData?.name;
+
       // First validate the CSV
-      const validation = await ApiService.validateCSV(file);
+      const validation = await ApiService.validateCSV(file, propertyName);
       setValidationResult(validation.data);
 
       if (!validation.data.isValid) {
@@ -260,9 +264,21 @@ const CSVUpload: React.FC = () => {
         <div className="space-y-4">
           {/* Property Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Property
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Select Property
+              </label>
+              <button
+                onClick={() => {
+                  // Navigate to property management page
+                  const event = new CustomEvent('navigateToPage', { detail: { page: 'property-management' } });
+                  window.dispatchEvent(event);
+                }}
+                className="text-sm text-primary-600 hover:text-primary-800 font-medium"
+              >
+                + Add Property
+              </button>
+            </div>
             <select
               value={selectedProperty}
               onChange={(e) => setSelectedProperty(e.target.value)}
@@ -351,11 +367,13 @@ const CSVUpload: React.FC = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
             <h4 className="font-medium text-blue-900 mb-2">Expected CSV Format:</h4>
             <div className="text-sm text-blue-800 space-y-1">
-              <p><strong>Headers:</strong> Property Name, Address, Monthly Revenue, Occupancy Rate, Total Units, Occupied Units, Expenses, Net Income, Date</p>
-              <p><strong>Example:</strong> Downtown Plaza, 123 Main St, 45600, 95.8, 24, 23, 12000, 33600, 2024-01-15</p>
+              <p><strong>Required Headers:</strong> Date, Revenue, Occupancy Rate</p>
+              <p><strong>Optional Headers:</strong> Property Name (if not selecting property above), Address, Total Units, Occupied Units, Expenses, Net Income</p>
+              <p><strong>Example:</strong> 2024-01-15, 45600, 95.8, 24, 23, 12000, 33600</p>
+              <p className="text-green-700 font-medium">✅ Property name is optional when you select a property above!</p>
               <div className="mt-3">
                 <a 
-                  href="/sample-data.csv" 
+                  href="/correct-chico-data.csv" 
                   download="sample-property-data.csv"
                   className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium"
                 >

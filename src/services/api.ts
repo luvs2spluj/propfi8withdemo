@@ -117,9 +117,12 @@ class ApiService {
     }
   }
 
-  async validateCSV(file: File): Promise<{ success: boolean; data: any }> {
+  async validateCSV(file: File, propertyName?: string): Promise<{ success: boolean; data: any }> {
     const formData = new FormData();
     formData.append('csvFile', file);
+    if (propertyName) {
+      formData.append('propertyName', propertyName);
+    }
 
     const url = `${API_BASE_URL}/validate-csv`;
     

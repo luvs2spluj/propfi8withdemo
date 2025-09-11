@@ -235,9 +235,9 @@ class CSVService {
   }
 
   // Validate CSV file
-  async validateCSV(filePath) {
+  async validateCSV(filePath, propertyName = null) {
     try {
-      const parseResult = await this.csvProcessor.parseCSV(filePath);
+      const parseResult = await this.csvProcessor.parseCSV(filePath, propertyName);
       const cleanedData = this.csvProcessor.cleanData(parseResult.data);
       
       return {
