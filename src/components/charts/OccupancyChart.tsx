@@ -30,6 +30,8 @@ interface PropertyData {
   revenue: string;
   occupancy_rate: string;
   property_name: string;
+  total_units?: number;
+  occupied_units?: number;
 }
 
 interface Property {
@@ -203,9 +205,6 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
     interaction: {
       intersect: false,
       mode: 'index' as const,
-    },
-    hover: {
-      animationDuration: 200,
     },
     plugins: {
       legend: {
