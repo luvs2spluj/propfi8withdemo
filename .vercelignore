@@ -58,7 +58,9 @@ ehthumbs.db
 Thumbs.db
 
 # Backend files (not needed for frontend deployment)
-backend/
+# Note: Keeping backend/ for local processing capabilities
+backend/uploads/
+backend/logs/
 server/
 api/
 

@@ -20,9 +20,7 @@
     }
   ],
   "env": {
-    "REACT_APP_SUPABASE_API_URL": "@react_app_supabase_api_url",
-    "REACT_APP_SUPABASE_ANON_KEY": "@react_app_supabase_anon_key",
-    "REACT_APP_LOCAL_API_URL": "@react_app_local_api_url"
+    "REACT_APP_LOCAL_API_URL": "http://localhost:5000/api"
   },
   "buildCommand": "npm run build",
   "outputDirectory": "build",
