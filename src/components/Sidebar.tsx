@@ -12,7 +12,7 @@ import {
   Trash2
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'csv-data' | 'csv-management';
 
 interface SidebarProps {
   currentPage: Page;
