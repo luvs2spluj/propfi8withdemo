@@ -20,6 +20,8 @@
     }
   ],
   "env": {
+    "REACT_APP_SUPABASE_URL": "https://iqwhrvtcrseidfyznqaf.supabase.co",
+    "REACT_APP_SUPABASE_ANON_KEY": "sb_publishable_ULLJeduhFHc_KRINLLXxug_zGvRBLPf",
     "REACT_APP_LOCAL_API_URL": "http://localhost:5000/api"
   },
   "buildCommand": "npm run build",
