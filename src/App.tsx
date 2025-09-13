@@ -6,7 +6,7 @@ import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVUpload from './components/CSVUpload';
-import PropertyManagement from './components/PropertyManagement';
+// import PropertyManagement from './components/PropertyManagement'; // Removed from sidebar
 import CSVDataViewer from './components/CSVDataViewer';
 import CSVManagement from './components/CSVManagement';
 
@@ -15,7 +15,7 @@ import CSVManagement from './components/CSVManagement';
 //   import('./dev-logger').then(m => m.installDevLogger('/api/dev-logs'));
 // }
 
-type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'csv-data' | 'csv-management';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -49,8 +49,8 @@ function App() {
         return <Reports />;
       case 'upload':
         return <CSVUpload />;
-      case 'property-management':
-        return <PropertyManagement />;
+      // case 'property-management': // Removed from sidebar
+      //   return <PropertyManagement />;
       // Note: csv-data and csv-management cases preserved for future use
       case 'csv-data':
         return <CSVDataViewer />;

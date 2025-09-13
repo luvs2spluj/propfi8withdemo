@@ -27,8 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'properties' as Page, label: 'Properties', icon: Building2 },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
-    // Note: csv-data and csv-management tabs removed but logic preserved for future use
-    { id: 'property-management' as Page, label: 'Manage Properties', icon: Settings },
+    // Note: csv-data, csv-management, and property-management tabs removed but logic preserved for future use
   ];
 
   return (
