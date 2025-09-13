@@ -14,6 +14,7 @@ interface PropertyData {
   id: string;
   property_id: string;
   date: string;
+  month?: string;
   revenue: string;
   occupancy_rate: string;
   maintenance_cost: string;
@@ -21,6 +22,15 @@ interface PropertyData {
   insurance_cost: string;
   property_tax: string;
   other_expenses: string;
+  expenses?: string;
+  netIncome?: string;
+  breakdown?: {
+    maintenance: number;
+    insurance: number;
+    utilities: number;
+    propertyTax: number;
+    other: number;
+  };
   notes: string;
   property_name: string;
 }
@@ -794,9 +804,9 @@ const Financials: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
                   <td className="py-3 px-4 text-right text-gray-900">${data.revenue.toLocaleString()}</td>
                   <td className="py-3 px-4 text-right text-gray-900">${data.expenses.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">${data.net.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right text-gray-900">${(data.netIncome || data.net || 0).toLocaleString()}</td>
                   <td className="py-3 px-4 text-right text-gray-900">
-                    {((data.net / data.revenue) * 100).toFixed(1)}%
+                    {(((data.netIncome || data.net || 0) / data.revenue) * 100).toFixed(1)}%
                   </td>
                 </tr>
               ))}
