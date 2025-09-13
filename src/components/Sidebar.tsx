@@ -12,7 +12,7 @@ import {
   Trash2
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 interface SidebarProps {
   currentPage: Page;
@@ -22,13 +22,12 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
     { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'properties' as Page, label: 'Properties', icon: Building2 },
-    { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
     { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
+    { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
+    { id: 'properties' as Page, label: 'Properties', icon: Building2 },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
-    { id: 'csv-data' as Page, label: 'CSV Data Table', icon: Table },
-    { id: 'csv-management' as Page, label: 'CSV Management', icon: Trash2 },
+    // Note: csv-data and csv-management tabs removed but logic preserved for future use
     { id: 'property-management' as Page, label: 'Manage Properties', icon: Settings },
   ];
 

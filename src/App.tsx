@@ -15,7 +15,7 @@ import CSVManagement from './components/CSVManagement';
 //   import('./dev-logger').then(m => m.installDevLogger('/api/dev-logs'));
 // }
 
-type Page = 'dashboard' | 'properties' | 'analytics' | 'financials' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
+type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'property-management' | 'csv-data' | 'csv-management';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
@@ -39,18 +39,19 @@ function App() {
     switch (currentPage) {
       case 'dashboard':
         return <Dashboard />;
-      case 'properties':
-        return <Properties />;
-      case 'analytics':
-        return <Analytics />;
       case 'financials':
         return <Financials />;
+      case 'analytics':
+        return <Analytics />;
+      case 'properties':
+        return <Properties />;
       case 'reports':
         return <Reports />;
       case 'upload':
         return <CSVUpload />;
       case 'property-management':
         return <PropertyManagement />;
+      // Note: csv-data and csv-management cases preserved for future use
       case 'csv-data':
         return <CSVDataViewer />;
       case 'csv-management':
@@ -61,10 +62,10 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50">
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-6 pb-12">
           {renderPage()}
         </div>
       </main>
