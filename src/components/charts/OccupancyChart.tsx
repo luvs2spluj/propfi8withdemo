@@ -193,22 +193,22 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
   // Sort data by date and prepare chart data
   const sortedData = chartData.sort((a, b) => {
     // Handle monthly data format (like "Jan 2025")
-    if (a.date.includes('2025') || a.date.includes('2024')) {
+    if (a.month && (a.month.includes('2025') || a.month.includes('2024'))) {
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const aMonth = a.date.split(' ')[0];
-      const bMonth = b.date.split(' ')[0];
+      const aMonth = a.month.split(' ')[0];
+      const bMonth = b.month.split(' ')[0];
       return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
     }
-    return new Date(a.date).getTime() - new Date(b.date).getTime();
+    return new Date(a.month || a.date).getTime() - new Date(b.month || b.date).getTime();
   });
   
   const labels = sortedData.map(item => {
-    // If the date is a month string (like "Jan 2025"), use it directly
-    if (item.date.includes('2025') || item.date.includes('2024')) {
-      return item.date;
+    // If the month is a month string (like "Jan 2025"), use it directly
+    if (item.month && (item.month.includes('2025') || item.month.includes('2024'))) {
+      return item.month;
     }
     // Otherwise format as date
-    const date = new Date(item.date);
+    const date = new Date(item.month || item.date);
     return date.toLocaleDateString('en-US', { month: 'short' });
   });
   

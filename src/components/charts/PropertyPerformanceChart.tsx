@@ -244,21 +244,21 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
   const { labels, revenueData, expensesData, netIncomeData } = (() => {
     if (chartData.length === 0) return { labels: [], revenueData: [], expensesData: [], netIncomeData: [] };
     
-    // Check if we have monthly data (date contains month/year format like "Jan 2025")
+    // Check if we have monthly data (month contains month/year format like "Jan 2025")
     const hasMonthlyData = chartData.some(item => 
-      item.date.includes('2025') || item.date.includes('2024')
+      item.month && (item.month.includes('2025') || item.month.includes('2024'))
     );
     
     if (hasMonthlyData) {
       // Sort monthly data properly
       const sortedData = chartData.sort((a, b) => {
         const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const aMonth = a.date.split(' ')[0];
-        const bMonth = b.date.split(' ')[0];
+        const aMonth = a.month.split(' ')[0];
+        const bMonth = b.month.split(' ')[0];
         return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
       });
       
-      const labels = sortedData.map(item => item.date);
+      const labels = sortedData.map(item => item.month);
       const revenueData = sortedData.map(item => parseFloat(item.revenue));
       const expensesData = sortedData.map(item => {
         const maintenance = parseFloat(item.maintenance_cost || '0');

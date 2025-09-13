@@ -228,14 +228,14 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
   const { labels, values } = (() => {
     if (chartData.length === 0) return { labels: [], values: [] };
     
-    // Check if we have monthly data (date contains month/year format like "Jan 2025")
+    // Check if we have monthly data (month contains month/year format like "Jan 2025")
     const hasMonthlyData = chartData.some(item => 
-      item.date.includes('2025') || item.date.includes('2024')
+      item.month && (item.month.includes('2025') || item.month.includes('2024'))
     );
     
     if (hasMonthlyData) {
       // Use actual monthly data
-      const labels = chartData.map(item => item.date);
+      const labels = chartData.map(item => item.month);
       const values = chartData.map(item => {
         if (metricType === 'revenue') {
           return parseFloat(item.revenue);
