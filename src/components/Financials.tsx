@@ -134,20 +134,25 @@ const Financials: React.FC = () => {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for financials');
                 
-                // Extract unique months from the data
-                const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort() as string[];
+                // Extract unique months from the data and sort chronologically
+                const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort((a, b) => {
+                  const dateA = new Date(a);
+                  const dateB = new Date(b);
+                  return dateA.getTime() - dateB.getTime();
+                }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Calculate monthly revenue and expenses for each month
                 const monthlyDataArray = months.map((month: string) => {
-                  // Find all income-related accounts for this month
+                  // Find all actual income accounts for this month (not expenses)
                   const monthlyRecords = dataItem.data.data.filter((row: any) => 
                     row.period === month && 
-                    (row.account_name.toLowerCase().includes('rent') || 
-                     row.account_name.toLowerCase().includes('income') ||
-                     row.account_name.toLowerCase().includes('fees') ||
-                     row.account_name.toLowerCase().includes('concessions') ||
-                     row.account_name.toLowerCase().includes('sales'))
+                    (row.account_name === 'Application Fees' ||
+                     row.account_name === 'Credit Reporting Services Income' ||
+                     row.account_name === 'Insurance Svcs Income' ||
+                     row.account_name === 'Lock / Key Sales' ||
+                     row.account_name === 'Late Fees' ||
+                     row.account_name === 'Insurance Admin Fee')
                   );
                   
                   // Sum up the revenue for this month

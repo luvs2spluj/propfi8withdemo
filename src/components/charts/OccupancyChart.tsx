@@ -86,8 +86,12 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format');
                 
-                // Extract unique months from the data
-                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort() as string[];
+                // Extract unique months from the data and sort chronologically
+                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
+                  const dateA = new Date(a);
+                  const dateB = new Date(b);
+                  return dateA.getTime() - dateB.getTime();
+                }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Generate realistic occupancy data for each month
