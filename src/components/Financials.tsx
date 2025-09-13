@@ -130,7 +130,7 @@ const Financials: React.FC = () => {
                   entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
                 ) || localItem[localItem.length - 1] : localItem;
               
-              // Check if this is the Chico summary data format
+              // Check if this is the Chico summary data format (original CSV structure)
               if (dataItem.data?.sample && Array.isArray(dataItem.data.sample)) {
                 // This is the Chico summary data format with Monthly Revenue column
                 console.log('📊 Processing Chico summary data format for financials');
@@ -172,6 +172,52 @@ const Financials: React.FC = () => {
                 setPropertyData(monthlyDataArray);
                 setIsLoading(false);
                 return;
+              }
+              
+              // Check if this is the transformed individual records format but we need to reconstruct summary data
+              if (dataItem.data?.data && Array.isArray(dataItem.data.data) && dataItem.data.data.length > 0) {
+                // This is the transformed individual records format - we need to reconstruct the summary data
+                console.log('📊 Processing transformed individual records format for financials');
+                console.log('📊 Data structure:', dataItem.data);
+                
+                // Check if we have the original summary data in a different field
+                if (dataItem.data.originalSample && Array.isArray(dataItem.data.originalSample)) {
+                  console.log('📊 Found original sample data, using that instead');
+                  const sampleData = dataItem.data.originalSample;
+                  
+                  const monthlyDataArray = sampleData.map((row: any) => {
+                    const monthlyRevenue = parseFloat(row['Monthly Revenue']) || 0;
+                    const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
+                    const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
+                    const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
+                    const propertyTax = parseFloat(row['Property Tax']) || 0;
+                    const otherExpenses = parseFloat(row['Other Expenses']) || 0;
+                    const netIncome = parseFloat(row['Net Income']) || 0;
+                    
+                    const date = new Date(row['Date']);
+                    const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    
+                    return {
+                      month,
+                      revenue: monthlyRevenue,
+                      expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
+                      netIncome: netIncome,
+                      margin: monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0,
+                      breakdown: {
+                        maintenance: maintenanceCost,
+                        insurance: insuranceCost,
+                        utilities: utilitiesCost,
+                        propertyTax: propertyTax,
+                        other: otherExpenses
+                      }
+                    };
+                  });
+                  
+                  console.log('📊 Monthly data array from original sample:', monthlyDataArray);
+                  setPropertyData(monthlyDataArray);
+                  setIsLoading(false);
+                  return;
+                }
               }
               
               if (dataItem.data?.data && Array.isArray(dataItem.data.data)) {
