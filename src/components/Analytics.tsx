@@ -9,7 +9,11 @@ import {
   Users,
   Building,
   Target,
-  BarChart3
+  BarChart3,
+  X,
+  Info,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import ApiService from '../services/api';
 
@@ -26,10 +30,231 @@ const Analytics: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [selectedInsight, setSelectedInsight] = useState<any>(null);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadAnalyticsData();
   }, [timeRange]);
+
+  // Function to handle insight card clicks and generate detailed AI reasoning
+  const handleInsightClick = (insight: any) => {
+    setSelectedInsight(insight);
+    setShowModal(true);
+  };
+
+  // Function to generate detailed AI reasoning with real data
+  const generateDetailedReasoning = (insight: any) => {
+    if (!analyticsData || !insight) return null;
+
+    const reasoning = {
+      title: insight.title,
+      currentData: {},
+      benchmarks: {},
+      calculations: {},
+      recommendations: [],
+      riskFactors: [],
+      opportunities: []
+    };
+
+    switch (insight.title) {
+      case 'Rent Optimization Opportunity':
+        reasoning.currentData = {
+          revenuePerUnit: analyticsData.revenuePerUnit,
+          totalRevenue: analyticsData.totalRevenue,
+          totalUnits: analyticsData.totalUnits,
+          timePeriod: analyticsData.timeRange,
+          monthlyRevenue: analyticsData.monthlyData?.map((m: any) => parseFloat(m['Monthly Revenue']) || 0) || []
+        };
+        reasoning.benchmarks = {
+          marketRate: 1500,
+          industryAverage: 1400,
+          premiumThreshold: 1600
+        };
+        reasoning.calculations = {
+          currentVsMarket: ((analyticsData.revenuePerUnit - 1500) / 1500 * 100).toFixed(1),
+          potentialIncrease: analyticsData.revenuePerUnit > 1500 ? '3-5%' : '8-12%',
+          revenueImpact: analyticsData.revenuePerUnit > 1500 ? 
+            `$${(analyticsData.totalRevenue * 0.04).toLocaleString()} annually` : 
+            `$${(analyticsData.totalRevenue * 0.10).toLocaleString()} annually`
+        };
+        reasoning.recommendations = [
+          'Analyze local market comparables for competitive pricing',
+          'Implement gradual rent increases to minimize tenant turnover',
+          'Consider unit upgrades to justify higher rents',
+          'Monitor occupancy rates during rent adjustments'
+        ];
+        reasoning.riskFactors = [
+          'Potential tenant turnover with rent increases',
+          'Market competition may limit pricing power',
+          'Economic conditions affecting tenant affordability'
+        ];
+        reasoning.opportunities = [
+          'Premium positioning in local market',
+          'Increased revenue per square foot',
+          'Higher quality tenant retention',
+          'Improved property valuation'
+        ];
+        break;
+
+      case 'Expense Management Alert':
+        reasoning.currentData = {
+          expenseRatio: analyticsData.expenseRatio,
+          totalExpenses: analyticsData.totalExpenses,
+          totalRevenue: analyticsData.totalRevenue,
+          avgMaintenance: analyticsData.avgMaintenance,
+          avgUtilities: analyticsData.avgUtilities,
+          avgInsurance: analyticsData.avgInsurance,
+          avgPropertyTax: analyticsData.avgPropertyTax,
+          avgOtherExpenses: analyticsData.avgOtherExpenses
+        };
+        reasoning.benchmarks = {
+          industryStandard: 0.6,
+          efficientThreshold: 0.5,
+          highCostThreshold: 0.7
+        };
+        reasoning.calculations = {
+          currentVsBenchmark: ((analyticsData.expenseRatio - 0.6) / 0.6 * 100).toFixed(1),
+          costSavings: analyticsData.expenseRatio < 0.6 ? 
+            `$${(analyticsData.totalRevenue * (0.6 - analyticsData.expenseRatio)).toLocaleString()} saved vs benchmark` :
+            `$${(analyticsData.totalRevenue * (analyticsData.expenseRatio - 0.6)).toLocaleString()} over benchmark`,
+          expenseBreakdown: {
+            maintenance: `${((analyticsData.avgMaintenance / analyticsData.totalExpenses) * 100).toFixed(1)}%`,
+            utilities: `${((analyticsData.avgUtilities / analyticsData.totalExpenses) * 100).toFixed(1)}%`,
+            insurance: `${((analyticsData.avgInsurance / analyticsData.totalExpenses) * 100).toFixed(1)}%`,
+            propertyTax: `${((analyticsData.avgPropertyTax / analyticsData.totalExpenses) * 100).toFixed(1)}%`,
+            other: `${((analyticsData.avgOtherExpenses / analyticsData.totalExpenses) * 100).toFixed(1)}%`
+          }
+        };
+        reasoning.recommendations = analyticsData.expenseRatio > 0.6 ? [
+          'Review maintenance contracts for cost optimization',
+          'Implement energy-efficient upgrades to reduce utilities',
+          'Shop insurance providers for competitive rates',
+          'Consider preventive maintenance to reduce repair costs'
+        ] : [
+          'Maintain current efficient operations',
+          'Document cost-saving strategies for replication',
+          'Consider reinvesting savings in property improvements',
+          'Use efficiency as competitive advantage in marketing'
+        ];
+        reasoning.riskFactors = analyticsData.expenseRatio > 0.6 ? [
+          'Deferred maintenance may increase future costs',
+          'Utility costs may continue rising',
+          'Insurance premiums may increase with claims',
+          'Property tax assessments may rise'
+        ] : [
+          'Cost-cutting may impact service quality',
+          'Deferred maintenance could create larger issues',
+          'Market conditions may increase operating costs'
+        ];
+        reasoning.opportunities = [
+          'Technology integration for cost monitoring',
+          'Bulk purchasing agreements for supplies',
+          'Energy efficiency rebates and incentives',
+          'Preventive maintenance programs'
+        ];
+        break;
+
+      case 'Revenue Trend Analysis':
+        reasoning.currentData = {
+          revenueTrend: analyticsData.revenueTrend,
+          totalRevenue: analyticsData.totalRevenue,
+          monthlyRevenue: analyticsData.monthlyData?.map((m: any) => parseFloat(m['Monthly Revenue']) || 0) || [],
+          timePeriod: analyticsData.timeRange,
+          occupancyRates: analyticsData.monthlyData?.map((m: any) => parseFloat(m['Occupancy Rate']) || 0) || []
+        };
+        reasoning.benchmarks = {
+          healthyGrowth: 5000,
+          stableThreshold: 1000,
+          declineThreshold: -2000
+        };
+        reasoning.calculations = {
+          trendPercentage: analyticsData.totalRevenue > 0 ? 
+            ((analyticsData.revenueTrend / analyticsData.totalRevenue) * 100).toFixed(1) : '0',
+          monthlyAverage: analyticsData.monthlyData ? 
+            (analyticsData.totalRevenue / analyticsData.monthlyData.length).toLocaleString() : '0',
+          occupancyCorrelation: analyticsData.monthlyData ? 
+            analyticsData.monthlyData.map((m: any) => ({
+              month: m.Date || m.month,
+              revenue: parseFloat(m['Monthly Revenue']) || 0,
+              occupancy: parseFloat(m['Occupancy Rate']) || 0
+            })) : []
+        };
+        reasoning.recommendations = analyticsData.revenueTrend > 0 ? [
+          'Continue current revenue-generating strategies',
+          'Identify and replicate successful initiatives',
+          'Consider expanding high-performing units',
+          'Maintain tenant satisfaction to prevent turnover'
+        ] : [
+          'Investigate causes of revenue decline',
+          'Review tenant retention strategies',
+          'Analyze market conditions and competition',
+          'Consider rent adjustments or promotions'
+        ];
+        reasoning.riskFactors = [
+          'Economic downturns affecting tenant affordability',
+          'Increased competition in local market',
+          'Property condition issues affecting desirability',
+          'Management inefficiencies impacting operations'
+        ];
+        reasoning.opportunities = [
+          'Market positioning improvements',
+          'Tenant retention program enhancements',
+          'Revenue diversification strategies',
+          'Technology adoption for efficiency'
+        ];
+        break;
+
+      case 'Occupancy Performance':
+        reasoning.currentData = {
+          avgOccupancy: analyticsData.avgOccupancy,
+          occupancyTrend: analyticsData.occupancyTrend,
+          occupancyRates: analyticsData.monthlyData?.map((m: any) => parseFloat(m['Occupancy Rate']) || 0) || [],
+          timePeriod: analyticsData.timeRange,
+          totalUnits: analyticsData.totalUnits
+        };
+        reasoning.benchmarks = {
+          industryStandard: 95,
+          excellentThreshold: 98,
+          concernThreshold: 90
+        };
+        reasoning.calculations = {
+          currentVsBenchmark: ((analyticsData.avgOccupancy - 95) / 95 * 100).toFixed(1),
+          trendImpact: analyticsData.occupancyTrend > 0 ? 
+            `Improving by ${analyticsData.occupancyTrend.toFixed(1)}%` :
+            `Declining by ${Math.abs(analyticsData.occupancyTrend).toFixed(1)}%`,
+          revenueImpact: analyticsData.avgOccupancy < 95 ? 
+            `$${((95 - analyticsData.avgOccupancy) / 100 * analyticsData.totalRevenue).toLocaleString()} potential revenue loss` :
+            `$${((analyticsData.avgOccupancy - 95) / 100 * analyticsData.totalRevenue).toLocaleString()} revenue advantage`
+        };
+        reasoning.recommendations = analyticsData.occupancyTrend > 0 ? [
+          'Maintain current tenant satisfaction initiatives',
+          'Continue effective marketing strategies',
+          'Monitor market conditions for opportunities',
+          'Document successful retention practices'
+        ] : [
+          'Review tenant turnover causes',
+          'Enhance marketing and advertising efforts',
+          'Improve property condition and amenities',
+          'Implement tenant retention programs'
+        ];
+        reasoning.riskFactors = [
+          'Seasonal occupancy fluctuations',
+          'Economic conditions affecting demand',
+          'Property condition issues',
+          'Competition from new developments'
+        ];
+        reasoning.opportunities = [
+          'Technology integration for tenant services',
+          'Amenity improvements to attract tenants',
+          'Flexible lease terms for market responsiveness',
+          'Community building initiatives'
+        ];
+        break;
+    }
+
+    return reasoning;
+  };
 
   // Function to filter data based on time range
   const filterDataByTimeRange = (monthlyData: any[]) => {
@@ -459,7 +684,10 @@ const Analytics: React.FC = () => {
                     <p className="text-sm text-gray-600 mb-3">{insight.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-primary-600">{insight.action}</span>
-                      <button className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                      <button 
+                        onClick={() => handleInsightClick(insight)}
+                        className="text-sm text-primary-600 hover:text-primary-700 font-medium cursor-pointer transition-colors"
+                      >
                         Learn More →
                       </button>
                     </div>
@@ -515,6 +743,162 @@ const Analytics: React.FC = () => {
               <h4 className="font-semibold text-gray-900 mb-1">Total Expenses</h4>
               <p className="text-xl font-bold text-gray-900">${analyticsData.totalExpenses.toLocaleString()}</p>
               <p className="text-sm text-gray-600">{analyticsData.timeRange === '1m' ? 'this month' : `total over ${analyticsData.timeRange}`}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Reasoning Modal */}
+      {showModal && selectedInsight && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">AI Analysis: {selectedInsight.title}</h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {(() => {
+                const reasoning = generateDetailedReasoning(selectedInsight);
+                if (!reasoning) return null;
+
+                return (
+                  <div className="space-y-6">
+                    {/* Current Data */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center">
+                        <Info className="w-5 h-5 mr-2" />
+                        Current Performance Data
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(reasoning.currentData).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-sm text-blue-700 capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}:
+                            </span>
+                            <span className="text-sm font-medium text-blue-900">
+                              {Array.isArray(value) ? 
+                                `${value.length} data points` : 
+                                typeof value === 'number' ? 
+                                  (key.includes('Revenue') || key.includes('Expense') || key.includes('Cost') ? 
+                                    `$${value.toLocaleString()}` : 
+                                    `${value.toFixed(1)}${key.includes('Ratio') ? '%' : ''}`) :
+                                value
+                              }
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Benchmarks */}
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Industry Benchmarks
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {Object.entries(reasoning.benchmarks).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-sm text-green-700 capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}:
+                            </span>
+                            <span className="text-sm font-medium text-green-900">
+                              {typeof value === 'number' ? 
+                                (key.includes('Ratio') ? `${(value * 100).toFixed(1)}%` : 
+                                 key.includes('Rate') || key.includes('Threshold') ? `${value}%` :
+                                 `$${value.toLocaleString()}`) :
+                                value
+                              }
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Calculations */}
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-yellow-900 mb-3 flex items-center">
+                        <BarChart3 className="w-5 h-5 mr-2" />
+                        AI Calculations & Analysis
+                      </h3>
+                      <div className="space-y-3">
+                        {Object.entries(reasoning.calculations).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="text-sm text-yellow-700 capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}:
+                            </span>
+                            <span className="text-sm font-medium text-yellow-900">
+                              {typeof value === 'object' && value !== null ? 
+                                Object.entries(value).map(([subKey, subValue]) => (
+                                  <div key={subKey} className="text-right">
+                                    <span className="text-xs text-yellow-600">{subKey}: </span>
+                                    <span className="text-xs font-medium">{subValue}</span>
+                                  </div>
+                                )) :
+                                value
+                              }
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recommendations */}
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-purple-900 mb-3 flex items-center">
+                        <Target className="w-5 h-5 mr-2" />
+                        AI Recommendations
+                      </h3>
+                      <ul className="space-y-2">
+                        {reasoning.recommendations.map((rec, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-purple-600 mr-2">•</span>
+                            <span className="text-sm text-purple-700">{rec}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Risk Factors */}
+                    <div className="bg-red-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-red-900 mb-3 flex items-center">
+                        <AlertCircle className="w-5 h-5 mr-2" />
+                        Risk Factors to Monitor
+                      </h3>
+                      <ul className="space-y-2">
+                        {reasoning.riskFactors.map((risk, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-red-600 mr-2">⚠</span>
+                            <span className="text-sm text-red-700">{risk}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Opportunities */}
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h3 className="text-lg font-semibold text-green-900 mb-3 flex items-center">
+                        <TrendingUp className="w-5 h-5 mr-2" />
+                        Growth Opportunities
+                      </h3>
+                      <ul className="space-y-2">
+                        {reasoning.opportunities.map((opp, index) => (
+                          <li key={index} className="flex items-start">
+                            <span className="text-green-600 mr-2">💡</span>
+                            <span className="text-sm text-green-700">{opp}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
