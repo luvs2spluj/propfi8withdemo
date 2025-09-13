@@ -49,7 +49,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
   const [chartData, setChartData] = useState<PropertyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
-  const [metricType, setMetricType] = useState<'revenue' | 'occupancy'>('revenue');
+  const [metricType] = useState<'revenue' | 'occupancy'>('revenue');
 
   useEffect(() => {
     if (properties.length > 0) {
@@ -377,35 +377,6 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
               </option>
             ))}
           </select>
-        </div>
-        
-        {/* Metric Toggle */}
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Metric
-          </label>
-          <div className="flex rounded-md border border-gray-300 overflow-hidden">
-            <button
-              onClick={() => setMetricType('revenue')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                metricType === 'revenue'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Revenue
-            </button>
-            <button
-              onClick={() => setMetricType('occupancy')}
-              className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
-                metricType === 'occupancy'
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Occupancy
-            </button>
-          </div>
         </div>
       </div>
       

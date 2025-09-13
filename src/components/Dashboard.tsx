@@ -227,14 +227,6 @@ const Dashboard: React.FC = () => {
       icon: Users,
       color: 'orange'
     },
-    {
-      title: 'Data Records',
-      value: totalRecords.toString(),
-      change: 'CSV uploads',
-      changeType: 'positive' as const,
-      icon: Calendar,
-      color: 'indigo'
-    }
   ];
 
   const recentActivities = [
