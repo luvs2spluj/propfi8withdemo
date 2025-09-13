@@ -79,18 +79,18 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
               const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
               console.log('📊 Latest Chico data:', latestChicoData);
               
-              if (latestChicoData.data?.rows && Array.isArray(latestChicoData.data.rows)) {
+              if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for revenue');
                 
                 // Extract unique months from the data
-                const months = [...new Set(latestChicoData.data.rows.map((row: any) => row.period))].sort();
+                const months = [...new Set(latestChicoData.data.data.map((row: any) => row.period))].sort();
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Calculate monthly revenue by summing all income accounts for each month
                 const monthlyData = months.map((month: string) => {
                   // Find all income-related accounts for this month
-                  const monthlyRecords = latestChicoData.data.rows.filter((row: any) => 
+                  const monthlyRecords = latestChicoData.data.data.filter((row: any) => 
                     row.period === month && 
                     (row.account_name.toLowerCase().includes('rent') || 
                      row.account_name.toLowerCase().includes('income'))

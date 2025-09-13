@@ -127,42 +127,49 @@ const Financials: React.FC = () => {
               // Handle both array and object formats
               const dataItem = Array.isArray(localItem) ? localItem[localItem.length - 1] : localItem;
               
-              if (dataItem.data?.sample && dataItem.data.isMonthColumnFormat) {
-                // Extract monthly data from Gilroy-style format
-                const rentIncomeData = dataItem.data.sample.find((row: any) => 
-                  row['Account Name'] === 'Rent Income'
-                );
+              if (dataItem.data?.data && Array.isArray(dataItem.data.data)) {
+                // This is the original Chico data format with individual records
+                console.log('📊 Processing original Chico data format for financials');
                 
-                if (rentIncomeData) {
-                  console.log('💰 Found Rent Income data for financials:', rentIncomeData);
+                // Extract unique months from the data
+                const months = [...new Set(dataItem.data.data.map((row: any) => row.period))].sort();
+                console.log('📅 Available months from Chico data:', months);
+                
+                // Calculate monthly revenue and expenses for each month
+                const monthlyDataArray = months.map((month: string) => {
+                  // Find all income-related accounts for this month
+                  const monthlyRecords = dataItem.data.data.filter((row: any) => 
+                    row.period === month && 
+                    (row.account_name.toLowerCase().includes('rent') || 
+                     row.account_name.toLowerCase().includes('income'))
+                  );
                   
-                  // Convert monthly data to PropertyData format
-                  const monthlyDataArray = dataItem.data.monthColumns.map((month: string) => {
-                    const monthlyRevenue = parseFloat(rentIncomeData[month]) || 0;
-                    const monthlyExpenses = monthlyRevenue * 0.6; // Estimate 60% expenses
-                    const monthlyNetIncome = monthlyRevenue - monthlyExpenses;
-                    
-                    return {
-                      id: `financials-${month}`,
-                      property_id: selectedProperty,
-                      date: month,
-                      revenue: monthlyRevenue.toString(),
-                      occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                      maintenance_cost: (monthlyRevenue * 0.2).toString(),
-                      utilities_cost: (monthlyRevenue * 0.15).toString(),
-                      insurance_cost: (monthlyRevenue * 0.1).toString(),
-                      property_tax: (monthlyRevenue * 0.05).toString(),
-                      other_expenses: (monthlyRevenue * 0.1).toString(),
-                      notes: `Monthly data from ${month}`,
-                      property_name: selectedPropertyName
-                    };
-                  });
+                  // Sum up the revenue for this month
+                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
+                    sum + (parseFloat(record.amount) || 0), 0
+                  );
                   
-                  propertyDataArray = monthlyDataArray;
-                  console.log('📊 Monthly financials data:', monthlyDataArray);
-                } else {
-                  console.log('⚠️ No Rent Income data found in sample for financials');
-                }
+                  const monthlyExpenses = monthlyRevenue * 0.6; // Estimate 60% expenses
+                  const monthlyNetIncome = monthlyRevenue - monthlyExpenses;
+                  
+                  return {
+                    id: `financials-${month}`,
+                    property_id: selectedProperty,
+                    date: month,
+                    revenue: monthlyRevenue.toString(),
+                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
+                    maintenance_cost: (monthlyRevenue * 0.2).toString(),
+                    utilities_cost: (monthlyRevenue * 0.15).toString(),
+                    insurance_cost: (monthlyRevenue * 0.1).toString(),
+                    property_tax: (monthlyRevenue * 0.05).toString(),
+                    other_expenses: (monthlyRevenue * 0.1).toString(),
+                    notes: `Monthly data from ${month}`,
+                    property_name: selectedPropertyName
+                  };
+                });
+                
+                propertyDataArray = monthlyDataArray;
+                console.log('📊 Monthly financials data from Chico:', monthlyDataArray);
               } else {
                 // Fallback to summary data format
                 const convertedData: PropertyData = {

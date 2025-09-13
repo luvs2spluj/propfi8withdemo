@@ -80,37 +80,44 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
               const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
               console.log('📊 Latest Chico data for performance:', latestChicoData);
               
-              if (latestChicoData.data?.sample && latestChicoData.data.isMonthColumnFormat) {
-                // Extract monthly data from Gilroy-style format
-                const rentIncomeData = latestChicoData.data.sample.find((row: any) => 
-                  row['Account Name'] === 'Rent Income'
-                );
+              if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
+                // This is the original Chico data format with individual records
+                console.log('📊 Processing original Chico data format for performance');
                 
-                if (rentIncomeData) {
-                  console.log('💰 Found Rent Income data for performance:', rentIncomeData);
+                // Extract unique months from the data
+                const months = [...new Set(latestChicoData.data.data.map((row: any) => row.period))].sort();
+                console.log('📅 Available months from Chico data:', months);
+                
+                // Calculate monthly revenue and expenses for each month
+                const monthlyData = months.map((month: string) => {
+                  // Find all income-related accounts for this month
+                  const monthlyRecords = latestChicoData.data.data.filter((row: any) => 
+                    row.period === month && 
+                    (row.account_name.toLowerCase().includes('rent') || 
+                     row.account_name.toLowerCase().includes('income'))
+                  );
                   
-                  // Convert monthly data to performance chart format
-                  const monthlyData = latestChicoData.data.monthColumns.map((month: string) => {
-                    const monthlyRevenue = parseFloat(rentIncomeData[month]) || 0;
-                    return {
-                      id: `performance-${month}`,
-                      date: month,
-                      revenue: monthlyRevenue.toString(),
-                      occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                      maintenance_cost: (monthlyRevenue * 0.2).toString(),
-                      utilities_cost: (monthlyRevenue * 0.15).toString(),
-                      insurance_cost: (monthlyRevenue * 0.1).toString(),
-                      property_tax: (monthlyRevenue * 0.05).toString(),
-                      other_expenses: (monthlyRevenue * 0.1).toString(),
-                      property_name: 'Chico'
-                    };
-                  });
+                  // Sum up the revenue for this month
+                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
+                    sum + (parseFloat(record.amount) || 0), 0
+                  );
                   
-                  chartData = monthlyData;
-                  console.log('📊 Monthly performance chart data:', chartData);
-                } else {
-                  console.log('⚠️ No Rent Income data found in sample for performance chart');
-                }
+                  return {
+                    id: `performance-${month}`,
+                    date: month,
+                    revenue: monthlyRevenue.toString(),
+                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
+                    maintenance_cost: (monthlyRevenue * 0.2).toString(),
+                    utilities_cost: (monthlyRevenue * 0.15).toString(),
+                    insurance_cost: (monthlyRevenue * 0.1).toString(),
+                    property_tax: (monthlyRevenue * 0.05).toString(),
+                    other_expenses: (monthlyRevenue * 0.1).toString(),
+                    property_name: 'Chico'
+                  };
+                });
+                
+                chartData = monthlyData;
+                console.log('📊 Monthly performance data from Chico:', chartData);
               } else {
                 // Fallback to summary data format
                 const localChartData = localData.data.Chico.map((item: any) => ({
