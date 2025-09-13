@@ -492,7 +492,7 @@ const Financials: React.FC = () => {
           month,
           revenue,
           expenses,
-          net,
+          netIncome: net,
           margin
         };
       });
@@ -517,7 +517,7 @@ const Financials: React.FC = () => {
           month,
           revenue,
           expenses,
-          net,
+          netIncome: net,
           margin
         };
       });
@@ -804,9 +804,9 @@ const Financials: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
                   <td className="py-3 px-4 text-right text-gray-900">${data.revenue.toLocaleString()}</td>
                   <td className="py-3 px-4 text-right text-gray-900">${data.expenses.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">${(data.netIncome || data.net || 0).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-right text-gray-900">${data.netIncome.toLocaleString()}</td>
                   <td className="py-3 px-4 text-right text-gray-900">
-                    {(((data.netIncome || data.net || 0) / data.revenue) * 100).toFixed(1)}%
+                    {((data.netIncome / data.revenue) * 100).toFixed(1)}%
                   </td>
                 </tr>
               ))}
