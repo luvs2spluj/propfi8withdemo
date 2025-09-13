@@ -256,12 +256,12 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
       // Sort monthly data properly
       const sortedData = chartData.sort((a, b) => {
         const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const aMonth = a.month.split(' ')[0];
-        const bMonth = b.month.split(' ')[0];
+        const aMonth = a.month?.split(' ')[0] || '';
+        const bMonth = b.month?.split(' ')[0] || '';
         return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
       });
       
-      const labels = sortedData.map(item => item.month);
+      const labels = sortedData.map(item => item.month || '');
       const revenueData = sortedData.map(item => parseFloat(item.revenue));
       const expensesData = sortedData.map(item => parseFloat(item.expenses || '0'));
       const netIncomeData = sortedData.map(item => parseFloat(item.netIncome || '0'));

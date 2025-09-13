@@ -194,7 +194,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
   // Sort data by date and prepare chart data
   const sortedData = chartData.sort((a, b) => {
     // Handle monthly data format (like "Jan 2025")
-    if (a.month && (a.month.includes('2025') || a.month.includes('2024'))) {
+    if (a.month && b.month && (a.month.includes('2025') || a.month.includes('2024'))) {
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const aMonth = a.month.split(' ')[0];
       const bMonth = b.month.split(' ')[0];
