@@ -47,7 +47,15 @@ const Analytics: React.FC = () => {
   const generateDetailedReasoning = (insight: any) => {
     if (!analyticsData || !insight) return null;
 
-    const reasoning = {
+    const reasoning: {
+      title: string;
+      currentData: Record<string, any>;
+      benchmarks: Record<string, any>;
+      calculations: Record<string, any>;
+      recommendations: string[];
+      riskFactors: string[];
+      opportunities: string[];
+    } = {
       title: insight.title,
       currentData: {},
       benchmarks: {},
@@ -788,7 +796,7 @@ const Analytics: React.FC = () => {
                                   (key.includes('Revenue') || key.includes('Expense') || key.includes('Cost') ? 
                                     `$${value.toLocaleString()}` : 
                                     `${value.toFixed(1)}${key.includes('Ratio') ? '%' : ''}`) :
-                                value
+                                String(value)
                               }
                             </span>
                           </div>
@@ -813,7 +821,7 @@ const Analytics: React.FC = () => {
                                 (key.includes('Ratio') ? `${(value * 100).toFixed(1)}%` : 
                                  key.includes('Rate') || key.includes('Threshold') ? `${value}%` :
                                  `$${value.toLocaleString()}`) :
-                                value
+                                String(value)
                               }
                             </span>
                           </div>
@@ -838,10 +846,10 @@ const Analytics: React.FC = () => {
                                 Object.entries(value).map(([subKey, subValue]) => (
                                   <div key={subKey} className="text-right">
                                     <span className="text-xs text-yellow-600">{subKey}: </span>
-                                    <span className="text-xs font-medium">{subValue}</span>
+                                    <span className="text-xs font-medium">{String(subValue)}</span>
                                   </div>
                                 )) :
-                                value
+                                String(value)
                               }
                             </span>
                           </div>
