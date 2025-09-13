@@ -371,16 +371,9 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), calculate from that
-    if (propertyData.length > 1 && propertyData.some(record => record.date.includes('2025'))) {
+    if (propertyData.length > 1 && propertyData.some(record => record.month && record.month.includes('2025'))) {
       const totalRevenue = propertyData.reduce((sum, record) => sum + parseFloat(record.revenue), 0);
-      const totalExpenses = propertyData.reduce((sum, record) => {
-        const maintenance = parseFloat(record.maintenance_cost) || 0;
-        const utilities = parseFloat(record.utilities_cost) || 0;
-        const insurance = parseFloat(record.insurance_cost) || 0;
-        const propertyTax = parseFloat(record.property_tax) || 0;
-        const other = parseFloat(record.other_expenses) || 0;
-        return sum + maintenance + utilities + insurance + propertyTax + other;
-      }, 0);
+      const totalExpenses = propertyData.reduce((sum, record) => sum + parseFloat(record.expenses || '0'), 0);
       
       const netIncome = totalRevenue - totalExpenses;
       const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
@@ -443,24 +436,26 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), use actual data
-    if (propertyData.length > 1 && propertyData.some(record => record.date.includes('2025'))) {
+    if (propertyData.length > 1 && propertyData.some(record => record.month && record.month.includes('2025'))) {
       return propertyData.map(record => {
         const revenue = parseFloat(record.revenue);
-        const maintenance = parseFloat(record.maintenance_cost) || 0;
-        const utilities = parseFloat(record.utilities_cost) || 0;
-        const insurance = parseFloat(record.insurance_cost) || 0;
-        const propertyTax = parseFloat(record.property_tax) || 0;
-        const other = parseFloat(record.other_expenses) || 0;
-        const expenses = maintenance + utilities + insurance + propertyTax + other;
-        const net = revenue - expenses;
-        const margin = revenue > 0 ? (net / revenue) * 100 : 0;
+        const expenses = parseFloat(record.expenses || '0');
+        const netIncome = parseFloat(record.netIncome || '0');
+        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
 
         return {
-          month: record.date, // Use the month string directly (e.g., "Jan 2025")
+          month: record.month || record.date, // Use the month string directly (e.g., "Jan 2025")
           revenue,
           expenses,
-          net,
-          margin
+          netIncome,
+          margin,
+          breakdown: record.breakdown || {
+            maintenance: 0,
+            insurance: 0,
+            utilities: 0,
+            propertyTax: 0,
+            other: 0
+          }
         };
       });
     }
