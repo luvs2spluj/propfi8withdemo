@@ -1,0 +1,6731 @@
+{
+  "accounts": [
+    {
+      "account_name": "Operating Income & Expense",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.95,
+        "reasoning": "Contains \"rent\" keyword"
+      }
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.95,
+        "reasoning": "Contains \"rent\" keyword"
+      }
+    },
+    {
+      "account_name": "Concessions",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.95,
+        "reasoning": "Contains \"rent\" keyword"
+      }
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.7,
+        "reasoning": "Revenue-related account name"
+      }
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.7,
+        "reasoning": "Revenue-related account name"
+      }
+    },
+    {
+      "account_name": "Late Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Garbage",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Water Service",
+      "analysis": {
+        "bucket": "utilities",
+        "confidence": 0.7,
+        "reasoning": "Contains \"water\" keyword"
+      }
+    },
+    {
+      "account_name": "Application Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Pet Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Total Operating Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Management Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Postage",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Legal Services",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Resident Relations",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.7,
+        "reasoning": "Revenue-related account name"
+      }
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Utilities",
+      "analysis": {
+        "bucket": "utilities",
+        "confidence": 0.95,
+        "reasoning": "Contains \"utilities\" keyword"
+      }
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "analysis": {
+        "bucket": "utilities",
+        "confidence": 0.7,
+        "reasoning": "Contains \"electric\" keyword"
+      }
+    },
+    {
+      "account_name": "Water & Sewer",
+      "analysis": {
+        "bucket": "utilities",
+        "confidence": 0.7,
+        "reasoning": "Contains \"water\" keyword"
+      }
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Sewer",
+      "analysis": {
+        "bucket": "utilities",
+        "confidence": 0.7,
+        "reasoning": "Utility-related account name"
+      }
+    },
+    {
+      "account_name": "Pest Control",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "analysis": {
+        "bucket": "maintenance",
+        "confidence": 0.95,
+        "reasoning": "Contains \"maintenance\" keyword"
+      }
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "analysis": {
+        "bucket": "maintenance",
+        "confidence": 0.95,
+        "reasoning": "Contains \"maintenance\" keyword"
+      }
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "analysis": {
+        "bucket": "maintenance",
+        "confidence": 0.95,
+        "reasoning": "Contains \"maintenance\" keyword"
+      }
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Landscape Services",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "analysis": {
+        "bucket": "maintenance",
+        "confidence": 0.8,
+        "reasoning": "Contains \"repair\" keyword"
+      }
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "analysis": {
+        "bucket": "maintenance",
+        "confidence": 0.8,
+        "reasoning": "Contains \"repair\" keyword"
+      }
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Total Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Total Expense",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Net Income",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"income\" keyword"
+      }
+    },
+    {
+      "account_name": "Other Items",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "analysis": {
+        "bucket": "income",
+        "confidence": 0.8,
+        "reasoning": "Contains \"revenue\" keyword"
+      }
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Net Other Items",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Cash Flow",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Beginning Cash",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "analysis": {
+        "bucket": "other",
+        "confidence": 0.5,
+        "reasoning": "No specific category match found"
+      }
+    }
+  ],
+  "monthlyData": [
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Operating Income & Expense",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2024-08-01",
+      "amount": 36061.29,
+      "amount_raw": "36061.29"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2024-09-01",
+      "amount": 36443,
+      "amount_raw": "36,443.00"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2024-10-01",
+      "amount": 36074.68,
+      "amount_raw": "36,074.68"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2024-11-01",
+      "amount": 36795,
+      "amount_raw": "36,795.00"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2024-12-01",
+      "amount": 36795,
+      "amount_raw": "36,795.00"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-01-01",
+      "amount": 36780,
+      "amount_raw": "36,780.00"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-02-01",
+      "amount": 36086.79,
+      "amount_raw": "36,086.79"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-03-01",
+      "amount": 36371.13,
+      "amount_raw": "36,371.13"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-04-01",
+      "amount": 35730,
+      "amount_raw": "35,730.00"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-05-01",
+      "amount": 36173.39,
+      "amount_raw": "36,173.39"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-06-01",
+      "amount": 35452.16,
+      "amount_raw": "35452.16"
+    },
+    {
+      "account_name": "Resident / Tenant Rents & Asmts",
+      "period": "2025-07-01",
+      "amount": 35318.21,
+      "amount_raw": "35,318.21"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2024-09-01",
+      "amount": 2970.62,
+      "amount_raw": "2,970.62"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2024-11-01",
+      "amount": 2781.46,
+      "amount_raw": "2,781.46"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-01-01",
+      "amount": 3116.88,
+      "amount_raw": "3,116.88"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-02-01",
+      "amount": 770.52,
+      "amount_raw": "770.52"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-03-01",
+      "amount": 1280.1,
+      "amount_raw": "1,280.10"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-04-01",
+      "amount": 1459.46,
+      "amount_raw": "1,459.46"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-06-01",
+      "amount": 1842.04,
+      "amount_raw": "1842.04"
+    },
+    {
+      "account_name": "Short Term Rentals",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2024-09-01",
+      "amount": -25,
+      "amount_raw": "-25.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2024-11-01",
+      "amount": -25,
+      "amount_raw": "-25.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Concessions",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2024-08-01",
+      "amount": -51.77,
+      "amount_raw": "-51.77"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-04-01",
+      "amount": -55,
+      "amount_raw": "-55.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Concessions - Rent",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2024-10-01",
+      "amount": -500,
+      "amount_raw": "-500.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-03-01",
+      "amount": -500,
+      "amount_raw": "-500.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-05-01",
+      "amount": -500,
+      "amount_raw": "-500.00"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Move In Specials / Incentives",
+      "period": "2025-07-01",
+      "amount": -500,
+      "amount_raw": "-500.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2024-08-01",
+      "amount": 300,
+      "amount_raw": "300.0"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2024-09-01",
+      "amount": -368,
+      "amount_raw": "-368.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-03-01",
+      "amount": 529,
+      "amount_raw": "529.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-04-01",
+      "amount": 879,
+      "amount_raw": "879.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-05-01",
+      "amount": 829,
+      "amount_raw": "829.00"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-06-01",
+      "amount": 1579,
+      "amount_raw": "1579.0"
+    },
+    {
+      "account_name": "Move Out Charges - Resident",
+      "period": "2025-07-01",
+      "amount": 941,
+      "amount_raw": "941.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2024-08-01",
+      "amount": 125,
+      "amount_raw": "125.0"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2024-09-01",
+      "amount": -375,
+      "amount_raw": "-375.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Move Out Carpet Cleaning",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2024-09-01",
+      "amount": -500,
+      "amount_raw": "-500.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-02-01",
+      "amount": 279,
+      "amount_raw": "279.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Move Out Damages",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2024-10-01",
+      "amount": 138.65,
+      "amount_raw": "138.65"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-01-01",
+      "amount": 155.77,
+      "amount_raw": "155.77"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Resident Charge Non Move Out",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-01-01",
+      "amount": -100,
+      "amount_raw": "-100.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Late Fees",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-05-01",
+      "amount": 4.5,
+      "amount_raw": "4.50"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-06-01",
+      "amount": -4.5,
+      "amount_raw": "-4.5"
+    },
+    {
+      "account_name": "Insurance Admin Fee",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-05-01",
+      "amount": 20,
+      "amount_raw": "20.00"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-06-01",
+      "amount": 29.5,
+      "amount_raw": "29.5"
+    },
+    {
+      "account_name": "Insurance Svcs Income",
+      "period": "2025-07-01",
+      "amount": 30.5,
+      "amount_raw": "30.50"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-06-01",
+      "amount": 50.75,
+      "amount_raw": "50.75"
+    },
+    {
+      "account_name": "Credit Reporting Services Income",
+      "period": "2025-07-01",
+      "amount": 65.7,
+      "amount_raw": "65.70"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2024-08-01",
+      "amount": 546.45,
+      "amount_raw": "546.45"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2024-09-01",
+      "amount": 560,
+      "amount_raw": "560.00"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2024-10-01",
+      "amount": 579.19,
+      "amount_raw": "579.19"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2024-11-01",
+      "amount": 595,
+      "amount_raw": "595.00"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2024-12-01",
+      "amount": 595,
+      "amount_raw": "595.00"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-01-01",
+      "amount": 525,
+      "amount_raw": "525.00"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-02-01",
+      "amount": 646.25,
+      "amount_raw": "646.25"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-03-01",
+      "amount": 580.32,
+      "amount_raw": "580.32"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-04-01",
+      "amount": 560,
+      "amount_raw": "560.00"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-05-01",
+      "amount": 561.13,
+      "amount_raw": "561.13"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-06-01",
+      "amount": 546.84,
+      "amount_raw": "546.84"
+    },
+    {
+      "account_name": "Garbage",
+      "period": "2025-07-01",
+      "amount": 555.32,
+      "amount_raw": "555.32"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2024-08-01",
+      "amount": 1840.97,
+      "amount_raw": "1840.97"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2024-09-01",
+      "amount": 1610,
+      "amount_raw": "1,610.00"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2024-10-01",
+      "amount": 1651.13,
+      "amount_raw": "1,651.13"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2024-11-01",
+      "amount": 1685,
+      "amount_raw": "1,685.00"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2024-12-01",
+      "amount": 1685,
+      "amount_raw": "1,685.00"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-01-01",
+      "amount": 1635,
+      "amount_raw": "1,635.00"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-02-01",
+      "amount": 1708.21,
+      "amount_raw": "1,708.21"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-03-01",
+      "amount": 1653.55,
+      "amount_raw": "1,653.55"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-04-01",
+      "amount": 1610,
+      "amount_raw": "1,610.00"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-05-01",
+      "amount": 1630.17,
+      "amount_raw": "1,630.17"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-06-01",
+      "amount": 1577.5,
+      "amount_raw": "1577.5"
+    },
+    {
+      "account_name": "Water Service",
+      "period": "2025-07-01",
+      "amount": 1527.74,
+      "amount_raw": "1,527.74"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2024-09-01",
+      "amount": 30,
+      "amount_raw": "30.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2024-10-01",
+      "amount": -30,
+      "amount_raw": "-30.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-03-01",
+      "amount": -35,
+      "amount_raw": "-35.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-05-01",
+      "amount": 70,
+      "amount_raw": "70.00"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-06-01",
+      "amount": -70,
+      "amount_raw": "-70.0"
+    },
+    {
+      "account_name": "Application Fees",
+      "period": "2025-07-01",
+      "amount": 70,
+      "amount_raw": "70.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2024-08-01",
+      "amount": 150,
+      "amount_raw": "150.0"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2024-09-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2024-10-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2024-11-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2024-12-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-01-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-02-01",
+      "amount": 150,
+      "amount_raw": "150.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-03-01",
+      "amount": 164.52,
+      "amount_raw": "164.52"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-04-01",
+      "amount": 175,
+      "amount_raw": "175.00"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-05-01",
+      "amount": 212.1,
+      "amount_raw": "212.10"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-06-01",
+      "amount": 230,
+      "amount_raw": "230.0"
+    },
+    {
+      "account_name": "Pet Fees",
+      "period": "2025-07-01",
+      "amount": 197.58,
+      "amount_raw": "197.58"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-03-01",
+      "amount": 25,
+      "amount_raw": "25.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-04-01",
+      "amount": -25,
+      "amount_raw": "-25.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Lock / Key Sales",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2024-08-01",
+      "amount": 38971.94,
+      "amount_raw": "38971.94"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2024-09-01",
+      "amount": 40495.62,
+      "amount_raw": "40,495.62"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2024-10-01",
+      "amount": 38063.65,
+      "amount_raw": "38,063.65"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2024-11-01",
+      "amount": 41981.46,
+      "amount_raw": "41,981.46"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2024-12-01",
+      "amount": 39225,
+      "amount_raw": "39,225.00"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-01-01",
+      "amount": 42262.65,
+      "amount_raw": "42,262.65"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-02-01",
+      "amount": 39640.77,
+      "amount_raw": "39,640.77"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-03-01",
+      "amount": 40068.62,
+      "amount_raw": "40,068.62"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-04-01",
+      "amount": 40333.46,
+      "amount_raw": "40,333.46"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-05-01",
+      "amount": 39000.29,
+      "amount_raw": "39,000.29"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-06-01",
+      "amount": 41233.29,
+      "amount_raw": "41233.29"
+    },
+    {
+      "account_name": "Total Operating Income",
+      "period": "2025-07-01",
+      "amount": 38206.05,
+      "amount_raw": "38,206.05"
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2024-08-01",
+      "amount": 1522.09,
+      "amount_raw": "1522.09"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2024-09-01",
+      "amount": 1477.4,
+      "amount_raw": "1,477.40"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2024-10-01",
+      "amount": 1564.75,
+      "amount_raw": "1,564.75"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2024-11-01",
+      "amount": 1544.2,
+      "amount_raw": "1,544.20"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2024-12-01",
+      "amount": 1545.2,
+      "amount_raw": "1,545.20"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-01-01",
+      "amount": 1571.53,
+      "amount_raw": "1,571.53"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-02-01",
+      "amount": 1521.8,
+      "amount_raw": "1,521.80"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-03-01",
+      "amount": 1527.57,
+      "amount_raw": "1,527.57"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-04-01",
+      "amount": 1500.6,
+      "amount_raw": "1,500.60"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-05-01",
+      "amount": 1520.63,
+      "amount_raw": "1,520.63"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-06-01",
+      "amount": 1490.39,
+      "amount_raw": "1490.39"
+    },
+    {
+      "account_name": "Management Fees",
+      "period": "2025-07-01",
+      "amount": 1481.74,
+      "amount_raw": "1,481.74"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2024-08-01",
+      "amount": 371.26,
+      "amount_raw": "371.26"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2024-09-01",
+      "amount": 389.72,
+      "amount_raw": "389.72"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2024-10-01",
+      "amount": 404.96,
+      "amount_raw": "404.96"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2024-12-01",
+      "amount": 800.45,
+      "amount_raw": "800.45"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-01-01",
+      "amount": 392.25,
+      "amount_raw": "392.25"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-02-01",
+      "amount": 422.63,
+      "amount_raw": "422.63"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-03-01",
+      "amount": 396.41,
+      "amount_raw": "396.41"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-04-01",
+      "amount": 400.69,
+      "amount_raw": "400.69"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-05-01",
+      "amount": 403.33,
+      "amount_raw": "403.33"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-06-01",
+      "amount": 390,
+      "amount_raw": "390.0"
+    },
+    {
+      "account_name": "Asset Management Fee",
+      "period": "2025-07-01",
+      "amount": 412.33,
+      "amount_raw": "412.33"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2024-08-01",
+      "amount": 29.61,
+      "amount_raw": "29.61"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2024-09-01",
+      "amount": 69.56,
+      "amount_raw": "69.56"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2024-10-01",
+      "amount": 10.33,
+      "amount_raw": "10.33"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2024-11-01",
+      "amount": 6.72,
+      "amount_raw": "6.72"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2024-12-01",
+      "amount": 2.48,
+      "amount_raw": "2.48"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-01-01",
+      "amount": 3.07,
+      "amount_raw": "3.07"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-02-01",
+      "amount": 20.51,
+      "amount_raw": "20.51"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-03-01",
+      "amount": 20.95,
+      "amount_raw": "20.95"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-04-01",
+      "amount": 60.64,
+      "amount_raw": "60.64"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-05-01",
+      "amount": 26.02,
+      "amount_raw": "26.02"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-06-01",
+      "amount": 26.78,
+      "amount_raw": "26.78"
+    },
+    {
+      "account_name": "Salaries and Wages - Onsite Mgt",
+      "period": "2025-07-01",
+      "amount": 81.6,
+      "amount_raw": "81.60"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2024-09-01",
+      "amount": 2.41,
+      "amount_raw": "2.41"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2024-10-01",
+      "amount": -0.02,
+      "amount_raw": "-0.02"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2024-11-01",
+      "amount": -0.01,
+      "amount_raw": "-0.01"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Payroll Taxes - Onsite Mgt",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2024-08-01",
+      "amount": 0.28,
+      "amount_raw": "0.28"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2024-09-01",
+      "amount": 0.59,
+      "amount_raw": "0.59"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2024-10-01",
+      "amount": 0.19,
+      "amount_raw": "0.19"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2024-11-01",
+      "amount": 0.12,
+      "amount_raw": "0.12"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2024-12-01",
+      "amount": 0.05,
+      "amount_raw": "0.05"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Workers Comp - Onsite Mgt",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-02-01",
+      "amount": 328.64,
+      "amount_raw": "328.64"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-05-01",
+      "amount": 4.14,
+      "amount_raw": "4.14"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-06-01",
+      "amount": 2.07,
+      "amount_raw": "2.07"
+    },
+    {
+      "account_name": "Clerical , Postage & Other Office Supplies",
+      "period": "2025-07-01",
+      "amount": 6.21,
+      "amount_raw": "6.21"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2024-08-01",
+      "amount": 0.69,
+      "amount_raw": "0.69"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2024-09-01",
+      "amount": 1.33,
+      "amount_raw": "1.33"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2024-12-01",
+      "amount": 0.69,
+      "amount_raw": "0.69"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Postage",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2024-08-01",
+      "amount": 2,
+      "amount_raw": "2.0"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2024-09-01",
+      "amount": 15,
+      "amount_raw": "15.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2024-10-01",
+      "amount": 12,
+      "amount_raw": "12.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-01-01",
+      "amount": 31,
+      "amount_raw": "31.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-02-01",
+      "amount": 9,
+      "amount_raw": "9.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-03-01",
+      "amount": 17.55,
+      "amount_raw": "17.55"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-05-01",
+      "amount": 23.85,
+      "amount_raw": "23.85"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-06-01",
+      "amount": 14,
+      "amount_raw": "14.0"
+    },
+    {
+      "account_name": "Bank Charges / Merchant Fees",
+      "period": "2025-07-01",
+      "amount": 14,
+      "amount_raw": "14.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-02-01",
+      "amount": 266,
+      "amount_raw": "266.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Inspection Fees",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2024-08-01",
+      "amount": 905,
+      "amount_raw": "905.0"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2024-09-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2024-10-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2024-11-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2024-12-01",
+      "amount": -1041.4,
+      "amount_raw": "-1,041.40"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-01-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-02-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-03-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-04-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-05-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-06-01",
+      "amount": 905,
+      "amount_raw": "905.0"
+    },
+    {
+      "account_name": "General Insurance - Fire & Liability",
+      "period": "2025-07-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-05-01",
+      "amount": 9.5,
+      "amount_raw": "9.50"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-06-01",
+      "amount": 29.5,
+      "amount_raw": "29.5"
+    },
+    {
+      "account_name": "Landlord Liability Insurance Expense",
+      "period": "2025-07-01",
+      "amount": 29.5,
+      "amount_raw": "29.50"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2024-08-01",
+      "amount": 4000,
+      "amount_raw": "4000.0"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2024-09-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2024-10-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2024-11-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2024-12-01",
+      "amount": 17288.18,
+      "amount_raw": "17,288.18"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-01-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-02-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-03-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-04-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-05-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-06-01",
+      "amount": 4000,
+      "amount_raw": "4000.0"
+    },
+    {
+      "account_name": "Real Property Taxes",
+      "period": "2025-07-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2024-08-01",
+      "amount": 1185.65,
+      "amount_raw": "1185.65"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Legal Services",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2024-08-01",
+      "amount": 520,
+      "amount_raw": "520.0"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2024-09-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2024-10-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2024-11-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2024-12-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-01-01",
+      "amount": 1129,
+      "amount_raw": "1,129.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-02-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-03-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-04-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-05-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-06-01",
+      "amount": 520,
+      "amount_raw": "520.0"
+    },
+    {
+      "account_name": "Marketing / Advertising  Expenses",
+      "period": "2025-07-01",
+      "amount": 520,
+      "amount_raw": "520.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2024-09-01",
+      "amount": 106.95,
+      "amount_raw": "106.95"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Resident Relations",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-08-01",
+      "amount": 8536.58,
+      "amount_raw": "8536.58"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-09-01",
+      "amount": 7487.96,
+      "amount_raw": "7,487.96"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-10-01",
+      "amount": 7417.21,
+      "amount_raw": "7,417.21"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-11-01",
+      "amount": 6976.03,
+      "amount_raw": "6,976.03"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2024-12-01",
+      "amount": 19115.65,
+      "amount_raw": "19,115.65"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-01-01",
+      "amount": 8031.85,
+      "amount_raw": "8,031.85"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-02-01",
+      "amount": 7993.58,
+      "amount_raw": "7,993.58"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-03-01",
+      "amount": 7387.48,
+      "amount_raw": "7,387.48"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-04-01",
+      "amount": 7386.93,
+      "amount_raw": "7,386.93"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-05-01",
+      "amount": 7412.47,
+      "amount_raw": "7,412.47"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-06-01",
+      "amount": 7377.74,
+      "amount_raw": "7377.74"
+    },
+    {
+      "account_name": "Total GENERAL & ADMINISTRATIVE EXPENSE",
+      "period": "2025-07-01",
+      "amount": 7450.38,
+      "amount_raw": "7,450.38"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Credit Reporting Expense",
+      "period": "2025-07-01",
+      "amount": 50.75,
+      "amount_raw": "50.75"
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "FACILITY EXPENSE",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2024-08-01",
+      "amount": 67.14,
+      "amount_raw": "67.14"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2024-09-01",
+      "amount": 166.2,
+      "amount_raw": "166.20"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2024-12-01",
+      "amount": 27.78,
+      "amount_raw": "27.78"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-01-01",
+      "amount": -20.36,
+      "amount_raw": "-20.36"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-02-01",
+      "amount": 406.1,
+      "amount_raw": "406.10"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-03-01",
+      "amount": 767.31,
+      "amount_raw": "767.31"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-04-01",
+      "amount": 273.72,
+      "amount_raw": "273.72"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-05-01",
+      "amount": 862.95,
+      "amount_raw": "862.95"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-06-01",
+      "amount": 367.88,
+      "amount_raw": "367.88"
+    },
+    {
+      "account_name": "Utilities",
+      "period": "2025-07-01",
+      "amount": 496.22,
+      "amount_raw": "496.22"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2024-08-01",
+      "amount": 341.01,
+      "amount_raw": "341.01"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2024-09-01",
+      "amount": 1099.13,
+      "amount_raw": "1,099.13"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2024-10-01",
+      "amount": 296.3,
+      "amount_raw": "296.30"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2024-11-01",
+      "amount": 306.28,
+      "amount_raw": "306.28"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2024-12-01",
+      "amount": 513.75,
+      "amount_raw": "513.75"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-01-01",
+      "amount": 362.22,
+      "amount_raw": "362.22"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Electricity",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2024-08-01",
+      "amount": 1343.08,
+      "amount_raw": "1343.08"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2024-09-01",
+      "amount": 42.92,
+      "amount_raw": "42.92"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2024-10-01",
+      "amount": 1869.91,
+      "amount_raw": "1,869.91"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2024-11-01",
+      "amount": 645.27,
+      "amount_raw": "645.27"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2024-12-01",
+      "amount": 931.84,
+      "amount_raw": "931.84"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-01-01",
+      "amount": 105.76,
+      "amount_raw": "105.76"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-02-01",
+      "amount": 1035.87,
+      "amount_raw": "1,035.87"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-03-01",
+      "amount": 965.66,
+      "amount_raw": "965.66"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-04-01",
+      "amount": 1710.77,
+      "amount_raw": "1,710.77"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-05-01",
+      "amount": 1004.18,
+      "amount_raw": "1,004.18"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-06-01",
+      "amount": 180.2,
+      "amount_raw": "180.2"
+    },
+    {
+      "account_name": "Water & Sewer",
+      "period": "2025-07-01",
+      "amount": 1796.51,
+      "amount_raw": "1,796.51"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2024-08-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2024-09-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2024-10-01",
+      "amount": 535.17,
+      "amount_raw": "535.17"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2024-11-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2024-12-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-01-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-02-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-03-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-04-01",
+      "amount": 434.18,
+      "amount_raw": "434.18"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-05-01",
+      "amount": 501.5,
+      "amount_raw": "501.50"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-06-01",
+      "amount": 568.82,
+      "amount_raw": "568.82"
+    },
+    {
+      "account_name": "Refuse Disposal",
+      "period": "2025-07-01",
+      "amount": 455.88,
+      "amount_raw": "455.88"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2024-08-01",
+      "amount": 703.99,
+      "amount_raw": "703.99"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2024-09-01",
+      "amount": 595.1,
+      "amount_raw": "595.10"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2024-10-01",
+      "amount": 156.48,
+      "amount_raw": "156.48"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2024-11-01",
+      "amount": 228.92,
+      "amount_raw": "228.92"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2024-12-01",
+      "amount": 180.2,
+      "amount_raw": "180.20"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-01-01",
+      "amount": 180.2,
+      "amount_raw": "180.20"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Sewer",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2024-08-01",
+      "amount": 130,
+      "amount_raw": "130.0"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2024-09-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2024-10-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2024-11-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2024-12-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-01-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-02-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-03-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-04-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-06-01",
+      "amount": 130,
+      "amount_raw": "130.0"
+    },
+    {
+      "account_name": "Pest Control",
+      "period": "2025-07-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2024-08-01",
+      "amount": 469.58,
+      "amount_raw": "469.58"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2024-09-01",
+      "amount": 469.58,
+      "amount_raw": "469.58"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2024-10-01",
+      "amount": 815.16,
+      "amount_raw": "815.16"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2024-11-01",
+      "amount": 459.58,
+      "amount_raw": "459.58"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2024-12-01",
+      "amount": 469.58,
+      "amount_raw": "469.58"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-01-01",
+      "amount": 482.15,
+      "amount_raw": "482.15"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-02-01",
+      "amount": 482.15,
+      "amount_raw": "482.15"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-03-01",
+      "amount": 482.15,
+      "amount_raw": "482.15"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-04-01",
+      "amount": 562.55,
+      "amount_raw": "562.55"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-05-01",
+      "amount": 149,
+      "amount_raw": "149.00"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-06-01",
+      "amount": 742.1,
+      "amount_raw": "742.1"
+    },
+    {
+      "account_name": "Computers, Server, Phones and IT",
+      "period": "2025-07-01",
+      "amount": 398.55,
+      "amount_raw": "398.55"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2024-08-01",
+      "amount": 1740,
+      "amount_raw": "1740.0"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2024-10-01",
+      "amount": -320,
+      "amount_raw": "-320.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-01-01",
+      "amount": 145,
+      "amount_raw": "145.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-02-01",
+      "amount": 340,
+      "amount_raw": "340.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-04-01",
+      "amount": 1581,
+      "amount_raw": "1,581.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-05-01",
+      "amount": 875,
+      "amount_raw": "875.00"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Fire & Alarm Systems",
+      "period": "2025-07-01",
+      "amount": 145,
+      "amount_raw": "145.00"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2024-08-01",
+      "amount": 1876.49,
+      "amount_raw": "1876.49"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2024-09-01",
+      "amount": 3055.18,
+      "amount_raw": "3,055.18"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2024-10-01",
+      "amount": 1868.94,
+      "amount_raw": "1,868.94"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2024-11-01",
+      "amount": 543.02,
+      "amount_raw": "543.02"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2024-12-01",
+      "amount": 3888.23,
+      "amount_raw": "3,888.23"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-01-01",
+      "amount": 589.34,
+      "amount_raw": "589.34"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-02-01",
+      "amount": 1119.04,
+      "amount_raw": "1,119.04"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-03-01",
+      "amount": 2716.59,
+      "amount_raw": "2,716.59"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-04-01",
+      "amount": 2604.95,
+      "amount_raw": "2,604.95"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-05-01",
+      "amount": 2166.35,
+      "amount_raw": "2,166.35"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-06-01",
+      "amount": 1883.37,
+      "amount_raw": "1883.37"
+    },
+    {
+      "account_name": "Maintenance & Repair",
+      "period": "2025-07-01",
+      "amount": 1018.89,
+      "amount_raw": "1,018.89"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2024-09-01",
+      "amount": 167.29,
+      "amount_raw": "167.29"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2024-10-01",
+      "amount": 632.48,
+      "amount_raw": "632.48"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2024-11-01",
+      "amount": 130,
+      "amount_raw": "130.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Maintenance Materials & Supplies",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2024-09-01",
+      "amount": 85,
+      "amount_raw": "85.00"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2024-10-01",
+      "amount": 85,
+      "amount_raw": "85.00"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2024-11-01",
+      "amount": 317.64,
+      "amount_raw": "317.64"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2024-12-01",
+      "amount": 305.2,
+      "amount_raw": "305.20"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-01-01",
+      "amount": 1267.76,
+      "amount_raw": "1,267.76"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-02-01",
+      "amount": 114.75,
+      "amount_raw": "114.75"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-03-01",
+      "amount": 660.51,
+      "amount_raw": "660.51"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-04-01",
+      "amount": 540,
+      "amount_raw": "540.00"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-05-01",
+      "amount": 874.85,
+      "amount_raw": "874.85"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-06-01",
+      "amount": 85,
+      "amount_raw": "85.0"
+    },
+    {
+      "account_name": "R & M - Appliances",
+      "period": "2025-07-01",
+      "amount": 885.2,
+      "amount_raw": "885.20"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2024-08-01",
+      "amount": 200,
+      "amount_raw": "200.0"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2024-10-01",
+      "amount": 225,
+      "amount_raw": "225.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2024-12-01",
+      "amount": 200,
+      "amount_raw": "200.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-01-01",
+      "amount": 359.32,
+      "amount_raw": "359.32"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-03-01",
+      "amount": 252.06,
+      "amount_raw": "252.06"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-04-01",
+      "amount": 345.18,
+      "amount_raw": "345.18"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-05-01",
+      "amount": 160,
+      "amount_raw": "160.00"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-06-01",
+      "amount": 978.23,
+      "amount_raw": "978.23"
+    },
+    {
+      "account_name": "R & M - Plumbing",
+      "period": "2025-07-01",
+      "amount": 359.67,
+      "amount_raw": "359.67"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2024-08-01",
+      "amount": 500,
+      "amount_raw": "500.0"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-04-01",
+      "amount": 1450,
+      "amount_raw": "1,450.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-06-01",
+      "amount": 986,
+      "amount_raw": "986.0"
+    },
+    {
+      "account_name": "R & M - Interior Paint",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2024-08-01",
+      "amount": 450,
+      "amount_raw": "450.0"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2024-10-01",
+      "amount": 832,
+      "amount_raw": "832.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-02-01",
+      "amount": 350,
+      "amount_raw": "350.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-03-01",
+      "amount": 814,
+      "amount_raw": "814.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-04-01",
+      "amount": 1159,
+      "amount_raw": "1,159.00"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-05-01",
+      "amount": 2181.54,
+      "amount_raw": "2,181.54"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-06-01",
+      "amount": 3547.58,
+      "amount_raw": "3547.58"
+    },
+    {
+      "account_name": "R & M - Move Out Costs",
+      "period": "2025-07-01",
+      "amount": 4744.22,
+      "amount_raw": "4,744.22"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2024-10-01",
+      "amount": 152.68,
+      "amount_raw": "152.68"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "HVAC Maintenance",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2024-08-01",
+      "amount": 125,
+      "amount_raw": "125.0"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2024-09-01",
+      "amount": 125,
+      "amount_raw": "125.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-02-01",
+      "amount": 129,
+      "amount_raw": "129.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Carpet Cleaning",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2024-08-01",
+      "amount": 8380.47,
+      "amount_raw": "8380.47"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2024-09-01",
+      "amount": 6369.58,
+      "amount_raw": "6,369.58"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2024-10-01",
+      "amount": 7279.12,
+      "amount_raw": "7,279.12"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2024-11-01",
+      "amount": 3194.89,
+      "amount_raw": "3,194.89"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2024-12-01",
+      "amount": 7080.76,
+      "amount_raw": "7,080.76"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-01-01",
+      "amount": 4035.57,
+      "amount_raw": "4,035.57"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-02-01",
+      "amount": 4541.09,
+      "amount_raw": "4,541.09"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-03-01",
+      "amount": 7222.46,
+      "amount_raw": "7,222.46"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-04-01",
+      "amount": 10791.35,
+      "amount_raw": "10,791.35"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-05-01",
+      "amount": 8775.37,
+      "amount_raw": "8,775.37"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-06-01",
+      "amount": 9469.18,
+      "amount_raw": "9469.18"
+    },
+    {
+      "account_name": "Total FACILITY EXPENSE",
+      "period": "2025-07-01",
+      "amount": 10430.14,
+      "amount_raw": "10,430.14"
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2024-09-01",
+      "amount": 1000,
+      "amount_raw": "1,000.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2024-10-01",
+      "amount": 500,
+      "amount_raw": "500.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2024-11-01",
+      "amount": 500,
+      "amount_raw": "500.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2024-12-01",
+      "amount": 500,
+      "amount_raw": "500.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-01-01",
+      "amount": 680,
+      "amount_raw": "680.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-02-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-03-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-04-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-05-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-06-01",
+      "amount": 1050,
+      "amount_raw": "1050.0"
+    },
+    {
+      "account_name": "Landscape Services",
+      "period": "2025-07-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2024-11-01",
+      "amount": 300,
+      "amount_raw": "300.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Landscape - Extras",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2024-12-01",
+      "amount": 365,
+      "amount_raw": "365.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-Landscape - Other",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-09-01",
+      "amount": 1000,
+      "amount_raw": "1,000.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-10-01",
+      "amount": 500,
+      "amount_raw": "500.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-11-01",
+      "amount": 800,
+      "amount_raw": "800.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2024-12-01",
+      "amount": 865,
+      "amount_raw": "865.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-01-01",
+      "amount": 680,
+      "amount_raw": "680.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-02-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-03-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-04-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-05-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-06-01",
+      "amount": 1050,
+      "amount_raw": "1050.0"
+    },
+    {
+      "account_name": "Total GROUNDS LANDSCAPING EXPENSE",
+      "period": "2025-07-01",
+      "amount": 600,
+      "amount_raw": "600.00"
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2024-12-01",
+      "amount": 688.98,
+      "amount_raw": "688.98"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Dishwasher)",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2024-08-01",
+      "amount": 1020,
+      "amount_raw": "1020.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Washer)",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2024-09-01",
+      "amount": 418.5,
+      "amount_raw": "418.50"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR-Appliances (Hood Microwave)",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2024-08-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-01-01",
+      "amount": 5200,
+      "amount_raw": "5,200.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "DNU-MRR - Painting (Building)",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-08-01",
+      "amount": 1020,
+      "amount_raw": "1020.0"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-09-01",
+      "amount": 418.5,
+      "amount_raw": "418.50"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-10-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2024-12-01",
+      "amount": 688.98,
+      "amount_raw": "688.98"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-01-01",
+      "amount": 5200,
+      "amount_raw": "5,200.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-02-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-03-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-05-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-06-01",
+      "amount": 0,
+      "amount_raw": "0.0"
+    },
+    {
+      "account_name": "Total MAJOR REPAIR & REPLACEMENTS",
+      "period": "2025-07-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2024-08-01",
+      "amount": 17937.05,
+      "amount_raw": "17937.05"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2024-09-01",
+      "amount": 15276.04,
+      "amount_raw": "15,276.04"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2024-10-01",
+      "amount": 15196.33,
+      "amount_raw": "15,196.33"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2024-11-01",
+      "amount": 10970.92,
+      "amount_raw": "10,970.92"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2024-12-01",
+      "amount": 27750.39,
+      "amount_raw": "27,750.39"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-01-01",
+      "amount": 17947.42,
+      "amount_raw": "17,947.42"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-02-01",
+      "amount": 13134.67,
+      "amount_raw": "13,134.67"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-03-01",
+      "amount": 15209.94,
+      "amount_raw": "15,209.94"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-04-01",
+      "amount": 18778.28,
+      "amount_raw": "18,778.28"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-05-01",
+      "amount": 16787.84,
+      "amount_raw": "16,787.84"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-06-01",
+      "amount": 17896.92,
+      "amount_raw": "17896.92"
+    },
+    {
+      "account_name": "Total Operating Expense",
+      "period": "2025-07-01",
+      "amount": 18531.27,
+      "amount_raw": "18,531.27"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2024-08-01",
+      "amount": 21034.89,
+      "amount_raw": "21034.89"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2024-09-01",
+      "amount": 25219.58,
+      "amount_raw": "25,219.58"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2024-10-01",
+      "amount": 22867.32,
+      "amount_raw": "22,867.32"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2024-11-01",
+      "amount": 31010.54,
+      "amount_raw": "31,010.54"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2024-12-01",
+      "amount": 11474.61,
+      "amount_raw": "11,474.61"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-01-01",
+      "amount": 24315.23,
+      "amount_raw": "24,315.23"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-02-01",
+      "amount": 26506.1,
+      "amount_raw": "26,506.10"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-03-01",
+      "amount": 24858.68,
+      "amount_raw": "24,858.68"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-04-01",
+      "amount": 21555.18,
+      "amount_raw": "21,555.18"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-05-01",
+      "amount": 22212.45,
+      "amount_raw": "22,212.45"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-06-01",
+      "amount": 23336.37,
+      "amount_raw": "23336.37"
+    },
+    {
+      "account_name": "NOI - Net Operating Income",
+      "period": "2025-07-01",
+      "amount": 19674.78,
+      "amount_raw": "19,674.78"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2024-08-01",
+      "amount": 38971.94,
+      "amount_raw": "38971.94"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2024-09-01",
+      "amount": 40495.62,
+      "amount_raw": "40,495.62"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2024-10-01",
+      "amount": 38063.65,
+      "amount_raw": "38,063.65"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2024-11-01",
+      "amount": 41981.46,
+      "amount_raw": "41,981.46"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2024-12-01",
+      "amount": 39225,
+      "amount_raw": "39,225.00"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-01-01",
+      "amount": 42262.65,
+      "amount_raw": "42,262.65"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-02-01",
+      "amount": 39640.77,
+      "amount_raw": "39,640.77"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-03-01",
+      "amount": 40068.62,
+      "amount_raw": "40,068.62"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-04-01",
+      "amount": 40333.46,
+      "amount_raw": "40,333.46"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-05-01",
+      "amount": 39000.29,
+      "amount_raw": "39,000.29"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-06-01",
+      "amount": 41233.29,
+      "amount_raw": "41233.29"
+    },
+    {
+      "account_name": "Total Income",
+      "period": "2025-07-01",
+      "amount": 38206.05,
+      "amount_raw": "38,206.05"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2024-08-01",
+      "amount": 17937.05,
+      "amount_raw": "17937.05"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2024-09-01",
+      "amount": 15276.04,
+      "amount_raw": "15,276.04"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2024-10-01",
+      "amount": 15196.33,
+      "amount_raw": "15,196.33"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2024-11-01",
+      "amount": 10970.92,
+      "amount_raw": "10,970.92"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2024-12-01",
+      "amount": 27750.39,
+      "amount_raw": "27,750.39"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-01-01",
+      "amount": 17947.42,
+      "amount_raw": "17,947.42"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-02-01",
+      "amount": 13134.67,
+      "amount_raw": "13,134.67"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-03-01",
+      "amount": 15209.94,
+      "amount_raw": "15,209.94"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-04-01",
+      "amount": 18778.28,
+      "amount_raw": "18,778.28"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-05-01",
+      "amount": 16787.84,
+      "amount_raw": "16,787.84"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-06-01",
+      "amount": 17896.92,
+      "amount_raw": "17896.92"
+    },
+    {
+      "account_name": "Total Expense",
+      "period": "2025-07-01",
+      "amount": 18531.27,
+      "amount_raw": "18,531.27"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2024-08-01",
+      "amount": 21034.89,
+      "amount_raw": "21034.89"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2024-09-01",
+      "amount": 25219.58,
+      "amount_raw": "25,219.58"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2024-10-01",
+      "amount": 22867.32,
+      "amount_raw": "22,867.32"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2024-11-01",
+      "amount": 31010.54,
+      "amount_raw": "31,010.54"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2024-12-01",
+      "amount": 11474.61,
+      "amount_raw": "11,474.61"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-01-01",
+      "amount": 24315.23,
+      "amount_raw": "24,315.23"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-02-01",
+      "amount": 26506.1,
+      "amount_raw": "26,506.10"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-03-01",
+      "amount": 24858.68,
+      "amount_raw": "24,858.68"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-04-01",
+      "amount": 21555.18,
+      "amount_raw": "21,555.18"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-05-01",
+      "amount": 22212.45,
+      "amount_raw": "22,212.45"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-06-01",
+      "amount": 23336.37,
+      "amount_raw": "23336.37"
+    },
+    {
+      "account_name": "Net Income",
+      "period": "2025-07-01",
+      "amount": 19674.78,
+      "amount_raw": "19,674.78"
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2024-08-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2024-09-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2024-10-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2024-11-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2024-12-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-01-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-02-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-03-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-04-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-05-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-06-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Other Items",
+      "period": "2025-07-01",
+      "amount": null,
+      "amount_raw": ""
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2024-08-01",
+      "amount": 2700,
+      "amount_raw": "2700.0"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2024-10-01",
+      "amount": -1000,
+      "amount_raw": "-1,000.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-02-01",
+      "amount": -1250,
+      "amount_raw": "-1,250.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-03-01",
+      "amount": 1000,
+      "amount_raw": "1,000.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-05-01",
+      "amount": -1000,
+      "amount_raw": "-1,000.00"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-06-01",
+      "amount": -1000,
+      "amount_raw": "-1000.0"
+    },
+    {
+      "account_name": "Security Deposit Cash",
+      "period": "2025-07-01",
+      "amount": 3350,
+      "amount_raw": "3,350.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2024-08-01",
+      "amount": 4796.77,
+      "amount_raw": "4796.77"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2024-09-01",
+      "amount": -2007,
+      "amount_raw": "-2,007.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2024-10-01",
+      "amount": 1405,
+      "amount_raw": "1,405.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2024-11-01",
+      "amount": 1617,
+      "amount_raw": "1,617.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2024-12-01",
+      "amount": -2367,
+      "amount_raw": "-2,367.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-01-01",
+      "amount": 3457,
+      "amount_raw": "3,457.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-02-01",
+      "amount": 3885,
+      "amount_raw": "3,885.00"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-03-01",
+      "amount": -1569.5,
+      "amount_raw": "-1,569.50"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-04-01",
+      "amount": -2517.5,
+      "amount_raw": "-2,517.50"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-05-01",
+      "amount": 934.85,
+      "amount_raw": "934.85"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-06-01",
+      "amount": -2407.55,
+      "amount_raw": "-2407.55"
+    },
+    {
+      "account_name": "Prepaid Revenue",
+      "period": "2025-07-01",
+      "amount": 3017.91,
+      "amount_raw": "3,017.91"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2024-08-01",
+      "amount": -2700,
+      "amount_raw": "-2700.0"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2024-09-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2024-10-01",
+      "amount": 1000,
+      "amount_raw": "1,000.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2024-11-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2024-12-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-01-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-02-01",
+      "amount": 1250,
+      "amount_raw": "1,250.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-03-01",
+      "amount": -1000,
+      "amount_raw": "-1,000.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-04-01",
+      "amount": 0,
+      "amount_raw": "0.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-05-01",
+      "amount": 1000,
+      "amount_raw": "1,000.00"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-06-01",
+      "amount": 1000,
+      "amount_raw": "1000.0"
+    },
+    {
+      "account_name": "Refundable Security Deposits",
+      "period": "2025-07-01",
+      "amount": -3350,
+      "amount_raw": "-3,350.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2024-08-01",
+      "amount": 4000,
+      "amount_raw": "4000.0"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2024-09-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2024-10-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2024-11-01",
+      "amount": -26822.92,
+      "amount_raw": "-26,822.92"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2024-12-01",
+      "amount": 17288.18,
+      "amount_raw": "17,288.18"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-01-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-02-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-03-01",
+      "amount": -26822.92,
+      "amount_raw": "-26,822.92"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-04-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-05-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-06-01",
+      "amount": 4000,
+      "amount_raw": "4000.0"
+    },
+    {
+      "account_name": "Accrued Property Taxes (Real & Personal)",
+      "period": "2025-07-01",
+      "amount": 4000,
+      "amount_raw": "4,000.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2024-08-01",
+      "amount": 905,
+      "amount_raw": "905.0"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2024-09-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2024-10-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2024-11-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2024-12-01",
+      "amount": -1041.4,
+      "amount_raw": "-1,041.40"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-01-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-02-01",
+      "amount": -23576,
+      "amount_raw": "-23,576.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-03-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-04-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-05-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-06-01",
+      "amount": 905,
+      "amount_raw": "905.0"
+    },
+    {
+      "account_name": "Accrued Other Expenses",
+      "period": "2025-07-01",
+      "amount": 905,
+      "amount_raw": "905.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2024-08-01",
+      "amount": -20000,
+      "amount_raw": "-20000.0"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2024-09-01",
+      "amount": -50000,
+      "amount_raw": "-50,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2024-10-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2024-11-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2024-12-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-01-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-02-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-03-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-04-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-05-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-06-01",
+      "amount": -20000,
+      "amount_raw": "-20000.0"
+    },
+    {
+      "account_name": "Owner Withdrawals",
+      "period": "2025-07-01",
+      "amount": -20000,
+      "amount_raw": "-20,000.00"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2024-08-01",
+      "amount": -10298.23,
+      "amount_raw": "-10298.23"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2024-09-01",
+      "amount": -47102,
+      "amount_raw": "-47,102.00"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2024-10-01",
+      "amount": -13690,
+      "amount_raw": "-13,690.00"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2024-11-01",
+      "amount": -44300.92,
+      "amount_raw": "-44,300.92"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2024-12-01",
+      "amount": -6120.22,
+      "amount_raw": "-6,120.22"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-01-01",
+      "amount": -11638,
+      "amount_raw": "-11,638.00"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-02-01",
+      "amount": -35691,
+      "amount_raw": "-35,691.00"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-03-01",
+      "amount": -47487.42,
+      "amount_raw": "-47,487.42"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-04-01",
+      "amount": -17612.5,
+      "amount_raw": "-17,612.50"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-05-01",
+      "amount": -14160.15,
+      "amount_raw": "-14,160.15"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-06-01",
+      "amount": -17502.55,
+      "amount_raw": "-17502.55"
+    },
+    {
+      "account_name": "Net Other Items",
+      "period": "2025-07-01",
+      "amount": -12077.09,
+      "amount_raw": "-12,077.09"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2024-08-01",
+      "amount": 10736.66,
+      "amount_raw": "10736.66"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2024-09-01",
+      "amount": -21882.42,
+      "amount_raw": "-21,882.42"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2024-10-01",
+      "amount": 9177.32,
+      "amount_raw": "9,177.32"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2024-11-01",
+      "amount": -13290.38,
+      "amount_raw": "-13,290.38"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2024-12-01",
+      "amount": 5354.39,
+      "amount_raw": "5,354.39"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-01-01",
+      "amount": 12677.23,
+      "amount_raw": "12,677.23"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-02-01",
+      "amount": -9184.9,
+      "amount_raw": "-9,184.90"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-03-01",
+      "amount": -22628.74,
+      "amount_raw": "-22,628.74"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-04-01",
+      "amount": 3942.68,
+      "amount_raw": "3,942.68"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-05-01",
+      "amount": 8052.3,
+      "amount_raw": "8,052.30"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-06-01",
+      "amount": 5833.82,
+      "amount_raw": "5833.82"
+    },
+    {
+      "account_name": "Cash Flow",
+      "period": "2025-07-01",
+      "amount": 7597.69,
+      "amount_raw": "7,597.69"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2024-08-01",
+      "amount": 79834.89,
+      "amount_raw": "79834.89"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2024-09-01",
+      "amount": 90571.55,
+      "amount_raw": "90,571.55"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2024-10-01",
+      "amount": 68689.13,
+      "amount_raw": "68,689.13"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2024-11-01",
+      "amount": 77866.45,
+      "amount_raw": "77,866.45"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2024-12-01",
+      "amount": 64576.07,
+      "amount_raw": "64,576.07"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-01-01",
+      "amount": 69930.46,
+      "amount_raw": "69,930.46"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-02-01",
+      "amount": 82607.69,
+      "amount_raw": "82,607.69"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-03-01",
+      "amount": 73422.79,
+      "amount_raw": "73,422.79"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-04-01",
+      "amount": 50794.05,
+      "amount_raw": "50,794.05"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-05-01",
+      "amount": 54736.73,
+      "amount_raw": "54,736.73"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-06-01",
+      "amount": 62789.03,
+      "amount_raw": "62789.03"
+    },
+    {
+      "account_name": "Beginning Cash",
+      "period": "2025-07-01",
+      "amount": 68622.85,
+      "amount_raw": "68,622.85"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2024-08-01",
+      "amount": 90571.55,
+      "amount_raw": "90571.55"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2024-09-01",
+      "amount": 68689.13,
+      "amount_raw": "68,689.13"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2024-10-01",
+      "amount": 77866.45,
+      "amount_raw": "77,866.45"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2024-11-01",
+      "amount": 64576.07,
+      "amount_raw": "64,576.07"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2024-12-01",
+      "amount": 69930.46,
+      "amount_raw": "69,930.46"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-01-01",
+      "amount": 82607.69,
+      "amount_raw": "82,607.69"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-02-01",
+      "amount": 73422.79,
+      "amount_raw": "73,422.79"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-03-01",
+      "amount": 50794.05,
+      "amount_raw": "50,794.05"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-04-01",
+      "amount": 54736.73,
+      "amount_raw": "54,736.73"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-05-01",
+      "amount": 62789.03,
+      "amount_raw": "62,789.03"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-06-01",
+      "amount": 68622.85,
+      "amount_raw": "68622.85"
+    },
+    {
+      "account_name": "Beginning Cash + Cash Flow",
+      "period": "2025-07-01",
+      "amount": 76220.54,
+      "amount_raw": "76,220.54"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2024-08-01",
+      "amount": 90571.55,
+      "amount_raw": "90571.55"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2024-09-01",
+      "amount": 68689.13,
+      "amount_raw": "68,689.13"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2024-10-01",
+      "amount": 77866.45,
+      "amount_raw": "77,866.45"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2024-11-01",
+      "amount": 64576.07,
+      "amount_raw": "64,576.07"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2024-12-01",
+      "amount": 69930.46,
+      "amount_raw": "69,930.46"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-01-01",
+      "amount": 82607.69,
+      "amount_raw": "82,607.69"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-02-01",
+      "amount": 73422.79,
+      "amount_raw": "73,422.79"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-03-01",
+      "amount": 50794.05,
+      "amount_raw": "50,794.05"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-04-01",
+      "amount": 54736.73,
+      "amount_raw": "54,736.73"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-05-01",
+      "amount": 62789.03,
+      "amount_raw": "62,789.03"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-06-01",
+      "amount": 68622.85,
+      "amount_raw": "68622.85"
+    },
+    {
+      "account_name": "Actual Ending Cash",
+      "period": "2025-07-01",
+      "amount": 76220.54,
+      "amount_raw": "76,220.54"
+    }
+  ],
+  "stats": {
+    "totalAccounts": 84,
+    "totalMonthlyRecords": 1008,
+    "totalAmount": 4775319.249999999
+  }
+}

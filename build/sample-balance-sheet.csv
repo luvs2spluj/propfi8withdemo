@@ -1,0 +1,13 @@
+Account Name,Account Type,Current Balance,Previous Balance,Change
+Cash and Cash Equivalents,Asset,45000,42000,3000
+Accounts Receivable,Asset,12000,15000,-3000
+Prepaid Expenses,Asset,5000,4800,200
+Property Equipment,Asset,85000,85000,0
+Accumulated Depreciation,Asset,-25000,-22000,-3000
+Total Assets,Asset,122000,124800,-2800
+Accounts Payable,Liability,8000,7500,500
+Accrued Expenses,Liability,3000,2800,200
+Security Deposits,Liability,15000,14000,1000
+Total Liabilities,Liability,26000,24300,1700
+Owner Equity,Equity,96000,100500,-4500
+Total Liabilities and Equity,Equity,122000,124800,-2800

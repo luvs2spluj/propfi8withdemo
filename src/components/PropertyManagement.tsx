@@ -12,6 +12,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import ApiService from '../services/api';
+import { unifiedPropertyService } from '../services/unifiedPropertyService';
 
 interface Property {
   id: string;
@@ -55,20 +56,45 @@ const PropertyManagement: React.FC = () => {
   const loadProperties = async () => {
     try {
       setIsLoading(true);
-      console.log('Loading properties from API...');
+      console.log('Loading properties from unified service...');
       
-      const response = await ApiService.getProperties();
-      console.log('Properties API response:', response);
+      // Initialize unified service
+      await unifiedPropertyService.initialize();
       
-      if (response.success && response.data) {
-        setProperties(response.data);
-        console.log('Properties loaded from database:', response.data.length);
+      // Load properties from unified service
+      const unifiedProperties = unifiedPropertyService.getAllProperties();
+      console.log('Unified properties loaded:', unifiedProperties);
+      
+      if (unifiedProperties.length > 0) {
+        // Convert unified properties to Property format
+        const convertedProperties: Property[] = unifiedProperties.map(prop => ({
+          id: prop.id,
+          name: prop.name,
+          address: prop.address,
+          type: prop.type,
+          total_units: prop.totalUnits,
+          created_at: prop.createdAt,
+          updated_at: prop.updatedAt
+        }));
+        
+        setProperties(convertedProperties);
+        console.log('Properties loaded from unified service:', convertedProperties.length);
       } else {
-        throw new Error(response.error || 'API request failed');
+        // Fallback to API if no unified properties
+        console.log('No unified properties, trying API...');
+        const response = await ApiService.getProperties();
+        console.log('Properties API response:', response);
+        
+        if (response.success && response.data) {
+          setProperties(response.data);
+          console.log('Properties loaded from database:', response.data.length);
+        } else {
+          setProperties([]);
+        }
       }
     } catch (error: any) {
-      console.error('Error loading properties from API:', error);
-      setError('Failed to load properties from database. Please check if the backend server is running.');
+      console.error('Error loading properties:', error);
+      setError('Failed to load properties. Please check if the backend server is running.');
       setProperties([]);
     } finally {
       setIsLoading(false);
@@ -125,43 +151,34 @@ const PropertyManagement: React.FC = () => {
 
       console.log('Adding property:', formData);
 
-      // Try to add via API first
+      // Add to unified property service first
+      const unifiedProperty = await unifiedPropertyService.addProperty({
+        name: formData.name,
+        address: formData.address,
+        type: formData.type,
+        totalUnits: formData.total_units
+      });
+      
+      console.log('✅ Property added to unified service:', unifiedProperty);
+
+      // Try to add via API as well for persistence
       try {
         const response = await ApiService.addProperty(formData);
         console.log('API response:', response);
         if (response.success) {
-          setSuccess('Property added successfully to database!');
-          // Reload properties from database
-          await loadProperties();
-          setShowAddForm(false);
-          resetForm();
-          return;
+          setSuccess('Property added successfully to database and unified system!');
         } else {
-          throw new Error(response.error || 'API request failed');
+          setSuccess('Property added to unified system (API unavailable)');
         }
       } catch (apiError: any) {
-        console.warn('API not available, using local storage:', apiError.message);
-        
-        // Fallback to local storage
-        const newProperty: Property = {
-          id: Date.now().toString(),
-          name: formData.name,
-          address: formData.address,
-          type: formData.type,
-          total_units: formData.total_units,
-          created_at: new Date().toISOString()
-        };
-
-        const updatedProperties = [...properties, newProperty];
-        setProperties(updatedProperties);
-        
-        // Property added successfully
-        
-        setSuccess('Property added successfully (saved locally)!');
-        setShowAddForm(false);
-        resetForm();
+        console.warn('API not available, property saved to unified system only:', apiError.message);
+        setSuccess('Property added to unified system (API unavailable)');
       }
-
+      
+      // Reload properties from unified service
+      await loadProperties();
+      setShowAddForm(false);
+      resetForm();
     } catch (error: any) {
       console.error('Error adding property:', error);
       setError(error.message || 'Failed to add property');

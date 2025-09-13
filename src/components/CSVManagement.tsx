@@ -24,6 +24,7 @@ interface CSVUpload {
   uploaded_at: string;
   processed_at?: string;
   property_name: string;
+  source?: string;
 }
 
 interface Property {
@@ -51,14 +52,56 @@ const CSVManagement: React.FC = () => {
 
   const loadUploads = useCallback(async () => {
     try {
-      const response = await ApiService.getUploadHistory();
-      if (response.success && response.data) {
-        // Filter uploads by selected property
-        const filteredUploads = selectedProperty 
-          ? response.data.filter((upload: CSVUpload) => upload.property_id === selectedProperty)
-          : response.data;
-        setUploads(filteredUploads);
+      let allUploads: CSVUpload[] = [];
+      
+      // Load from Supabase backend
+      try {
+        const response = await ApiService.getUploadHistory();
+        if (response.success && response.data) {
+          allUploads = [...response.data];
+        }
+      } catch (error) {
+        console.log('Supabase uploads not available');
       }
+      
+      // Load from local backend
+      try {
+        const localResponse = await fetch('http://localhost:5000/api/processed-data');
+        if (localResponse.ok) {
+          const localData = await localResponse.json();
+          if (localData.success && localData.data) {
+            // Convert local data to CSVUpload format
+            Object.keys(localData.data).forEach(propertyName => {
+              localData.data[propertyName].forEach((item: any) => {
+                const localUpload: CSVUpload = {
+                  id: item.id,
+                  property_id: `local-${propertyName.toLowerCase()}`,
+                  filename: `${propertyName} CSV Data`,
+                  file_size: 0,
+                  rows_processed: item.data?.totalRows || 0,
+                  rows_inserted: item.data?.processedRows || 0,
+                  rows_updated: 0,
+                  rows_skipped: 0,
+                  upload_status: 'completed',
+                  uploaded_at: item.createdAt,
+                  processed_at: item.timestamp,
+                  property_name: propertyName,
+                  source: 'local'
+                };
+                allUploads.push(localUpload);
+              });
+            });
+          }
+        }
+      } catch (error) {
+        console.log('Local uploads not available');
+      }
+      
+      // Filter uploads by selected property
+      const filteredUploads = selectedProperty 
+        ? allUploads.filter((upload: CSVUpload) => upload.property_id === selectedProperty)
+        : allUploads;
+      setUploads(filteredUploads);
     } catch (error: any) {
       console.error('Error loading uploads:', error);
     }
@@ -96,20 +139,68 @@ const CSVManagement: React.FC = () => {
 
   const handleDeleteUpload = async (uploadId: string) => {
     try {
-      // First delete the associated property data
-      await ApiService.deletePropertyDataByUpload(uploadId);
+      const upload = uploads.find(u => u.id === uploadId);
       
-      // Then delete the upload record
-      const response = await ApiService.deleteUpload(uploadId);
-      if (response.success) {
-        setUploads(uploads.filter(upload => upload.id !== uploadId));
-        setDeleteConfirm(null);
-        setError(null); // Clear any previous errors
+      if (upload?.source === 'local') {
+        // Delete from local backend
+        const response = await fetch(`http://localhost:5000/api/processed-data`, {
+          method: 'DELETE'
+        });
+        
+        if (response.ok) {
+          setUploads(uploads.filter(upload => upload.id !== uploadId));
+          setDeleteConfirm(null);
+          setError(null);
+        } else {
+          setError('Failed to delete local data');
+        }
       } else {
-        setError('Failed to delete upload: ' + response.error);
+        // Delete from Supabase backend
+        await ApiService.deletePropertyDataByUpload(uploadId);
+        
+        const response = await ApiService.deleteUpload(uploadId);
+        if (response.success) {
+          setUploads(uploads.filter(upload => upload.id !== uploadId));
+          setDeleteConfirm(null);
+          setError(null);
+        } else {
+          setError('Failed to delete upload: ' + response.error);
+        }
       }
     } catch (error: any) {
       setError('Failed to delete upload: ' + error.message);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    try {
+      // Clear local backend data
+      const localResponse = await fetch('http://localhost:5000/api/processed-data', {
+        method: 'DELETE'
+      });
+      
+      if (localResponse.ok) {
+        console.log('✅ Local data cleared');
+      }
+      
+      // Clear Supabase data (if available)
+      try {
+        // This would need to be implemented in the API service
+        // For now, just clear the local data
+      } catch (error) {
+        console.log('Supabase clear not available');
+      }
+      
+      // Refresh the data
+      setUploads([]);
+      setDeleteConfirm(null);
+      setError(null);
+      
+      // Reload data to show empty state
+      loadData();
+      
+    } catch (error: any) {
+      setError('Failed to clear data: ' + error.message);
     }
   };
 
@@ -240,13 +331,22 @@ const CSVManagement: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">CSV Management</h1>
           <p className="text-gray-600 mt-1">Upload, manage, and process CSV files for your properties.</p>
         </div>
-        <button
-          onClick={loadData}
-          className="btn-secondary flex items-center"
-        >
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={loadData}
+            className="btn-secondary flex items-center"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </button>
+          <button
+            onClick={() => setDeleteConfirm('all')}
+            className="btn-danger flex items-center"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear All Data
+          </button>
+        </div>
       </div>
 
       {/* Upload Section */}
@@ -484,9 +584,14 @@ const CSVManagement: React.FC = () => {
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3 text-center">
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Delete CSV Upload</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {deleteConfirm === 'all' ? 'Clear All Data' : 'Delete CSV Upload'}
+              </h3>
               <p className="text-sm text-gray-500 mb-4">
-                This will permanently delete the CSV file and all associated data. This action cannot be undone.
+                {deleteConfirm === 'all' 
+                  ? 'This will permanently delete ALL CSV data from both local and Supabase backends. This action cannot be undone.'
+                  : 'This will permanently delete the CSV file and all associated data. This action cannot be undone.'
+                }
               </p>
               <div className="flex space-x-3 justify-center">
                 <button
@@ -496,10 +601,10 @@ const CSVManagement: React.FC = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={() => handleDeleteUpload(deleteConfirm)}
+                  onClick={() => deleteConfirm === 'all' ? handleClearAllData() : handleDeleteUpload(deleteConfirm)}
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
                 >
-                  Delete
+                  {deleteConfirm === 'all' ? 'Clear All' : 'Delete'}
                 </button>
               </div>
             </div>

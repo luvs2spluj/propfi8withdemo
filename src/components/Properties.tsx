@@ -50,14 +50,55 @@ const Properties: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const response = await ApiService.getProperties();
-      if (response.success && response.data) {
-        setProperties(response.data);
-        console.log('✅ Properties loaded from API:', response.data);
-      } else {
-        setError('Failed to load properties');
-        setProperties([]);
+      // Try to get properties from local backend first
+      let allProperties: Property[] = [];
+      
+      try {
+        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        if (localDataResponse.ok) {
+          const localData = await localDataResponse.json();
+          console.log('🏠 Local properties data loaded:', localData);
+          
+          if (localData.success && localData.data) {
+            // Extract unique properties from local data
+            const propertyNames = new Set<string>();
+            Object.keys(localData.data).forEach(propertyName => {
+              propertyNames.add(propertyName);
+            });
+            
+            // Convert to Property objects
+            const localProperties: Property[] = Array.from(propertyNames).map(name => ({
+              id: `local-${name.toLowerCase()}`,
+              name: name,
+              address: 'Local Data Source',
+              type: 'Apartment Complex',
+              total_units: 26, // Default for Chico
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }));
+            
+            allProperties = [...localProperties];
+            console.log('🏠 Local properties converted:', localProperties);
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Local properties not available, trying API...');
       }
+      
+      // Fallback to API if no local data
+      if (allProperties.length === 0) {
+        const response = await ApiService.getProperties();
+        if (response.success && response.data) {
+          allProperties = response.data;
+          console.log('✅ Properties loaded from API:', response.data);
+        } else {
+          setError('Failed to load properties');
+          setProperties([]);
+          return;
+        }
+      }
+      
+      setProperties(allProperties);
     } catch (error: any) {
       console.error('Error loading properties:', error);
       setError('Failed to load properties');

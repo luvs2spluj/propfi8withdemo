@@ -9,6 +9,10 @@ require('dotenv').config({ path: './config.env' });
 const { testConnection, initializeDatabase } = require('./config/supabase');
 const PropertyService = require('./services/propertyService');
 const CSVService = require('./services/csvService');
+const SmartCSVService = require('./services/smartCSVService');
+
+// Import cashflow ingestion route
+const cashflowIngestRoute = require('./routes/cashflowIngest');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,18 +20,23 @@ const PORT = process.env.PORT || 5000;
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - more lenient for development
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  max: 1000, // limit each IP to 1000 requests per windowMs (increased for development)
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
 // CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept'],
+  optionsSuccessStatus: 200
 }));
 
 // Body parsing middleware
@@ -66,6 +75,7 @@ const upload = multer({
 // Initialize services
 const propertyService = PropertyService;
 const csvService = CSVService;
+const smartCSVService = SmartCSVService;
 
 // Routes
 
@@ -250,6 +260,76 @@ app.post('/api/validate-csv', upload.single('csvFile'), async (req, res) => {
   }
 });
 
+// AI-powered CSV analysis route
+app.post('/api/analyze-csv', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
+    }
+
+    console.log('🤖 Starting AI analysis for:', req.file.originalname);
+    const analysis = await smartCSVService.getAIAnalysis(req.file.path, req.file.originalname);
+    
+    // Clean up file
+    require('fs').unlinkSync(req.file.path);
+
+    res.json({ 
+      success: true, 
+      data: analysis
+    });
+
+  } catch (error) {
+    console.error('AI analysis error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to analyze CSV file'
+    });
+  }
+});
+
+// Smart CSV upload route (AI-powered)
+app.post('/api/smart-upload-csv', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
+    }
+
+    const { propertyId } = req.body;
+    if (!propertyId) {
+      return res.status(400).json({ success: false, error: 'Property ID is required' });
+    }
+
+    // Validate property exists
+    const property = await propertyService.getPropertyById(propertyId);
+    if (!property) {
+      return res.status(404).json({ success: false, error: 'Property not found' });
+    }
+
+    console.log('🚀 Starting smart CSV upload with AI analysis...');
+    
+    // Process CSV upload with AI analysis
+    const result = await smartCSVService.processSmartCSVUpload(
+      req.file.path,
+      propertyId,
+      req.file.originalname,
+      req.file.size
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'CSV uploaded and processed with AI analysis',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Smart CSV upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to process CSV file with AI'
+    });
+  }
+});
+
 // Property data routes
 app.get('/api/properties/:id/data', async (req, res) => {
   try {
@@ -291,6 +371,38 @@ app.get('/api/properties/:id/aggregated', async (req, res) => {
 //     res.status(500).json({ success: false, error: error.message });
 //   }
 // });
+
+// Local CSV processing endpoint (no Supabase validation)
+app.post('/api/process-csv-local', upload.single('csvFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No CSV file uploaded' });
+    }
+
+    const { propertyName } = req.body;
+    
+    console.log('🏠 Starting local CSV processing...');
+    
+    // Process CSV locally without Supabase validation
+    const result = await csvService.processCSVLocal(req.file.path, propertyName);
+    
+    res.json({ 
+      success: true, 
+      message: 'CSV processed locally with AI analysis',
+      data: result
+    });
+
+  } catch (error) {
+    console.error('Local CSV processing error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Failed to process CSV file locally'
+    });
+  }
+});
+
+// Cashflow ingestion route
+app.use('/api', cashflowIngestRoute);
 
 // Upload history
 app.get('/api/upload-history', async (req, res) => {

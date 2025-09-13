@@ -1,0 +1,27 @@
+Unit Number,Tenant Name,Monthly Rent,Lease Start,Lease End,Status
+101,John Smith,1200,2024-01-01,2024-12-31,Active
+102,Jane Doe,1250,2024-02-01,2025-01-31,Active
+103,Bob Johnson,1180,2024-03-01,2025-02-28,Active
+104,Sarah Wilson,1300,2024-01-15,2024-12-15,Active
+105,Mike Brown,1220,2024-04-01,2025-03-31,Active
+106,Lisa Davis,1270,2024-02-15,2025-01-15,Active
+107,Tom Miller,1190,2024-05-01,2025-04-30,Active
+108,Amy Garcia,1240,2024-03-15,2025-02-15,Active
+109,Chris Lee,1280,2024-01-01,2024-12-31,Active
+110,Karen White,1210,2024-06-01,2025-05-31,Active
+111,David Jones,1260,2024-04-15,2025-03-15,Active
+112,Maria Rodriguez,1230,2024-02-01,2025-01-31,Active
+113,James Taylor,1290,2024-07-01,2025-06-30,Active
+114,Jennifer Anderson,1200,2024-05-15,2025-04-15,Active
+115,Robert Thomas,1250,2024-03-01,2025-02-28,Active
+116,Linda Jackson,1180,2024-08-01,2025-07-31,Active
+117,William Harris,1300,2024-06-15,2025-05-15,Active
+118,Patricia Martin,1220,2024-04-01,2025-03-31,Active
+119,Michael Thompson,1270,2024-09-01,2025-08-31,Active
+120,Susan Garcia,1190,2024-07-15,2025-06-15,Active
+121,Charles Martinez,1240,2024-05-01,2025-04-30,Active
+122,Barbara Robinson,1280,2024-10-01,2025-09-30,Active
+123,Joseph Clark,1210,2024-08-15,2025-07-15,Active
+124,Margaret Rodriguez,1260,2024-06-01,2025-05-31,Active
+125,Thomas Lewis,1230,2024-11-01,2025-10-31,Active
+126,Dorothy Walker,1290,2024-09-15,2025-08-15,Active

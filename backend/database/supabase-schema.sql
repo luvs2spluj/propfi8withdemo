@@ -6,12 +6,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Properties table
 CREATE TABLE IF NOT EXISTS properties (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     address TEXT NOT NULL,
     type VARCHAR(100) NOT NULL,
     total_units INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT properties_name_unique UNIQUE (name)
 );
 
 -- Property data table (for CSV uploads)

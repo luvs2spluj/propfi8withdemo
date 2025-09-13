@@ -8,6 +8,7 @@ import {
   Loader2
 } from 'lucide-react';
 import ApiService from '../services/api';
+import unifiedPropertyService from '../services/unifiedPropertyService';
 
 interface CSVData {
   propertyName: string;
@@ -41,19 +42,40 @@ const CSVUpload: React.FC = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [validationResult, setValidationResult] = useState<any>(null);
   const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [processingMode, setProcessingMode] = useState<'supabase' | 'local'>('supabase');
+  const [unifiedProperties, setUnifiedProperties] = useState<any[]>([]);
+  const [localProcessingResult, setLocalProcessingResult] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load properties and upload history on component mount
   useEffect(() => {
+    initializeUnifiedService();
     checkBackendStatus();
     loadProperties();
     loadUploadHistory();
   }, []);
 
+  const initializeUnifiedService = async () => {
+    try {
+      await unifiedPropertyService.initialize();
+      const allProperties = unifiedPropertyService.getAllProperties();
+      setUnifiedProperties(allProperties);
+      console.log('🏢 Unified properties loaded:', allProperties.length);
+    } catch (error) {
+      console.error('Failed to initialize unified service:', error);
+    }
+  };
+
   const checkBackendStatus = async () => {
     try {
-      await ApiService.getHealth();
-      setBackendStatus('connected');
+      const status = await ApiService.checkBackendStatus();
+      if (status.supabase || status.local) {
+        setBackendStatus('connected');
+      } else {
+        setBackendStatus('disconnected');
+      }
     } catch (error) {
       setBackendStatus('disconnected');
     }
@@ -90,25 +112,34 @@ const CSVUpload: React.FC = () => {
     setValidationResult(null);
 
     try {
-      // Check if backend is available
-      try {
-        await ApiService.getHealth();
-      } catch (healthError) {
-        // Backend not available, use local processing as fallback
-        console.warn('Backend not available, using local processing');
-        await handleLocalProcessing(file);
-        return;
-      }
-
       if (!selectedProperty) {
         setUploadError('Please select a property first');
         setIsUploading(false);
         return;
       }
 
-      // Get property name for validation
+      // Get property name for processing
       const selectedPropertyData = properties.find(p => p.id === selectedProperty);
       const propertyName = selectedPropertyData?.name;
+
+      if (processingMode === 'local') {
+        // Local processing mode - use local backend
+        console.log('🏠 Using local processing mode...');
+        await handleLocalProcessing(file, propertyName);
+        return;
+      }
+
+      // Supabase processing mode - use Supabase backend
+      console.log('🗄️ Using Supabase processing mode...');
+      
+      // Check if Supabase backend is available
+      try {
+        await ApiService.getHealth();
+      } catch (healthError) {
+        setUploadError('Supabase backend not available. Please switch to Local mode or start the Supabase backend.');
+        setIsUploading(false);
+        return;
+      }
 
       // First validate the CSV
       const validation = await ApiService.validateCSV(file, propertyName);
@@ -120,7 +151,7 @@ const CSVUpload: React.FC = () => {
         return;
       }
 
-      // Upload the CSV
+      // Upload the CSV to Supabase
       const result = await ApiService.uploadCSV(file, selectedProperty);
       
       if (result.success) {
@@ -141,11 +172,11 @@ const CSVUpload: React.FC = () => {
       console.error('Upload error:', error);
       
       // Fallback to local processing if backend fails
-      if (error.message.includes('fetch') || error.message.includes('Network')) {
+      if (error instanceof Error && (error.message.includes('fetch') || error.message.includes('Network'))) {
         console.warn('Network error, falling back to local processing');
         await handleLocalProcessing(file);
       } else {
-        setUploadError(error.message || 'Error processing CSV file');
+        setUploadError(error instanceof Error ? error.message : 'Error processing CSV file');
       }
     } finally {
       setIsUploading(false);
@@ -155,7 +186,323 @@ const CSVUpload: React.FC = () => {
     }
   };
 
-  const handleLocalProcessing = async (file: File) => {
+  const handleLocalProcessing = async (file: File, propertyName?: string) => {
+    try {
+      console.log('🏠 Processing CSV locally...');
+      
+      // Check if backend is available first
+      let backendAvailable = false;
+      try {
+        await ApiService.getHealth();
+        backendAvailable = true;
+      } catch (error) {
+        console.log('Backend not available, using pure local processing');
+        backendAvailable = false;
+      }
+      
+      if (backendAvailable) {
+        // Use the new local processing API endpoint
+        const result = await ApiService.processCSVLocal(file, propertyName);
+        
+        if (result.success) {
+          setLocalProcessingResult(result.data);
+          setUploadError(null);
+          
+          // Trigger dashboard update with local data
+          window.dispatchEvent(new CustomEvent('dataUpdated', { 
+            detail: { 
+              propertyId: selectedProperty, 
+              uploadResult: result.data,
+              processingMode: 'local'
+            } 
+          }));
+          
+          console.log('✅ Local processing completed:', result.data);
+        } else {
+          setUploadError(result.message || 'Local processing failed');
+        }
+      } else {
+        // Pure local processing without backend
+        await handlePureLocalProcessing(file, propertyName);
+      }
+    } catch (error) {
+      console.error('Local processing error:', error);
+      setUploadError(error instanceof Error ? error.message : 'Error processing CSV file locally');
+    }
+  };
+
+  const handlePureLocalProcessing = async (file: File, propertyName?: string) => {
+    try {
+      console.log('🏠 Pure local processing (no backend)...');
+      
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error('No data rows found in CSV');
+      }
+      
+      const headers = lines[0].split(',').map(h => h.trim());
+      console.log('📋 Detected columns:', headers);
+      
+      // Check if this is month-column format
+      const monthColumns = headers.filter(header => {
+        const normalizedHeader = header.toLowerCase().trim();
+        return /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{4}$/i.test(normalizedHeader);
+      });
+      
+      const isMonthColumnFormat = monthColumns.length > 0;
+      console.log('📊 Format detected:', isMonthColumnFormat ? 'month-column' : 'traditional');
+      
+      // Simple data processing
+      const processedData = [];
+      const accountNames = new Set();
+      let totalAmount = 0;
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        if (values.length !== headers.length) continue;
+        
+        const accountName = values[0];
+        
+        // Skip section headers
+        if (!accountName || /^(income|expense|totals?)$/i.test(accountName)) {
+          continue;
+        }
+        
+        accountNames.add(accountName);
+        
+        if (isMonthColumnFormat) {
+          // Process month columns
+          for (const monthCol of monthColumns) {
+            const colIndex = headers.indexOf(monthCol);
+            const rawValue = values[colIndex] || '';
+            const amount = parseAmount(rawValue);
+            
+            if (amount !== null) {
+              processedData.push({
+                account_name: accountName,
+                period: monthCol,
+                amount: amount,
+                amount_raw: rawValue
+              });
+              totalAmount += amount || 0;
+            }
+          }
+        } else {
+          // Process traditional format
+          const revenueIndex = headers.findIndex(h => h.toLowerCase().includes('revenue'));
+          const amount = revenueIndex >= 0 ? parseAmount(values[revenueIndex]) : 0;
+          
+          processedData.push({
+            account_name: accountName,
+            period: '2024-01',
+            amount: amount,
+            amount_raw: values[revenueIndex] || ''
+          });
+          totalAmount += amount || 0;
+        }
+      }
+      
+      // Simple categorization
+      const categorizedData = processedData.map(row => {
+        const name = row.account_name.toLowerCase().trim();
+        let category = 'other';
+        
+        // Revenue/Income accounts
+        if (name.includes('rent') || name.includes('tenant') || name.includes('resident') ||
+            name.includes('rental') || name.includes('short term') || name.includes('application fee') ||
+            name.includes('pet fee') || name.includes('lock') || name.includes('key') ||
+            name.includes('insurance svcs income') || name.includes('credit reporting services income')) {
+          category = 'income';
+        }
+        // Utilities accounts
+        else if (name.includes('utility') || name.includes('utilities') || name.includes('water') || 
+                 name.includes('garbage') || name.includes('electric') || name.includes('gas') || 
+                 name.includes('sewer') || name.includes('refuse disposal') || name.includes('pest control')) {
+          category = 'utilities';
+        }
+        // Maintenance accounts
+        else if (name.includes('maintenance') || name.includes('repair') || name.includes('cleaning') ||
+                 name.includes('damage') || name.includes('carpet') || name.includes('r & m') ||
+                 name.includes('hvac') || name.includes('plumbing') || name.includes('paint') ||
+                 name.includes('appliances') || name.includes('fire & alarm') || name.includes('computers') ||
+                 name.includes('server') || name.includes('phones') || name.includes('it')) {
+          category = 'maintenance';
+        }
+        // Insurance accounts
+        else if (name.includes('insurance') || name.includes('liability') || name.includes('coverage')) {
+          category = 'insurance';
+        }
+        // Property tax accounts
+        else if (name.includes('property tax') || name.includes('real property tax')) {
+          category = 'property_tax';
+        }
+        
+        return { ...row, category };
+      });
+      
+      const result = {
+        totalRows: processedData.length,
+        processedRows: processedData.length,
+        aiAnalysis: {
+          propertyName: propertyName || 'Unknown Property',
+          totalRecords: processedData.length,
+          totalAmount: totalAmount,
+          uniqueAccounts: accountNames.size,
+          categories: {
+            income: categorizedData.filter(r => r.category === 'income').length,
+            utilities: categorizedData.filter(r => r.category === 'utilities').length,
+            maintenance: categorizedData.filter(r => r.category === 'maintenance').length,
+            insurance: categorizedData.filter(r => r.category === 'insurance').length,
+            property_tax: categorizedData.filter(r => r.category === 'property_tax').length,
+            other: categorizedData.filter(r => r.category === 'other').length
+          },
+          confidence: 0.85
+        },
+        data: processedData,
+        format: isMonthColumnFormat ? 'month-column' : 'traditional',
+        status: 'processed'
+      };
+      
+      setLocalProcessingResult(result);
+      setUploadError(null);
+      
+      // Trigger dashboard update with local data
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          propertyId: selectedProperty, 
+          uploadResult: result,
+          processingMode: 'local'
+        } 
+      }));
+      
+      console.log('✅ Pure local processing completed:', result);
+      
+    } catch (error) {
+      console.error('Pure local processing error:', error);
+      throw error;
+    }
+  };
+
+  const handleSaveData = async () => {
+    if (!localProcessingResult) {
+      setUploadError('No data to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus('saving');
+
+    try {
+      console.log('💾 Saving processed data to unified system...');
+
+      // Get selected property info
+      const selectedPropertyData = unifiedProperties.find(p => p.id === selectedProperty) || 
+                                 properties.find(p => p.id === selectedProperty);
+      
+      if (!selectedPropertyData) {
+        setUploadError('Property not found');
+        setIsSaving(false);
+        return;
+      }
+
+      // Ensure property exists in unified system
+      const unifiedProperty = await unifiedPropertyService.addProperty({
+        name: selectedPropertyData.name,
+        address: selectedPropertyData.address || '',
+        type: selectedPropertyData.type || 'Unknown',
+        totalUnits: selectedPropertyData.totalUnits || 0
+      });
+
+      // Save property data to unified system
+      if (localProcessingResult.data && Array.isArray(localProcessingResult.data)) {
+        for (const row of localProcessingResult.data) {
+          await unifiedPropertyService.addPropertyData({
+            propertyId: unifiedProperty.id,
+            propertyName: unifiedProperty.name,
+            date: row.date || new Date().toISOString(),
+            accountName: row.account_name || row.accountName || 'Unknown',
+            amount: row.amount || 0,
+            month: row.month || 'Unknown',
+            category: row.category || 'other',
+            source: processingMode
+          });
+        }
+      }
+
+      // Also save to backend for persistence
+      const result = await ApiService.saveLocalData(
+        localProcessingResult,
+        selectedPropertyData.name,
+        processingMode
+      );
+
+      if (result.success) {
+        setSaveStatus('saved');
+        setUploadError(null);
+        console.log('✅ Data saved successfully to unified system:', result);
+
+        // Refresh unified properties
+        const updatedProperties = unifiedPropertyService.getAllProperties();
+        setUnifiedProperties(updatedProperties);
+
+        // Trigger dashboard refresh with multiple events
+        window.dispatchEvent(new CustomEvent('dataUpdated', {
+          detail: {
+            propertyId: selectedProperty,
+            uploadResult: result,
+            processingMode: processingMode,
+            saved: true,
+            unified: true,
+            source: 'local'
+          }
+        }));
+        
+        // Also trigger a specific refresh for charts
+        window.dispatchEvent(new CustomEvent('chartDataUpdated', {
+          detail: {
+            propertyId: selectedProperty,
+            data: localProcessingResult,
+            source: 'local'
+          }
+        }));
+        
+        // Force a page refresh to ensure all components update
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } else {
+        setSaveStatus('error');
+        setUploadError(result.message || 'Failed to save data');
+      }
+    } catch (error) {
+      console.error('Save data error:', error);
+      setSaveStatus('error');
+      setUploadError(error instanceof Error ? error.message : 'Error saving data');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const parseAmount = (value: string): number | null => {
+    if (!value || value === '—' || value.toLowerCase() === 'n/a') return null;
+    
+    let cleaned = value.replace(/\$/g, '').replace(/,/g, '');
+    let neg = false;
+    
+    if (cleaned.startsWith('(') && cleaned.endsWith(')')) {
+      neg = true;
+      cleaned = cleaned.slice(1, -1);
+    }
+    
+    const num = Number(cleaned);
+    if (Number.isNaN(num)) return null;
+    
+    return neg ? -num : num;
+  };
+
+  const handleLocalProcessingLegacy = async (file: File) => {
     try {
       const text = await file.text();
       const lines = text.split('\n');
@@ -242,17 +589,48 @@ const CSVUpload: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">CSV Data Upload</h1>
           <p className="text-gray-600 mt-1">Upload CSV files to populate your dashboard with real property data</p>
-          <div className="flex items-center space-x-2 mt-2">
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
               backendStatus === 'connected' ? 'bg-green-500' :
               backendStatus === 'disconnected' ? 'bg-red-500' :
               'bg-yellow-500'
             }`}></div>
             <span className="text-sm text-gray-500">
-              {backendStatus === 'connected' ? 'Backend Connected' :
-               backendStatus === 'disconnected' ? 'Using Local Processing' :
+              {backendStatus === 'connected' ? 
+                `Backend Connected (${processingMode === 'supabase' ? 'Supabase' : 'Local'} Mode)` :
+               backendStatus === 'disconnected' ? 'No Backend Available' :
                'Checking Connection...'}
             </span>
+            </div>
+            
+            {backendStatus === 'connected' && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Mode:</span>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setProcessingMode('supabase')}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      processingMode === 'supabase' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Supabase
+                  </button>
+                  <button
+                    onClick={() => setProcessingMode('local')}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      processingMode === 'local' 
+                        ? 'bg-green-500 text-white' 
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Local
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -285,12 +663,25 @@ const CSVUpload: React.FC = () => {
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="">Choose a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
+              {unifiedProperties.length > 0 ? (
+                unifiedProperties.map((property) => (
+                  <option key={property.id} value={property.id}>
+                    {property.name} - {property.address} ({property.source})
+                  </option>
+                ))
+              ) : (
+                properties.map(property => (
+                  <option key={property.id} value={property.id}>
+                    {property.name}
+                  </option>
+                ))
+              )}
             </select>
+            {unifiedProperties.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                Showing {unifiedProperties.length} unified properties
+              </p>
+            )}
           </div>
 
           {/* File Upload */}
@@ -359,6 +750,93 @@ const CSVUpload: React.FC = () => {
                     </ul>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Local Processing Results */}
+          {localProcessingResult && (
+            <div className="bg-green-50 border border-green-200 rounded-md p-4">
+              <h4 className="font-medium text-green-900 mb-2">Local Processing Results</h4>
+              <div className="text-sm text-green-800 space-y-1">
+                <p><strong>Status:</strong> {localProcessingResult.status}</p>
+                <p><strong>Format:</strong> {localProcessingResult.format}</p>
+                <p><strong>Total Records:</strong> {localProcessingResult.totalRows}</p>
+                <p><strong>Processed Records:</strong> {localProcessingResult.processedRows}</p>
+                
+                {localProcessingResult.aiAnalysis && (
+                  <div className="mt-3">
+                    <p><strong>AI Analysis:</strong></p>
+                    <div className="ml-4 space-y-1">
+                      <p>• Property: {localProcessingResult.aiAnalysis.propertyName}</p>
+                      <p>• Confidence: {(localProcessingResult.aiAnalysis.confidence * 100).toFixed(1)}%</p>
+                      {localProcessingResult.aiAnalysis.dateRange && (
+                        <p>• Date Range: {localProcessingResult.aiAnalysis.dateRange.start} to {localProcessingResult.aiAnalysis.dateRange.end}</p>
+                      )}
+                      {localProcessingResult.aiAnalysis.revenueAnalysis && (
+                        <p>• Total Revenue: ${localProcessingResult.aiAnalysis.revenueAnalysis.total.toLocaleString()}</p>
+                      )}
+                      {localProcessingResult.aiAnalysis.expenseAnalysis && (
+                        <p>• Total Expenses: ${localProcessingResult.aiAnalysis.expenseAnalysis.total.toLocaleString()}</p>
+                      )}
+                      {localProcessingResult.aiAnalysis.anomalies && localProcessingResult.aiAnalysis.anomalies.length > 0 && (
+                        <div>
+                          <p>• Anomalies Found: {localProcessingResult.aiAnalysis.anomalies.length}</p>
+                          <ul className="ml-4">
+                            {localProcessingResult.aiAnalysis.anomalies.slice(0, 2).map((anomaly: any, index: number) => (
+                              <li key={index} className="text-orange-600">⚠️ {anomaly.message}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Save Button */}
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {saveStatus === 'saved' && (
+                    <div className="flex items-center text-green-600">
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      <span className="text-sm">Data saved successfully!</span>
+                    </div>
+                  )}
+                  {saveStatus === 'error' && (
+                    <div className="flex items-center text-red-600">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      <span className="text-sm">Save failed</span>
+                    </div>
+                  )}
+                </div>
+                
+                <button
+                  onClick={handleSaveData}
+                  disabled={isSaving || saveStatus === 'saved'}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isSaving || saveStatus === 'saved'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin inline" />
+                      Saving...
+                    </>
+                  ) : saveStatus === 'saved' ? (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2 inline" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2 inline" />
+                      Save Data
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}

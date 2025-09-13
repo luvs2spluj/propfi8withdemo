@@ -1,4 +1,9 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Backend URLs
+const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5001/api';
+const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5000/api';
+
+// Default to Supabase backend for most operations
+const API_BASE_URL = process.env.REACT_APP_API_URL || SUPABASE_BACKEND_URL;
 
 // Check if we're in a browser environment (unused but kept for future use)
 // const isBrowser = typeof window !== 'undefined';
@@ -115,6 +120,91 @@ class ApiService {
       console.error('CSV upload failed:', error);
       throw error;
     }
+  }
+
+  // Local CSV processing (no Supabase validation)
+  async processCSVLocal(file: File, propertyName?: string): Promise<ApiResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (propertyName) {
+      formData.append('propertyName', propertyName);
+    }
+
+    const url = `${LOCAL_BACKEND_URL}/api/process-csv-local`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Local CSV processing failed:', error);
+      throw error;
+    }
+  }
+
+  // Save processed local data to unified pipeline
+  async saveLocalData(data: any, propertyName: string, source: 'local' | 'supabase'): Promise<ApiResponse> {
+    const url = `${LOCAL_BACKEND_URL}/save-processed-data`;
+    
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data,
+          propertyName,
+          source,
+          timestamp: new Date().toISOString()
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Network error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Save data failed:', error);
+      throw error;
+    }
+  }
+
+  // Check backend status for both servers
+  async checkBackendStatus(): Promise<{ supabase: boolean; local: boolean }> {
+    const status = { supabase: false, local: false };
+    
+    try {
+      const supabaseResponse = await fetch(`${SUPABASE_BACKEND_URL}/health`, { 
+        method: 'GET',
+        signal: AbortSignal.timeout(2000)
+      });
+      status.supabase = supabaseResponse.ok;
+    } catch (error) {
+      console.log('Supabase backend not available');
+    }
+    
+    try {
+      const localResponse = await fetch(`${LOCAL_BACKEND_URL}/processed-data`, { 
+        method: 'GET',
+        signal: AbortSignal.timeout(2000)
+      });
+      status.local = localResponse.ok;
+    } catch (error) {
+      console.log('Local backend not available');
+    }
+    
+    return status;
   }
 
   async validateCSV(file: File, propertyName?: string): Promise<{ success: boolean; data: any }> {
