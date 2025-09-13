@@ -118,11 +118,11 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format');
                 
-                // Extract unique months from the data and sort chronologically
+                // Extract unique months from the data and sort with most recent first (for chart display)
                 const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
                   const dateA = new Date(a as string);
                   const dateB = new Date(b as string);
-                  return dateA.getTime() - dateB.getTime();
+                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
                 }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
@@ -191,16 +191,16 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
     }
   };
 
-  // Sort data by date and prepare chart data
+  // Sort data by date with most recent first (for chart display)
   const sortedData = chartData.sort((a, b) => {
     // Handle monthly data format (like "Jan 2025")
     if (a.month && b.month && (a.month.includes('2025') || a.month.includes('2024'))) {
       const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const aMonth = a.month.split(' ')[0];
       const bMonth = b.month.split(' ')[0];
-      return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
+      return monthOrder.indexOf(bMonth) - monthOrder.indexOf(aMonth); // Reverse order: newest first
     }
-    return new Date(a.month || a.date).getTime() - new Date(b.month || b.date).getTime();
+    return new Date(b.month || b.date).getTime() - new Date(a.month || a.date).getTime(); // Reverse order: newest first
   });
   
   const labels = sortedData.map(item => {

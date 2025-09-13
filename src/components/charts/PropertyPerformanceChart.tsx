@@ -124,11 +124,11 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for performance');
                 
-                // Extract unique months from the data and sort chronologically
+                // Extract unique months from the data and sort with most recent first (for chart display)
                 const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
                   const dateA = new Date(a as string);
                   const dateB = new Date(b as string);
-                  return dateA.getTime() - dateB.getTime();
+                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
                 }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
@@ -253,12 +253,12 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
     );
     
     if (hasMonthlyData) {
-      // Sort monthly data properly
+      // Sort monthly data with most recent first (for chart display)
       const sortedData = chartData.sort((a, b) => {
         const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const aMonth = a.month?.split(' ')[0] || '';
         const bMonth = b.month?.split(' ')[0] || '';
-        return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
+        return monthOrder.indexOf(bMonth) - monthOrder.indexOf(aMonth); // Reverse order: newest first
       });
       
       const labels = sortedData.map(item => item.month || '');
