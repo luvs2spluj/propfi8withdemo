@@ -40,7 +40,7 @@ const CSVDataViewer: React.FC = () => {
     if (selectedProperty) {
       loadPropertyData();
     }
-  }, [selectedProperty, loadPropertyData]);
+  }, [selectedProperty]);
 
   const loadProperties = async () => {
     try {

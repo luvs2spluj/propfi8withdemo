@@ -72,7 +72,7 @@ const CSVUpload: React.FC = () => {
     try {
       const status = await ApiService.checkBackendStatus();
       if (status.supabase || status.local) {
-        setBackendStatus('connected');
+      setBackendStatus('connected');
       } else {
         setBackendStatus('disconnected');
       }
@@ -440,7 +440,7 @@ const CSVUpload: React.FC = () => {
 
       if (result.success) {
         setSaveStatus('saved');
-        setUploadError(null);
+      setUploadError(null);
         console.log('✅ Data saved successfully to unified system:', result);
 
         // Refresh unified properties
@@ -503,62 +503,62 @@ const CSVUpload: React.FC = () => {
   };
 
   // const handleLocalProcessingLegacy = async (file: File) => { // Unused function
-    try {
-      const text = await file.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      
-      const data = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length === headers.length && values[0]) {
-          try {
-            data.push({
-              propertyName: values[0] || '',
-              address: values[1] || '',
-              monthlyRevenue: parseFloat(values[2]) || 0,
-              occupancyRate: parseFloat(values[3]) || 0,
-              totalUnits: parseInt(values[4]) || 0,
-              occupiedUnits: parseInt(values[5]) || 0,
-              expenses: parseFloat(values[6]) || 0,
-              netIncome: parseFloat(values[7]) || 0,
-              date: values[8] || new Date().toISOString().split('T')[0]
-            });
-          } catch (error) {
-            console.error('Error parsing row:', error);
-          }
-        }
-      }
-      
-      if (data.length === 0) {
-        setUploadError('No valid data found in CSV file');
-        return;
-      }
+  //   try {
+  //     const text = await file.text();
+  //     const lines = text.split('\n');
+  //     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+  //     
+  //     const data = [];
+  //     for (let i = 1; i < lines.length; i++) {
+  //       const values = lines[i].split(',').map(v => v.trim());
+  //       if (values.length === headers.length && values[0]) {
+  //         try {
+  //           data.push({
+  //             propertyName: values[0] || '',
+  //             address: values[1] || '',
+  //             monthlyRevenue: parseFloat(values[2]) || 0,
+  //             occupancyRate: parseFloat(values[3]) || 0,
+  //             totalUnits: parseInt(values[4]) || 0,
+  //             occupiedUnits: parseInt(values[5]) || 0,
+  //             expenses: parseFloat(values[6]) || 0,
+  //             netIncome: parseFloat(values[7]) || 0,
+  //             date: values[8] || new Date().toISOString().split('T')[0]
+  //           });
+  //         } catch (error) {
+  //           console.error('Error parsing row:', error);
+  //         }
+  //       }
+  //     }
+  //     
+  //     if (data.length === 0) {
+  //       setUploadError('No valid data found in CSV file');
+  //       return;
+  //     }
 
-      // Data processed successfully
-      
-      // Trigger dashboard update
-      window.dispatchEvent(new CustomEvent('dataUpdated', { 
-        detail: { propertyId: selectedProperty, data: data } 
-      }));
+  //     // Data processed successfully
+  //     
+  //     // Trigger dashboard update
+  //     window.dispatchEvent(new CustomEvent('dataUpdated', { 
+  //       detail: { propertyId: selectedProperty, data: data } 
+  //     }));
 
-      setValidationResult({
-        isValid: true,
-        totalRows: data.length,
-        validRows: data.length,
-        invalidRows: 0,
-        errors: []
-      });
+  //     setValidationResult({
+  //       isValid: true,
+  //       totalRows: data.length,
+  //       validRows: data.length,
+  //       invalidRows: 0,
+  //       errors: []
+  //     });
 
-      setUploadError(null);
-      
-      // Trigger dashboard refresh
-      window.dispatchEvent(new CustomEvent('dataUpdated'));
-      
-    } catch (error) {
-      setUploadError('Error processing CSV file locally');
-      console.error('Local processing error:', error);
-    }
+  //     setUploadError(null);
+  //     
+  //     // Trigger dashboard refresh
+  //     window.dispatchEvent(new CustomEvent('dataUpdated'));
+  //     
+  //   } catch (error) {
+  //     setUploadError('Error processing CSV file locally');
+  //     console.error('Local processing error:', error);
+  //   }
   // };
 
   const formatFileSize = (bytes: number) => {
@@ -671,9 +671,9 @@ const CSVUpload: React.FC = () => {
                 ))
               ) : (
                 properties.map(property => (
-                  <option key={property.id} value={property.id}>
-                    {property.name}
-                  </option>
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
                 ))
               )}
             </select>

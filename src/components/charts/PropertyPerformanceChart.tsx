@@ -58,7 +58,7 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
     if (properties.length > 0) {
       loadChartData();
     }
-  }, [properties, loadChartData]);
+  }, [properties]);
 
   const loadChartData = async () => {
     try {

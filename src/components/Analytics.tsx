@@ -27,15 +27,15 @@ interface Property {
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('12m');
-  // const [properties, setProperties] = useState<Property[]>([]); // Unused state
-  // const [isLoading, setIsLoading] = useState(true); // Unused state
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [selectedInsight, setSelectedInsight] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadAnalyticsData();
-  }, [timeRange, loadAnalyticsData]);
+  }, [timeRange]);
 
   // Function to handle insight card clicks and generate detailed AI reasoning
   const handleInsightClick = (insight: any) => {
