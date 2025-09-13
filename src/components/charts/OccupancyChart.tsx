@@ -222,7 +222,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
         padding: 12,
         titleFont: {
           size: 14,
-          weight: 'bold'
+          weight: 'bold' as const
         },
         bodyFont: {
           size: 13
