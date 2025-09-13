@@ -414,7 +414,7 @@ const Analytics: React.FC = () => {
                   <span className={`text-sm font-medium ${
                     benchmark.status === 'above' ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {benchmark.variance > 0 ? '+' : ''}{benchmark.variance}%
+                    {parseFloat(benchmark.variance) > 0 ? '+' : ''}{benchmark.variance}%
                   </span>
                 </div>
                 </div>
