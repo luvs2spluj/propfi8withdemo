@@ -79,32 +79,42 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
               const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
               console.log('📊 Latest Chico data:', latestChicoData);
               
-              if (latestChicoData.data?.sample && latestChicoData.data.isMonthColumnFormat) {
-                // Extract monthly data from Gilroy-style format
-                const rentIncomeData = latestChicoData.data.sample.find((row: any) => 
-                  row['Account Name'] === 'Rent Income'
-                );
+              if (latestChicoData.data?.rows && Array.isArray(latestChicoData.data.rows)) {
+                // This is the original Chico data format with individual records
+                console.log('📊 Processing original Chico data format for revenue');
                 
-                if (rentIncomeData) {
-                  console.log('💰 Found Rent Income data:', rentIncomeData);
+                // Extract unique months from the data
+                const months = [...new Set(latestChicoData.data.rows.map((row: any) => row.period))].sort();
+                console.log('📅 Available months from Chico data:', months);
+                
+                // Calculate monthly revenue by summing all income accounts for each month
+                const monthlyData = months.map((month: string) => {
+                  // Find all income-related accounts for this month
+                  const monthlyRecords = latestChicoData.data.rows.filter((row: any) => 
+                    row.period === month && 
+                    (row.account_name.toLowerCase().includes('rent') || 
+                     row.account_name.toLowerCase().includes('income'))
+                  );
                   
-                  // Convert monthly data to chart format
-                  const monthlyData = latestChicoData.data.monthColumns.map((month: string) => ({
+                  // Sum up the revenue for this month
+                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
+                    sum + (parseFloat(record.amount) || 0), 0
+                  );
+                  
+                  return {
                     id: `monthly-${month}`,
                     date: month,
-                    revenue: rentIncomeData[month] || '0',
+                    revenue: monthlyRevenue.toString(),
                     occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
                     total_units: chicoProperty.total_units || 26,
                     occupied_units: Math.round((chicoProperty.total_units || 26) * (0.85 + Math.random() * 0.1)),
-                    expenses: (parseFloat(rentIncomeData[month]) || 0) * 0.6,
-                    net_income: (parseFloat(rentIncomeData[month]) || 0) * 0.4
-                  }));
-                  
-                  chartData = monthlyData;
-                  console.log('📊 Monthly chart data:', chartData);
-                } else {
-                  console.log('⚠️ No Rent Income data found in sample');
-                }
+                    expenses: monthlyRevenue * 0.6,
+                    net_income: monthlyRevenue * 0.4
+                  };
+                });
+                
+                chartData = monthlyData;
+                console.log('📊 Monthly revenue data from Chico:', chartData);
               } else {
                 // Fallback to summary data format
                 const localChartData = localData.data.Chico.map((item: any) => ({

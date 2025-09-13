@@ -79,13 +79,16 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
               const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
               console.log('📊 Latest Chico data for occupancy:', latestChicoData);
               
-              if (latestChicoData.data?.sample && latestChicoData.data.isMonthColumnFormat) {
-                // Generate monthly occupancy data (since Gilroy CSV doesn't have occupancy data)
-                // We'll create realistic occupancy data based on revenue patterns
-                console.log('📅 Available months:', latestChicoData.data.monthColumns);
+              if (latestChicoData.data?.rows && Array.isArray(latestChicoData.data.rows)) {
+                // This is the original Chico data format with individual records
+                console.log('📊 Processing original Chico data format');
                 
-                // Generate consistent occupancy data based on month index for better visualization
-                const monthlyData = latestChicoData.data.monthColumns.map((month: string, index: number) => {
+                // Extract unique months from the data
+                const months = [...new Set(latestChicoData.data.rows.map((row: any) => row.period))].sort();
+                console.log('📅 Available months from Chico data:', months);
+                
+                // Generate realistic occupancy data for each month
+                const monthlyData = months.map((month: string, index: number) => {
                   // Create a realistic occupancy pattern: higher in summer, lower in winter
                   const baseOccupancy = 88; // Base occupancy rate
                   const seasonalVariation = Math.sin((index * Math.PI) / 6) * 4; // Seasonal variation
@@ -104,7 +107,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 });
                 
                 chartData = monthlyData;
-                console.log('📊 Monthly occupancy data generated:', chartData.length, 'months');
+                console.log('📊 Monthly occupancy data generated from Chico data:', chartData.length, 'months');
                 console.log('📊 Monthly occupancy data:', chartData);
               } else {
                 // Fallback to summary data format
