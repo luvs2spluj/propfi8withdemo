@@ -132,7 +132,7 @@ const Financials: React.FC = () => {
                 console.log('📊 Processing original Chico data format for financials');
                 
                 // Extract unique months from the data
-                const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort();
+                const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort() as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Calculate monthly revenue and expenses for each month

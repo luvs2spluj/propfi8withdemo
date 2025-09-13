@@ -84,7 +84,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 console.log('📊 Processing original Chico data format');
                 
                 // Extract unique months from the data
-                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort();
+                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort() as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Generate realistic occupancy data for each month
