@@ -25,6 +25,7 @@ ChartJS.register(
 interface PropertyData {
   id: string;
   date: string;
+  month?: string;
   revenue: string;
   occupancy_rate: string;
   maintenance_cost: string;
@@ -32,6 +33,8 @@ interface PropertyData {
   insurance_cost: string;
   property_tax: string;
   other_expenses: string;
+  expenses?: string;
+  netIncome?: string;
   property_name: string;
 }
 

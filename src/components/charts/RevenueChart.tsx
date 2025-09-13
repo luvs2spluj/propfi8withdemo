@@ -27,6 +27,7 @@ ChartJS.register(
 interface PropertyData {
   id: string;
   date: string;
+  month?: string;
   revenue: string;
   occupancy_rate: string;
   property_name: string;
