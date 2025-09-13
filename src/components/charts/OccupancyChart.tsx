@@ -118,11 +118,11 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format');
                 
-                // Extract unique months from the data and sort with most recent first (for chart display)
+                // Extract unique months from the data and sort chronologically (oldest first for chart display)
                 const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
                   const dateA = new Date(a as string);
                   const dateB = new Date(b as string);
-                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
+                  return dateA.getTime() - dateB.getTime(); // Oldest first for chart display
                 }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
@@ -191,16 +191,16 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
     }
   };
 
-  // Sort data by date with most recent first (for chart display)
+  // Sort data by date with oldest first (for chart display: left to right chronological)
   const sortedData = chartData.sort((a, b) => {
     // Handle monthly data format (like "Jan 2025")
     if (a.month && b.month && (a.month.includes('2025') || a.month.includes('2024'))) {
-      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const aMonth = a.month.split(' ')[0];
-      const bMonth = b.month.split(' ')[0];
-      return monthOrder.indexOf(bMonth) - monthOrder.indexOf(aMonth); // Reverse order: newest first
+      // Parse the full date string to get proper chronological order
+      const aDate = new Date(a.month);
+      const bDate = new Date(b.month);
+      return aDate.getTime() - bDate.getTime(); // Oldest first for chart display
     }
-    return new Date(b.month || b.date).getTime() - new Date(a.month || a.date).getTime(); // Reverse order: newest first
+    return new Date(a.month || a.date).getTime() - new Date(b.month || b.date).getTime(); // Oldest first for chart display
   });
   
   const labels = sortedData.map(item => {
