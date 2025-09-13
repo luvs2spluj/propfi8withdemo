@@ -179,7 +179,7 @@ const Financials: React.FC = () => {
                 });
                 
                 // Sort by date with most recent first
-                const sortedMonthlyData = monthlyDataArray.sort((a, b) => {
+                const sortedMonthlyData = monthlyDataArray.sort((a: any, b: any) => {
                   const dateA = new Date(a.month);
                   const dateB = new Date(b.month);
                   return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
@@ -231,7 +231,7 @@ const Financials: React.FC = () => {
                   });
                   
                   // Sort by date with most recent first
-                  const sortedMonthlyData = monthlyDataArray.sort((a, b) => {
+                  const sortedMonthlyData = monthlyDataArray.sort((a: any, b: any) => {
                     const dateA = new Date(a.month);
                     const dateB = new Date(b.month);
                     return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
