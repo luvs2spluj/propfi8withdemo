@@ -4,23 +4,23 @@ import {
   FileText, 
   CheckCircle, 
   AlertCircle, 
-  X,
+  // X, // Unused import
   Loader2
 } from 'lucide-react';
 import ApiService from '../services/api';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 
-interface CSVData {
-  propertyName: string;
-  address: string;
-  monthlyRevenue: number;
-  occupancyRate: number;
-  totalUnits: number;
-  occupiedUnits: number;
-  expenses: number;
-  netIncome: number;
-  date: string;
-}
+// interface CSVData { // Unused interface
+//   propertyName: string;
+//   address: string;
+//   monthlyRevenue: number;
+//   occupancyRate: number;
+//   totalUnits: number;
+//   occupiedUnits: number;
+//   expenses: number;
+//   netIncome: number;
+//   date: string;
+// }
 
 interface UploadedFile {
   id: number;
@@ -502,7 +502,7 @@ const CSVUpload: React.FC = () => {
     return neg ? -num : num;
   };
 
-  const handleLocalProcessingLegacy = async (file: File) => {
+  // const handleLocalProcessingLegacy = async (file: File) => { // Unused function
     try {
       const text = await file.text();
       const lines = text.split('\n');
@@ -559,7 +559,7 @@ const CSVUpload: React.FC = () => {
       setUploadError('Error processing CSV file locally');
       console.error('Local processing error:', error);
     }
-  };
+  // };
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

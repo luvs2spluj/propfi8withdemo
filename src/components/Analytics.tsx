@@ -15,7 +15,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import ApiService from '../services/api';
+// import ApiService from '../services/api'; // Unused import
 
 interface Property {
   id: string;
@@ -27,15 +27,15 @@ interface Property {
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('12m');
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // const [properties, setProperties] = useState<Property[]>([]); // Unused state
+  // const [isLoading, setIsLoading] = useState(true); // Unused state
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [selectedInsight, setSelectedInsight] = useState<any>(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadAnalyticsData();
-  }, [timeRange]);
+  }, [timeRange, loadAnalyticsData]);
 
   // Function to handle insight card clicks and generate detailed AI reasoning
   const handleInsightClick = (insight: any) => {
@@ -294,7 +294,7 @@ const Analytics: React.FC = () => {
 
   // Function to filter data based on time range
   const filterDataByTimeRange = (monthlyData: any[]) => {
-    const now = new Date();
+    // const now = new Date(); // Unused variable
     let monthsToInclude = 12; // default
     
     switch (timeRange) {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Eye, Download, Calendar, DollarSign } from 'lucide-react';
+import { Table, Eye, Calendar, DollarSign } from 'lucide-react'; // Removed unused Download
 import ApiService from '../services/api';
 
 interface PropertyData {
@@ -40,7 +40,7 @@ const CSVDataViewer: React.FC = () => {
     if (selectedProperty) {
       loadPropertyData();
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, loadPropertyData]);
 
   const loadProperties = async () => {
     try {

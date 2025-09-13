@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
   // Calculate additional metrics
   const avgMonthlyRevenue = totalRecords > 0 ? totalRevenue / totalRecords : 0;
   const profitMargin = totalRevenue > 0 ? (totalNetIncome / totalRevenue) * 100 : 0;
-  const avgMonthlyExpenses = totalRecords > 0 ? totalExpenses / totalRecords : 0;
+  // const avgMonthlyExpenses = totalRecords > 0 ? totalExpenses / totalRecords : 0; // Unused variable
 
   const metrics = [
     {

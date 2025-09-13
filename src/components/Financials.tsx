@@ -59,7 +59,7 @@ const Financials: React.FC = () => {
     if (selectedProperty) {
       loadPropertyData();
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, loadPropertyData]);
 
   const loadProperties = async () => {
     try {
@@ -313,7 +313,7 @@ const Financials: React.FC = () => {
                   
                   const otherExpenses = monthlyExpenses - maintenanceCost - insuranceCost - utilitiesCost - propertyTaxCost;
                   
-                  const monthlyNetIncome = monthlyRevenue - monthlyExpenses;
+                  // const monthlyNetIncome = monthlyRevenue - monthlyExpenses; // Unused variable
                   
                   return {
                     id: `financials-${month}`,

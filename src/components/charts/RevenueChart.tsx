@@ -55,7 +55,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
     if (properties.length > 0) {
       loadChartData();
     }
-  }, [properties]);
+  }, [properties, loadChartData]);
 
   const loadChartData = async () => {
     try {

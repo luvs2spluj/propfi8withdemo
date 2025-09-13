@@ -6,10 +6,10 @@ import {
   DollarSign, 
   FileText,
   Upload,
-  Settings,
-  Home,
-  Table,
-  Trash2
+  // Settings, // Unused import
+  Home
+  // Table, // Unused import
+  // Trash2 // Unused import
 } from 'lucide-react';
 
 type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'csv-data' | 'csv-management';

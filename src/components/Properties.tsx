@@ -115,7 +115,7 @@ const Properties: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const getStatusColor = (status: string) => {
+  // const getStatusColor = (status: string) => { // Unused function
     switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
@@ -126,7 +126,7 @@ const Properties: React.FC = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
+  // };
 
   return (
     <div className="space-y-6">
