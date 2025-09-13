@@ -124,8 +124,11 @@ const Financials: React.FC = () => {
             if (selectedPropertyName && localData.data[selectedPropertyName]) {
               const localItem = localData.data[selectedPropertyName];
               
-              // Handle both array and object formats
-              const dataItem = Array.isArray(localItem) ? localItem[localItem.length - 1] : localItem;
+              // Handle both array and object formats - find the entry with actual data
+              const dataItem = Array.isArray(localItem) ? 
+                localItem.find((entry: any) => 
+                  entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
+                ) || localItem[localItem.length - 1] : localItem;
               
               if (dataItem.data?.data && Array.isArray(dataItem.data.data)) {
                 // This is the original Chico data format with individual records
@@ -141,7 +144,10 @@ const Financials: React.FC = () => {
                   const monthlyRecords = dataItem.data.data.filter((row: any) => 
                     row.period === month && 
                     (row.account_name.toLowerCase().includes('rent') || 
-                     row.account_name.toLowerCase().includes('income'))
+                     row.account_name.toLowerCase().includes('income') ||
+                     row.account_name.toLowerCase().includes('fees') ||
+                     row.account_name.toLowerCase().includes('concessions') ||
+                     row.account_name.toLowerCase().includes('sales'))
                   );
                   
                   // Sum up the revenue for this month
@@ -149,7 +155,45 @@ const Financials: React.FC = () => {
                     sum + (parseFloat(record.amount) || 0), 0
                   );
                   
-                  const monthlyExpenses = monthlyRevenue * 0.6; // Estimate 60% expenses
+                  // Calculate actual expenses from expense accounts
+                  const expenseRecords = dataItem.data.data.filter((row: any) => 
+                    row.period === month && 
+                    (row.account_name.toLowerCase().includes('maintenance') ||
+                     row.account_name.toLowerCase().includes('utilities') ||
+                     row.account_name.toLowerCase().includes('insurance') ||
+                     row.account_name.toLowerCase().includes('tax') ||
+                     row.account_name.toLowerCase().includes('expense') ||
+                     row.account_name.toLowerCase().includes('dnu-') ||
+                     row.account_name.toLowerCase().includes('salaries') ||
+                     row.account_name.toLowerCase().includes('bank charges'))
+                  );
+                  
+                  const monthlyExpenses = expenseRecords.reduce((sum: number, record: any) => 
+                    sum + Math.abs(parseFloat(record.amount) || 0), 0
+                  );
+                  
+                  // Calculate specific expense categories
+                  const maintenanceCost = expenseRecords.filter((row: any) => 
+                    row.account_name.toLowerCase().includes('maintenance') ||
+                    row.account_name.toLowerCase().includes('dnu-mrr') ||
+                    row.account_name.toLowerCase().includes('dnu-carpet') ||
+                    row.account_name.toLowerCase().includes('hvac')
+                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
+                  
+                  const insuranceCost = expenseRecords.filter((row: any) => 
+                    row.account_name.toLowerCase().includes('insurance')
+                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
+                  
+                  const utilitiesCost = expenseRecords.filter((row: any) => 
+                    row.account_name.toLowerCase().includes('utilities')
+                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
+                  
+                  const propertyTaxCost = expenseRecords.filter((row: any) => 
+                    row.account_name.toLowerCase().includes('tax')
+                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
+                  
+                  const otherExpenses = monthlyExpenses - maintenanceCost - insuranceCost - utilitiesCost - propertyTaxCost;
+                  
                   const monthlyNetIncome = monthlyRevenue - monthlyExpenses;
                   
                   return {
@@ -158,11 +202,11 @@ const Financials: React.FC = () => {
                     date: month,
                     revenue: monthlyRevenue.toString(),
                     occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                    maintenance_cost: (monthlyRevenue * 0.2).toString(),
-                    utilities_cost: (monthlyRevenue * 0.15).toString(),
-                    insurance_cost: (monthlyRevenue * 0.1).toString(),
-                    property_tax: (monthlyRevenue * 0.05).toString(),
-                    other_expenses: (monthlyRevenue * 0.1).toString(),
+                    maintenance_cost: maintenanceCost.toString(),
+                    utilities_cost: utilitiesCost.toString(),
+                    insurance_cost: insuranceCost.toString(),
+                    property_tax: propertyTaxCost.toString(),
+                    other_expenses: otherExpenses.toString(),
                     notes: `Monthly data from ${month}`,
                     property_name: selectedPropertyName
                   };

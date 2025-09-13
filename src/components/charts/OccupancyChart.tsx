@@ -75,9 +75,12 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
             console.log('🏠 Local occupancy data loaded:', localData);
             
             if (localData.success && localData.data && localData.data.Chico) {
-              // Get the latest Chico data (should be the Gilroy-style format)
-              const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
-              console.log('📊 Latest Chico data for occupancy:', latestChicoData);
+              // Get the Chico data entry that has actual data
+              const chicoDataEntries = localData.data.Chico;
+              const latestChicoData = chicoDataEntries.find((entry: any) => 
+                entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
+              ) || chicoDataEntries[chicoDataEntries.length - 1];
+              console.log('📊 Latest Chico data with actual data for occupancy:', latestChicoData);
               
               if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records

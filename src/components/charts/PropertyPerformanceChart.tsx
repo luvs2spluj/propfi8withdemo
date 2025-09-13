@@ -76,9 +76,12 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
             console.log('🏠 Local performance chart data loaded:', localData);
             
             if (localData.success && localData.data && localData.data.Chico) {
-              // Get the latest Chico data (should be the Gilroy-style format)
-              const latestChicoData = localData.data.Chico[localData.data.Chico.length - 1];
-              console.log('📊 Latest Chico data for performance:', latestChicoData);
+              // Get the Chico data entry that has actual data
+              const chicoDataEntries = localData.data.Chico;
+              const latestChicoData = chicoDataEntries.find((entry: any) => 
+                entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
+              ) || chicoDataEntries[chicoDataEntries.length - 1];
+              console.log('📊 Latest Chico data with actual data for performance:', latestChicoData);
               
               if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records
@@ -94,7 +97,10 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
                   const monthlyRecords = latestChicoData.data.data.filter((row: any) => 
                     row.period === month && 
                     (row.account_name.toLowerCase().includes('rent') || 
-                     row.account_name.toLowerCase().includes('income'))
+                     row.account_name.toLowerCase().includes('income') ||
+                     row.account_name.toLowerCase().includes('fees') ||
+                     row.account_name.toLowerCase().includes('concessions') ||
+                     row.account_name.toLowerCase().includes('sales'))
                   );
                   
                   // Sum up the revenue for this month
