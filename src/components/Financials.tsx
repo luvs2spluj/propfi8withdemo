@@ -136,8 +136,8 @@ const Financials: React.FC = () => {
                 
                 // Extract unique months from the data and sort chronologically
                 const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort((a, b) => {
-                  const dateA = new Date(a);
-                  const dateB = new Date(b);
+                  const dateA = new Date(a as string);
+                  const dateB = new Date(b as string);
                   return dateA.getTime() - dateB.getTime();
                 }) as string[];
                 console.log('📅 Available months from Chico data:', months);
