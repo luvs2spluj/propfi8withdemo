@@ -170,6 +170,12 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
   });
   
   const occupancyData = sortedData.map(item => parseFloat(item.occupancy_rate));
+  
+  // Debug logging to verify all months are captured
+  console.log('📊 Final chart data for Occupancy Chart:');
+  console.log('📅 Labels (months):', labels);
+  console.log('📊 Occupancy data:', occupancyData);
+  console.log('📈 Total data points:', labels.length);
 
   const data = {
     labels: labels,
@@ -194,21 +200,53 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
+    hover: {
+      animationDuration: 200,
+    },
     plugins: {
       legend: {
         display: false,
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
         titleColor: '#fff',
         bodyColor: '#fff',
-        borderColor: 'rgba(34, 197, 94, 0.5)',
-        borderWidth: 1,
-        cornerRadius: 8,
+        borderColor: 'rgba(34, 197, 94, 0.8)',
+        borderWidth: 2,
+        cornerRadius: 12,
         displayColors: false,
+        padding: 12,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
         callbacks: {
+          title: function(context: any) {
+            return `Month: ${context[0].label}`;
+          },
           label: function(context: any) {
-            return `Occupancy: ${context.parsed.y}%`;
+            const occupancy = context.parsed.y;
+            const dataIndex = context.dataIndex;
+            const dataPoint = sortedData[dataIndex];
+            
+            if (dataPoint) {
+              const occupiedUnits = dataPoint.occupied_units || Math.round((dataPoint.total_units || 26) * (occupancy / 100));
+              const totalUnits = dataPoint.total_units || 26;
+              return [
+                `Occupancy Rate: ${occupancy}%`,
+                `Occupied Units: ${occupiedUnits}/${totalUnits}`,
+                `Property: ${dataPoint.property_name || 'Chico'}`
+              ];
+            }
+            return `Occupancy: ${occupancy}%`;
           }
         }
       },
