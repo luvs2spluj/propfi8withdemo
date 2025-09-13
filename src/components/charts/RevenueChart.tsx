@@ -82,6 +82,32 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
               ) || chicoDataEntries[chicoDataEntries.length - 1];
               console.log('📊 Latest Chico data with actual data:', latestChicoData);
               
+              // Check if this is the Chico summary data format
+              if (latestChicoData.data?.sample && Array.isArray(latestChicoData.data.sample)) {
+                // This is the Chico summary data format with Monthly Revenue column
+                console.log('📊 Processing Chico summary data format for revenue');
+                
+                const sampleData = latestChicoData.data.sample;
+                console.log('📊 Sample data:', sampleData);
+                
+                // Extract months and revenue from the summary data
+                const monthlyData = sampleData.map((row: any) => {
+                  const date = new Date(row['Date']);
+                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  const revenue = parseFloat(row['Monthly Revenue']) || 0;
+                  
+                  return {
+                    month,
+                    revenue: revenue
+                  };
+                });
+                
+                console.log('📊 Monthly revenue data:', monthlyData);
+                setChartData(monthlyData);
+                setLoading(false);
+                return;
+              }
+              
               if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for revenue');

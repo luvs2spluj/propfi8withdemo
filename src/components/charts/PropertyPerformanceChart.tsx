@@ -83,6 +83,40 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
               ) || chicoDataEntries[chicoDataEntries.length - 1];
               console.log('📊 Latest Chico data with actual data for performance:', latestChicoData);
               
+              // Check if this is the Chico summary data format
+              if (latestChicoData.data?.sample && Array.isArray(latestChicoData.data.sample)) {
+                // This is the Chico summary data format with Monthly Revenue column
+                console.log('📊 Processing Chico summary data format for performance');
+                
+                const sampleData = latestChicoData.data.sample;
+                console.log('📊 Sample data:', sampleData);
+                
+                // Extract months and performance data from the summary data
+                const monthlyData = sampleData.map((row: any) => {
+                  const date = new Date(row['Date']);
+                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  const revenue = parseFloat(row['Monthly Revenue']) || 0;
+                  const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
+                  const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
+                  const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
+                  const propertyTax = parseFloat(row['Property Tax']) || 0;
+                  const otherExpenses = parseFloat(row['Other Expenses']) || 0;
+                  const netIncome = parseFloat(row['Net Income']) || 0;
+                  
+                  return {
+                    month,
+                    revenue: revenue,
+                    expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
+                    netIncome: netIncome
+                  };
+                });
+                
+                console.log('📊 Monthly performance data:', monthlyData);
+                setChartData(monthlyData);
+                setLoading(false);
+                return;
+              }
+              
               if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for performance');

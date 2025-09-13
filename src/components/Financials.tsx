@@ -130,6 +130,50 @@ const Financials: React.FC = () => {
                   entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
                 ) || localItem[localItem.length - 1] : localItem;
               
+              // Check if this is the Chico summary data format
+              if (dataItem.data?.sample && Array.isArray(dataItem.data.sample)) {
+                // This is the Chico summary data format with Monthly Revenue column
+                console.log('📊 Processing Chico summary data format for financials');
+                
+                const sampleData = dataItem.data.sample;
+                console.log('📊 Sample data:', sampleData);
+                
+                // Calculate monthly revenue and expenses for each month
+                const monthlyDataArray = sampleData.map((row: any) => {
+                  const monthlyRevenue = parseFloat(row['Monthly Revenue']) || 0;
+                  const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
+                  const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
+                  const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
+                  const propertyTax = parseFloat(row['Property Tax']) || 0;
+                  const otherExpenses = parseFloat(row['Other Expenses']) || 0;
+                  const netIncome = parseFloat(row['Net Income']) || 0;
+                  
+                  // Extract month from date
+                  const date = new Date(row['Date']);
+                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  
+                  return {
+                    month,
+                    revenue: monthlyRevenue,
+                    expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
+                    netIncome: netIncome,
+                    margin: monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0,
+                    breakdown: {
+                      maintenance: maintenanceCost,
+                      insurance: insuranceCost,
+                      utilities: utilitiesCost,
+                      propertyTax: propertyTax,
+                      other: otherExpenses
+                    }
+                  };
+                });
+                
+                console.log('📊 Monthly data array:', monthlyDataArray);
+                setMonthlyData(monthlyDataArray);
+                setLoading(false);
+                return;
+              }
+              
               if (dataItem.data?.data && Array.isArray(dataItem.data.data)) {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for financials');

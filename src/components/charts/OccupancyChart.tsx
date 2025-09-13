@@ -82,6 +82,37 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
               ) || chicoDataEntries[chicoDataEntries.length - 1];
               console.log('📊 Latest Chico data with actual data for occupancy:', latestChicoData);
               
+              // Check if this is the Chico summary data format
+              if (latestChicoData.data?.sample && Array.isArray(latestChicoData.data.sample)) {
+                // This is the Chico summary data format with Occupancy Rate column
+                console.log('📊 Processing Chico summary data format for occupancy');
+                
+                const sampleData = latestChicoData.data.sample;
+                console.log('📊 Sample data:', sampleData);
+                
+                // Extract months and occupancy data from the summary data
+                const monthlyData = sampleData.map((row: any) => {
+                  const date = new Date(row['Date']);
+                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  const occupancyRate = parseFloat(row['Occupancy Rate']) || 0;
+                  const totalUnits = parseFloat(row['Total Units']) || 0;
+                  const occupiedUnits = Math.round((occupancyRate / 100) * totalUnits);
+                  
+                  return {
+                    month,
+                    occupancy_rate: occupancyRate,
+                    total_units: totalUnits,
+                    occupied_units: occupiedUnits,
+                    property_name: 'Chico Property'
+                  };
+                });
+                
+                console.log('📊 Monthly occupancy data:', monthlyData);
+                setChartData(monthlyData);
+                setLoading(false);
+                return;
+              }
+              
               if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format');
