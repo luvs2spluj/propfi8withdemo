@@ -93,9 +93,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
                     id: `monthly-${month}`,
                     date: month,
                     revenue: rentIncomeData[month] || '0',
-                    occupancy_rate: '85', // Default
+                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
                     total_units: chicoProperty.total_units || 26,
-                    occupied_units: Math.round((chicoProperty.total_units || 26) * 0.85),
+                    occupied_units: Math.round((chicoProperty.total_units || 26) * (0.85 + Math.random() * 0.1)),
                     expenses: (parseFloat(rentIncomeData[month]) || 0) * 0.6,
                     net_income: (parseFloat(rentIncomeData[month]) || 0) * 0.4
                   }));

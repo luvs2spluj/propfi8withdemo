@@ -3,21 +3,25 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import ApiService from '../../services/api';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
+  PointElement,
+  LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 interface PropertyData {
@@ -161,11 +165,16 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
       {
         label: 'Chico Occupancy Rate',
         data: occupancyData,
-        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
         borderColor: 'rgb(34, 197, 94)',
-        borderWidth: 2,
-        borderRadius: 6,
-        borderSkipped: false,
+        borderWidth: 3,
+        pointBackgroundColor: 'rgb(34, 197, 94)',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        fill: true,
+        tension: 0.1,
       },
     ],
   };
@@ -237,7 +246,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
 
   return (
     <div className="h-64">
-      <Bar data={data} options={options} />
+      <Line data={data} options={options} />
     </div>
   );
 };
