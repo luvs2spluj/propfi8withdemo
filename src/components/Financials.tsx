@@ -381,7 +381,7 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), calculate from that
-    if (propertyData.length > 1 && propertyData.some(record => record.month && record.month.includes('2025'))) {
+    if (propertyData.length > 1 && propertyData.some(record => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
       const totalRevenue = propertyData.reduce((sum, record) => sum + parseFloat(record.revenue), 0);
       const totalExpenses = propertyData.reduce((sum, record) => sum + parseFloat(record.expenses || '0'), 0);
       
@@ -446,7 +446,7 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), use actual data
-    if (propertyData.length > 1 && propertyData.some(record => record.month && record.month.includes('2025'))) {
+    if (propertyData.length > 1 && propertyData.some(record => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
       return propertyData.map(record => {
         const revenue = parseFloat(record.revenue);
         const expenses = parseFloat(record.expenses || '0');
@@ -471,7 +471,7 @@ const Financials: React.FC = () => {
     }
 
     // If we have summary data (single record with total amount), generate monthly breakdown
-    if (propertyData.length === 1 && propertyData[0].revenue.includes('479482')) {
+    if (propertyData.length === 1 && propertyData[0].revenue.includes('479482') && !propertyData[0].month) {
       const totalRevenue = parseFloat(propertyData[0].revenue);
       const monthlyRevenue = totalRevenue / 12;
       

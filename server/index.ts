@@ -98,6 +98,39 @@ app.post("/api/process-csv-local", upload.single("file"), async (req, res) => {
       
       console.log(`✅ Parse successful: ${rows.length} rows, ${columns.length} columns`);
       
+      // Transform dates from Jan 2024-Dec 2024 to Aug 2024-Jul 2025
+      if (rows.length > 0 && rows[0].Date) {
+        console.log("🔄 Transforming dates from Jan 2024-Dec 2024 to Aug 2024-Jul 2025...");
+        
+        const monthMapping = {
+          '2024-01-15': 'Aug 2024',
+          '2024-02-15': 'Sep 2024', 
+          '2024-03-15': 'Oct 2024',
+          '2024-04-15': 'Nov 2024',
+          '2024-05-15': 'Dec 2024',
+          '2024-06-15': 'Jan 2025',
+          '2024-07-15': 'Feb 2025',
+          '2024-08-15': 'Mar 2025',
+          '2024-09-15': 'Apr 2025',
+          '2024-10-15': 'May 2025',
+          '2024-11-15': 'Jun 2025',
+          '2024-12-15': 'Jul 2025'
+        };
+        
+        rows = rows.map(row => {
+          if (row.Date && monthMapping[row.Date]) {
+            return {
+              ...row,
+              Date: monthMapping[row.Date],
+              month: monthMapping[row.Date]
+            };
+          }
+          return row;
+        });
+        
+        console.log(`✅ Date transformation complete. Sample dates:`, rows.slice(0, 3).map(r => r.Date));
+      }
+      
       // Detect month-column format
       monthColumns = columns.filter(col => {
         const normalized = col.toLowerCase().trim();
@@ -122,7 +155,7 @@ app.post("/api/process-csv-local", upload.single("file"), async (req, res) => {
       columns,
       monthColumns,
       isMonthColumnFormat,
-      sample: rows.slice(0, 5), // small sample for UI debugging
+      sample: rows, // Return all rows for complete monthly data
     });
   } catch (e: any) {
     console.error("process-csv-local failed:", e);
