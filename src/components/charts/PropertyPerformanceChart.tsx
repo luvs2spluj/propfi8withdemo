@@ -113,7 +113,7 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
                 
                 console.log('📊 Monthly performance data:', monthlyData);
                 setChartData(monthlyData);
-                setLoading(false);
+                setIsLoading(false);
                 return;
               }
               

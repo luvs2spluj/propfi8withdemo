@@ -109,7 +109,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 
                 console.log('📊 Monthly occupancy data:', monthlyData);
                 setChartData(monthlyData);
-                setLoading(false);
+                setIsLoading(false);
                 return;
               }
               

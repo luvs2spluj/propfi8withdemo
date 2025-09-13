@@ -169,8 +169,8 @@ const Financials: React.FC = () => {
                 });
                 
                 console.log('📊 Monthly data array:', monthlyDataArray);
-                setMonthlyData(monthlyDataArray);
-                setLoading(false);
+                setPropertyData(monthlyDataArray);
+                setIsLoading(false);
                 return;
               }
               

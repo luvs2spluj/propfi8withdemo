@@ -104,7 +104,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
                 
                 console.log('📊 Monthly revenue data:', monthlyData);
                 setChartData(monthlyData);
-                setLoading(false);
+                setIsLoading(false);
                 return;
               }
               
