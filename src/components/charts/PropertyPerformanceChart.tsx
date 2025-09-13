@@ -85,7 +85,7 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
                 console.log('📊 Processing original Chico data format for performance');
                 
                 // Extract unique months from the data
-                const months = [...new Set(latestChicoData.data.data.map((row: any) => row.period))].sort();
+                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort();
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Calculate monthly revenue and expenses for each month

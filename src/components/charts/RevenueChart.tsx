@@ -84,7 +84,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
                 console.log('📊 Processing original Chico data format for revenue');
                 
                 // Extract unique months from the data
-                const months = [...new Set(latestChicoData.data.data.map((row: any) => row.period))].sort();
+                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort();
                 console.log('📅 Available months from Chico data:', months);
                 
                 // Calculate monthly revenue by summing all income accounts for each month
