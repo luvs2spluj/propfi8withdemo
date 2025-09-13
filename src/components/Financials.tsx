@@ -178,8 +178,15 @@ const Financials: React.FC = () => {
                   };
                 });
                 
-                console.log('📊 Monthly data array:', monthlyDataArray);
-                setPropertyData(monthlyDataArray);
+                // Sort by date with most recent first
+                const sortedMonthlyData = monthlyDataArray.sort((a, b) => {
+                  const dateA = new Date(a.month);
+                  const dateB = new Date(b.month);
+                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
+                });
+                
+                console.log('📊 Monthly data array:', sortedMonthlyData);
+                setPropertyData(sortedMonthlyData);
                 setIsLoading(false);
                 return;
               }
@@ -223,8 +230,15 @@ const Financials: React.FC = () => {
                     };
                   });
                   
-                  console.log('📊 Monthly data array from original sample:', monthlyDataArray);
-                  setPropertyData(monthlyDataArray);
+                  // Sort by date with most recent first
+                  const sortedMonthlyData = monthlyDataArray.sort((a, b) => {
+                    const dateA = new Date(a.month);
+                    const dateB = new Date(b.month);
+                    return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
+                  });
+                  
+                  console.log('📊 Monthly data array from original sample:', sortedMonthlyData);
+                  setPropertyData(sortedMonthlyData);
                   setIsLoading(false);
                   return;
                 }
@@ -234,11 +248,11 @@ const Financials: React.FC = () => {
                 // This is the original Chico data format with individual records
                 console.log('📊 Processing original Chico data format for financials');
                 
-                // Extract unique months from the data and sort chronologically
+                // Extract unique months from the data and sort with most recent first
                 const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort((a, b) => {
                   const dateA = new Date(a as string);
                   const dateB = new Date(b as string);
-                  return dateA.getTime() - dateB.getTime();
+                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
                 }) as string[];
                 console.log('📅 Available months from Chico data:', months);
                 
@@ -500,7 +514,7 @@ const Financials: React.FC = () => {
 
     // Otherwise, use actual monthly data
     return propertyData
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Reverse order: newest first
       .map(record => {
         const date = new Date(record.date);
         const month = date.toLocaleDateString('en-US', { month: 'short' });
