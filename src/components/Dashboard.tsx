@@ -12,6 +12,7 @@ import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
 import ApiService from '../services/api';
+import unifiedPropertyService from '../services/unifiedPropertyService';
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -20,6 +21,7 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    initializeUnifiedService();
     loadDashboardData();
     
     // Listen for data updates from CSV uploads
@@ -34,36 +36,131 @@ const Dashboard: React.FC = () => {
     };
   }, []);
 
+  const initializeUnifiedService = async () => {
+    try {
+      await unifiedPropertyService.initialize();
+      console.log('🏢 Dashboard: Unified service initialized');
+    } catch (error) {
+      console.error('Dashboard: Failed to initialize unified service:', error);
+    }
+  };
+
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      console.log('🔄 Loading dashboard data from API...');
+      console.log('🔄 Loading dashboard data from unified system...');
       
-      // Load properties from database
-      const propertiesResponse = await ApiService.getProperties();
-      console.log('📊 Properties API response:', propertiesResponse);
-      if (propertiesResponse.success && propertiesResponse.data) {
-        setProperties(propertiesResponse.data);
-        console.log('✅ Properties loaded from API:', propertiesResponse.data);
+      // Load unified properties first
+      const unifiedProperties = unifiedPropertyService.getAllProperties();
+      console.log('🏢 Unified properties:', unifiedProperties);
+      
+      if (unifiedProperties.length > 0) {
+        setProperties(unifiedProperties);
+        console.log('✅ Using unified properties:', unifiedProperties.length);
       } else {
-        console.error('❌ Failed to load properties from API:', propertiesResponse.error || 'Unknown error');
-        setProperties([]);
+        // Fallback to API if no unified properties
+        console.log('📊 Loading properties from API...');
+        const propertiesResponse = await ApiService.getProperties();
+        console.log('📊 Properties API response:', propertiesResponse);
+        if (propertiesResponse.success && propertiesResponse.data) {
+          setProperties(propertiesResponse.data);
+          console.log('✅ Properties loaded from API:', propertiesResponse.data);
+        } else {
+          console.error('❌ Failed to load properties from API:', propertiesResponse.error || 'Unknown error');
+          setProperties([]);
+        }
       }
 
-      // Load financial data
-      const financialResponse = await ApiService.getFinancialSummary();
-      console.log('💰 Financial API response:', financialResponse);
-      if (financialResponse.success && financialResponse.data) {
-        setFinancialData(financialResponse.data);
-        console.log('✅ Financial data loaded from API:', financialResponse.data);
-        console.log('📈 Total Revenue from API:', financialResponse.data.total_revenue);
-        console.log('📈 Net Income from API:', financialResponse.data.total_net_income);
-      } else {
-        console.error('❌ Failed to load financial data from API:', financialResponse.error || 'Unknown error');
-        setFinancialData(null);
+      // Load financial data from multiple sources
+      let combinedFinancialData = null;
+      
+      // Try to get data from local backend first
+      try {
+        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        if (localDataResponse.ok) {
+          const localData = await localDataResponse.json();
+          console.log('🏠 Local data loaded:', localData);
+          
+          if (localData.success && localData.data) {
+            // Calculate financial metrics from local data
+            const allData = Object.values(localData.data).flat();
+            const totalRevenue = allData.reduce((sum: number, item: any) => {
+              // Check if we have Chico summary data
+              if (item.data?.sample && Array.isArray(item.data.sample)) {
+                const monthlyRevenue = item.data.sample.reduce((monthSum: number, row: any) => {
+                  return monthSum + (parseFloat(row['Monthly Revenue']) || 0);
+                }, 0);
+                return sum + monthlyRevenue;
+              }
+              // Fallback to aiAnalysis totalAmount
+              const amount = parseFloat(item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0);
+              return sum + amount;
+            }, 0);
+            
+            const totalRecords = allData.reduce((sum: number, item: any) => {
+              return sum + (item.data?.aiAnalysis?.totalRecords || 0);
+            }, 0);
+            
+            // Calculate actual expenses and net income from Chico data
+            const totalExpenses = allData.reduce((sum: number, item: any) => {
+              if (item.data?.sample && Array.isArray(item.data.sample)) {
+                const monthlyExpenses = item.data.sample.reduce((monthSum: number, row: any) => {
+                  const maintenance = parseFloat(row['Maintenance Cost']) || 0;
+                  const utilities = parseFloat(row['Utilities Cost']) || 0;
+                  const insurance = parseFloat(row['Insurance Cost']) || 0;
+                  const propertyTax = parseFloat(row['Property Tax']) || 0;
+                  const other = parseFloat(row['Other Expenses']) || 0;
+                  return monthSum + maintenance + utilities + insurance + propertyTax + other;
+                }, 0);
+                return sum + monthlyExpenses;
+              }
+              return sum + (totalRevenue * 0.6); // Fallback estimate
+            }, 0);
+
+            const totalNetIncome = totalRevenue - totalExpenses;
+
+            // Calculate average occupancy from Chico data
+            const avgOccupancyRate = allData.reduce((sum: number, item: any) => {
+              if (item.data?.sample && Array.isArray(item.data.sample)) {
+                const monthlyOccupancy = item.data.sample.reduce((monthSum: number, row: any) => {
+                  return monthSum + (parseFloat(row['Occupancy Rate']) || 0);
+                }, 0);
+                return sum + (monthlyOccupancy / item.data.sample.length);
+              }
+              return sum + 85; // Default occupancy
+            }, 0) / allData.length;
+
+            combinedFinancialData = {
+              total_revenue: totalRevenue,
+              total_expenses: totalExpenses,
+              total_net_income: totalNetIncome,
+              total_records: totalRecords,
+              avg_occupancy_rate: avgOccupancyRate.toFixed(1),
+              source: 'local'
+            };
+            
+            console.log('💰 Calculated financial data from local:', combinedFinancialData);
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Local data not available, trying API...');
       }
+      
+      // Fallback to API if no local data
+      if (!combinedFinancialData) {
+        const financialResponse = await ApiService.getFinancialSummary();
+        console.log('💰 Financial API response:', financialResponse);
+        if (financialResponse.success && financialResponse.data) {
+          combinedFinancialData = financialResponse.data;
+          console.log('✅ Financial data loaded from API:', financialResponse.data);
+        } else {
+          console.error('❌ Failed to load financial data from API:', financialResponse.error || 'Unknown error');
+        }
+      }
+      
+      setFinancialData(combinedFinancialData);
     } catch (error: any) {
       console.error('❌ Failed to load dashboard data:', error);
       setError('Failed to load dashboard data. Please check if the backend server is running.');

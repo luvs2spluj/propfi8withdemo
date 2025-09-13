@@ -260,15 +260,8 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
       
       const labels = sortedData.map(item => item.month);
       const revenueData = sortedData.map(item => parseFloat(item.revenue));
-      const expensesData = sortedData.map(item => {
-        const maintenance = parseFloat(item.maintenance_cost || '0');
-        const utilities = parseFloat(item.utilities_cost || '0');
-        const insurance = parseFloat(item.insurance_cost || '0');
-        const propertyTax = parseFloat(item.property_tax || '0');
-        const other = parseFloat(item.other_expenses || '0');
-        return maintenance + utilities + insurance + propertyTax + other;
-      });
-      const netIncomeData = sortedData.map((item, index) => revenueData[index] - expensesData[index]);
+      const expensesData = sortedData.map(item => parseFloat(item.expenses || '0'));
+      const netIncomeData = sortedData.map(item => parseFloat(item.netIncome || '0'));
       
       return { labels, revenueData, expensesData, netIncomeData };
     } else {
