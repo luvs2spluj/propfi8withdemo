@@ -793,9 +793,10 @@ const Analytics: React.FC = () => {
                               {Array.isArray(value) ? 
                                 `${value.length} data points` : 
                                 typeof value === 'number' ? 
-                                  (key.includes('Revenue') || key.includes('Expense') || key.includes('Cost') ? 
+                                  (key.includes('Revenue') || key.includes('Expense') || key.includes('Cost') || key.includes('Unit') ? 
                                     `$${value.toLocaleString()}` : 
-                                    `${value.toFixed(1)}${key.includes('Ratio') ? '%' : ''}`) :
+                                    key.includes('Ratio') ? `${value.toFixed(1)}%` :
+                                    `${value.toFixed(1)}`) :
                                 String(value)
                               }
                             </span>
@@ -819,8 +820,11 @@ const Analytics: React.FC = () => {
                             <span className="text-sm font-medium text-green-900">
                               {typeof value === 'number' ? 
                                 (key.includes('Ratio') ? `${(value * 100).toFixed(1)}%` : 
-                                 key.includes('Rate') || key.includes('Threshold') ? `${value}%` :
-                                 `$${value.toLocaleString()}`) :
+                                 key.includes('Rate') && value <= 100 ? `${value}%` :
+                                 key.includes('Threshold') && value <= 100 ? `${value}%` :
+                                 key.includes('Market') || key.includes('Industry') || key.includes('Premium') || key.includes('Revenue') || key.includes('Expense') || key.includes('Cost') ? 
+                                   `$${value.toLocaleString()}` :
+                                 `${value.toLocaleString()}`) :
                                 String(value)
                               }
                             </span>
