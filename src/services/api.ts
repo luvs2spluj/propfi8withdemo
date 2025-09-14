@@ -1,3 +1,5 @@
+import { supabaseApiService } from './supabaseClient';
+
 // Backend URLs
 const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5001/api';
 const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5000/api';
@@ -62,7 +64,12 @@ class ApiService {
 
   // Properties API
   async getProperties(): Promise<ApiResponse<any[]>> {
-    return this.request('/properties');
+    try {
+      return await this.request('/properties');
+    } catch (error) {
+      console.log('🔄 Backend unavailable, using Supabase directly');
+      return await supabaseApiService.getProperties();
+    }
   }
 
   async getProperty(id: string): Promise<ApiResponse<any>> {
@@ -70,16 +77,26 @@ class ApiService {
   }
 
   async getPropertiesWithData(): Promise<ApiResponse<any[]>> {
-    return this.request('/properties-with-data');
+    try {
+      return await this.request('/properties-with-data');
+    } catch (error) {
+      console.log('🔄 Backend unavailable, using Supabase directly');
+      return await supabaseApiService.getPropertiesWithData();
+    }
   }
 
   async getFinancialSummary(startDate?: string, endDate?: string): Promise<ApiResponse<any>> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    
-    const queryString = params.toString();
-    return this.request(`/financial-summary${queryString ? `?${queryString}` : ''}`);
+    try {
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      const queryString = params.toString();
+      return await this.request(`/financial-summary${queryString ? `?${queryString}` : ''}`);
+    } catch (error) {
+      console.log('🔄 Backend unavailable, using Supabase directly');
+      return await supabaseApiService.getFinancialSummary(startDate, endDate);
+    }
   }
 
   // Property data API
