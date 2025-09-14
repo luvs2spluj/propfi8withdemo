@@ -101,7 +101,12 @@ class ApiService {
 
   // Property data API
   async getPropertyData(propertyId: string, page: number = 1, limit: number = 50): Promise<ApiResponse<any[]>> {
-    return this.request(`/properties/${propertyId}/data?page=${page}&limit=${limit}`);
+    try {
+      return await this.request(`/properties/${propertyId}/data?page=${page}&limit=${limit}`);
+    } catch (error) {
+      console.log('🔄 Backend unavailable, using Supabase directly');
+      return await supabaseApiService.getPropertyData(propertyId);
+    }
   }
 
   async getPropertyAggregated(propertyId: string, startDate?: string, endDate?: string): Promise<ApiResponse<any>> {
