@@ -15,18 +15,20 @@ CREATE TABLE IF NOT EXISTS properties (
     CONSTRAINT properties_name_unique UNIQUE (name)
 );
 
--- Property data table (for CSV uploads)
+-- Property data table (for CSV uploads) - matches CSV format exactly
 CREATE TABLE IF NOT EXISTS property_data (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     property_id UUID REFERENCES properties(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
-    revenue DECIMAL(10,2) DEFAULT 0,
-    occupancy_rate DECIMAL(5,2) DEFAULT 0,
-    maintenance_cost DECIMAL(10,2) DEFAULT 0,
-    utilities_cost DECIMAL(10,2) DEFAULT 0,
-    insurance_cost DECIMAL(10,2) DEFAULT 0,
-    property_tax DECIMAL(10,2) DEFAULT 0,
-    other_expenses DECIMAL(10,2) DEFAULT 0,
+    "Date" DATE NOT NULL,
+    "Monthly Revenue" DECIMAL(10,2) DEFAULT 0,
+    "Occupancy Rate" DECIMAL(5,2) DEFAULT 0,
+    "Total Units" INTEGER DEFAULT 0,
+    "Maintenance Cost" DECIMAL(10,2) DEFAULT 0,
+    "Utilities Cost" DECIMAL(10,2) DEFAULT 0,
+    "Insurance Cost" DECIMAL(10,2) DEFAULT 0,
+    "Property Tax" DECIMAL(10,2) DEFAULT 0,
+    "Other Expenses" DECIMAL(10,2) DEFAULT 0,
+    "Net Income" DECIMAL(10,2) DEFAULT 0,
     notes VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -74,3 +76,18 @@ CREATE TRIGGER update_property_data_updated_at BEFORE UPDATE ON property_data
 INSERT INTO properties (name, address, type, total_units) VALUES
 ('Chico', '1709 Oakdale St, Chico, CA 95928', 'Apartment Complex', 26)
 ON CONFLICT (name) DO NOTHING;
+
+-- Enable Row Level Security
+ALTER TABLE properties ENABLE ROW LEVEL SECURITY;
+ALTER TABLE property_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE csv_uploads ENABLE ROW LEVEL SECURITY;
+
+-- Create policies to allow public access (you can restrict these later)
+CREATE POLICY "Allow public access to properties" ON properties
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow public access to property_data" ON property_data
+    FOR ALL USING (true);
+
+CREATE POLICY "Allow public access to csv_uploads" ON csv_uploads
+    FOR ALL USING (true);
