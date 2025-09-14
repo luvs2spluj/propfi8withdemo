@@ -1,6 +1,8 @@
 // Unified Property Management Service
 // Handles properties across both local and Supabase backends
 
+import ApiService from './api';
+
 interface Property {
   id: string;
   name: string;
@@ -38,6 +40,7 @@ class UnifiedPropertyService {
       
       // Then sync with Supabase if available
       await this.syncWithSupabase();
+      await this.loadPropertyDataFromSupabase();
       
       console.log('🏢 Unified Property Service initialized:', {
         propertiesCount: this.properties.size,
@@ -161,34 +164,51 @@ class UnifiedPropertyService {
   // Sync with Supabase backend
   private async syncWithSupabase(): Promise<void> {
     try {
-      // Try to fetch from Supabase backend
-      const response = await fetch('http://localhost:5001/api/properties', {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000)
-      });
+      // Use the API service which will fallback to Supabase
+      const result = await ApiService.getProperties();
       
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data) {
-          // Merge Supabase properties
-          for (const property of result.data) {
-            const existingProperty = this.getPropertyByName(property.name);
-            if (!existingProperty) {
-              const unifiedProperty: Property = {
-                ...property,
-                source: 'supabase'
-              };
-              this.properties.set(property.id, unifiedProperty);
-            }
+      if (result.success && result.data) {
+        // Merge Supabase properties
+        for (const property of result.data) {
+          const existingProperty = this.getPropertyByName(property.name);
+          if (!existingProperty) {
+            const unifiedProperty: Property = {
+              ...property,
+              source: 'supabase'
+            };
+            this.properties.set(property.id, unifiedProperty);
           }
-          
-          this.lastSync = new Date();
-          await this.saveToLocalStorage();
-          console.log('🔄 Synced with Supabase backend');
         }
+        
+        this.lastSync = new Date();
+        await this.saveToLocalStorage();
+        console.log('🔄 Synced with Supabase backend');
       }
     } catch (error) {
       console.log('⚠️ Supabase sync failed (backend may be unavailable)');
+    }
+  }
+
+  // Load property data from Supabase
+  private async loadPropertyDataFromSupabase(): Promise<void> {
+    try {
+      const properties = this.getAllProperties();
+      
+      for (const property of properties) {
+        if (property.source === 'supabase') {
+          const result = await ApiService.getPropertyData(property.id);
+          
+          if (result.success && result.data) {
+            this.propertyData.set(property.id, result.data);
+            console.log(`📊 Loaded ${result.data.length} data records for ${property.name}`);
+          }
+        }
+      }
+      
+      await this.saveToLocalStorage();
+      console.log('📊 Property data loaded from Supabase');
+    } catch (error) {
+      console.log('⚠️ Failed to load property data from Supabase');
     }
   }
 
