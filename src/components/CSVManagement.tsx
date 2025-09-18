@@ -403,70 +403,69 @@ export default function CSVManagement() {
         </div>
 
         <div className="p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* CSV List */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Saved CSVs</h3>
-              <div className="space-y-3">
-                {savedCSVs.map((csv) => (
-                  <div key={csv.id} className={`p-4 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <Database className="w-5 h-5 text-gray-500" />
-                        <div>
-                          <h4 className="font-medium text-gray-900">{csv.fileName}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
-                              {csv.fileType.replace('_', ' ')}
-                            </span>
-                            <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
-                            <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                          </div>
+          {/* CSV List */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-4">Saved CSVs</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {savedCSVs.map((csv) => (
+                <div key={csv.id} className={`p-4 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Database className="w-5 h-5 text-gray-500" />
+                      <div>
+                        <h4 className="font-medium text-gray-900">{csv.fileName}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
+                            {csv.fileType.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
+                          <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePreviewCSV(csv)}
-                          className="p-1 text-purple-600 hover:bg-purple-100 rounded"
-                          title="Preview CSV structure"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleCSVActive(csv.id)}
-                          className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
-                          disabled={loading}
-                          title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-          <button
-                          onClick={() => handleEditCSV(csv)}
-                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                          title="Edit CSV categorizations"
-          >
-                          <Edit3 className="w-4 h-4" />
-          </button>
-          <button
-                          onClick={() => deleteCSV(csv.id)}
-                          className="p-1 text-red-600 hover:bg-red-100 rounded"
-                          disabled={loading}
-                          title="Delete CSV"
-                        >
-                          <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-                    <div className="text-xs text-gray-600">
-                      Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
                     </div>
-        </div>
-                ))}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handlePreviewCSV(csv)}
+                        className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                        title="Preview CSV structure"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleCSVActive(csv.id)}
+                        className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                        disabled={loading}
+                        title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCSV(csv)}
+                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        title="Edit CSV categorizations"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteCSV(csv.id)}
+                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                        disabled={loading}
+                        title="Delete CSV"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-            {/* CSV Editor */}
-            <div>
+          {/* CSV Editor - Full Width */}
+          <div className="w-full">
               {selectedCSV ? (
                 <div>
                   <div className="flex items-center justify-between mb-4">
