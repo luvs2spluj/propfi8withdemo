@@ -16,13 +16,19 @@ export default function CSVImportFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
+  const [saved, setSaved] = useState(false);
+  const [hasPreviewed, setHasPreviewed] = useState(false);
 
   const handleFile = (f: File) => {
     setFile(f);
     setError(null);
+    setHasPreviewed(false);
+    setSaved(false);
+    
+    // First try with preview to get headers quickly
     Papa.parse(f, {
       header: true,
-      preview: 30,
+      preview: 100, // Increased from 30 to 100 to capture more account line items
       complete: (r: any) => {
         const cols = r.meta.fields || [];
         const sampleRows = (r.data as any[]).slice(0, 5);
@@ -46,18 +52,38 @@ export default function CSVImportFlow() {
         }
         setMap(autoMap);
         
-        // Auto-categorize individual account line items based on names
-        const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
-        if (accountCol && sampleRows.length > 0) {
-          const categories: Record<string, string> = {};
-          for (const row of sampleRows) {
-            const accountName = String(row[accountCol] || "").trim();
-            if (accountName && accountName !== "") {
-              categories[accountName] = categorizeAccount(accountName);
+        // Now parse the entire file to get all account line items
+        Papa.parse(f, {
+          header: true,
+          complete: (fullR: any) => {
+            const allRows = (fullR.data as any[]).filter(row => row && Object.keys(row).length > 0);
+            console.log("Processing", allRows.length, "total rows from CSV");
+            
+            // Auto-categorize individual account line items based on names
+            const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
+            if (accountCol && allRows.length > 0) {
+              const categories: Record<string, string> = {};
+              
+              for (const row of allRows) {
+                const accountName = String(row[accountCol] || "").trim();
+                // Include all non-empty account names, excluding only summary/total rows
+                if (accountName && 
+                    accountName !== "" && 
+                    !accountName.toLowerCase().includes("total") &&
+                    !accountName.toLowerCase().includes("subtotal") &&
+                    !accountName.toLowerCase().includes("summary") &&
+                    accountName.length > 2 &&
+                    !accountName.toLowerCase().includes("operating income & expense") && // Skip section headers
+                    !accountName.toLowerCase().includes("income") && // Skip generic "Income" header
+                    !accountName.toLowerCase().includes("expense")) { // Skip generic "Expense" header
+                  categories[accountName] = categorizeAccount(accountName);
+                }
+              }
+              setAccountCategories(categories);
+              console.log("Detected account categories:", Object.keys(categories).length, "items:", categories); // Debug log
             }
           }
-          setAccountCategories(categories);
-        }
+        });
       }
     });
   };
@@ -65,13 +91,13 @@ export default function CSVImportFlow() {
   const categorizeAccount = (accountName: string): string => {
     const name = accountName.toLowerCase();
     
-    // Income accounts
-    if (/rent|rental|income|revenue|sales|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit/.test(name)) {
+    // Income accounts - be more specific
+    if (/rent|rental|income|revenue|sales|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit|short term|concessions.*rent|insurance.*income|credit reporting.*income|lock.*key.*sales|resident.*tenant.*rents|concessions.*rent|insurance.*admin.*fee|insurance.*svcs.*income/.test(name)) {
       return "income";
     }
     
-    // Expense accounts
-    if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance|tax|management|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital/.test(name)) {
+    // Expense accounts - be more specific  
+    if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance.*fee|tax|management.*fee|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital|move.*in.*specials|move.*out.*charges|move.*out.*damages|move.*out.*carpet|resident.*charge|garbage|salaries.*wages|payroll.*taxes|workers.*comp|clerical.*postage|move.*out.*charges.*resident|dnu.*move.*out.*damages|dnu.*move.*out.*carpet|water.*service|asset.*management.*fee/.test(name)) {
       return "expense";
     }
     
@@ -89,17 +115,19 @@ export default function CSVImportFlow() {
   const onChange = (orig: string, field: string) => 
     setMap(m => ({ ...m, [orig]: { field, score: 1 } }));
 
-  const submit = async () => {
+  const previewImport = async () => {
     if (!file) return;
     setLoading(true);
     setError(null);
+    setHasPreviewed(false);
+    setSaved(false);
     
     try {
-          const fd = new FormData();
-          fd.append("file", file);
-          fd.append("field_map", JSON.stringify(map));
-          fd.append("file_type", fileType);
-          fd.append("account_categories", JSON.stringify(accountCategories));
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("field_map", JSON.stringify(map));
+      fd.append("file_type", fileType);
+      fd.append("account_categories", JSON.stringify(accountCategories));
       
       const res = await fetch(`${API}/api/import`, { 
         method: "POST", 
@@ -112,6 +140,7 @@ export default function CSVImportFlow() {
       
       const j = await res.json();
       setPreview(j.imported_preview || []);
+      setHasPreviewed(true);
     } catch (error: any) {
       console.error("Import error:", error);
       setError(`Import failed: ${error.message}. Please check that the API server is running on ${API}`);
@@ -120,10 +149,146 @@ export default function CSVImportFlow() {
     }
   };
 
+  const saveToDatabase = async () => {
+    if (!preview.length || !file) return;
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Check for duplicates before saving
+      const existingCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const duplicateCSV = existingCSVs.find((csv: any) => 
+        csv.fileName === file.name && csv.isActive
+      );
+
+      if (duplicateCSV) {
+        const confirmed = window.confirm(
+          `A CSV with the same filename "${file.name}" already exists.\n\n` +
+          `Existing CSV: ${duplicateCSV.totalRecords} records, uploaded ${new Date(duplicateCSV.uploadedAt).toLocaleDateString()}\n` +
+          `New CSV: ${preview.length} records\n\n` +
+          `Do you want to replace the existing CSV with this new one?\n\n` +
+          `Click "OK" to replace, or "Cancel" to keep both (rename the file to avoid conflicts).`
+        );
+
+        if (!confirmed) {
+          setError('Upload cancelled. Please rename the file to avoid conflicts.');
+          return;
+        }
+
+        // Remove the duplicate CSV
+        const updatedCSVs = existingCSVs.filter((csv: any) => csv.id !== duplicateCSV.id);
+        localStorage.setItem('savedCSVs', JSON.stringify(updatedCSVs));
+        
+        // Trigger dashboard update to remove old data
+        window.dispatchEvent(new CustomEvent('dataUpdated', { 
+          detail: { 
+            action: 'csv_replaced',
+            oldCsvId: duplicateCSV.id,
+            fileName: file.name
+          } 
+        }));
+      }
+
+      // Create CSV record for management
+      const csvRecord = {
+        id: Date.now().toString(),
+        fileName: file.name,
+        fileType: fileType,
+        uploadedAt: new Date().toISOString(),
+        totalRecords: preview.length,
+        accountCategories: accountCategories,
+        bucketAssignments: generateBucketAssignments(),
+        tags: generateTags(),
+        isActive: true,
+        previewData: preview
+      };
+
+      // Save to localStorage for now (in real app, this would be API call)
+      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      savedCSVs.push(csvRecord);
+      localStorage.setItem('savedCSVs', JSON.stringify(savedCSVs));
+      
+      setSaved(true);
+      console.log("Data saved to database:", preview.length, "records");
+      
+      // Show success message with link to management
+      setTimeout(() => {
+        alert(`CSV saved successfully! Go to "CSV Management" tab to review and adjust categorizations.`);
+      }, 500);
+      
+    } catch (error: any) {
+      console.error("Save error:", error);
+      setError(`Save failed: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateBucketAssignments = (): Record<string, string> => {
+    const assignments: Record<string, string> = {};
+    
+    for (const [accountName, category] of Object.entries(accountCategories)) {
+      if (category === 'income') {
+        // Assign income accounts to appropriate buckets
+        if (/rent|rental|tenant/.test(accountName.toLowerCase())) {
+          assignments[accountName] = 'gross_rental_income';
+        } else {
+          assignments[accountName] = 'total_income';
+        }
+      } else if (category === 'expense') {
+        // Assign expense accounts to appropriate buckets
+        if (/management|asset management/.test(accountName.toLowerCase())) {
+          assignments[accountName] = 'operating_expenses';
+        } else {
+          assignments[accountName] = 'operating_expenses';
+        }
+      }
+    }
+    
+    return assignments;
+  };
+
+  const generateTags = (): Record<string, string[]> => {
+    const tags: Record<string, string[]> = {};
+    
+    for (const accountName of Object.keys(accountCategories)) {
+      const accountLower = accountName.toLowerCase();
+      const accountTags: string[] = [];
+      
+      // Generate tags based on account name patterns
+      if (/rent|rental/.test(accountLower)) accountTags.push('rental');
+      if (/short term/.test(accountLower)) accountTags.push('short-term');
+      if (/utility|water|garbage/.test(accountLower)) accountTags.push('utility');
+      if (/management/.test(accountLower)) accountTags.push('management');
+      if (/fee/.test(accountLower)) accountTags.push('fee');
+      if (/income/.test(accountLower)) accountTags.push('income');
+      if (/expense/.test(accountLower)) accountTags.push('expense');
+      
+      if (accountTags.length > 0) {
+        tags[accountName] = accountTags;
+      }
+    }
+    
+    return tags;
+  };
+
   return (
     <div className="space-y-4 p-4 border rounded-lg">
       <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
       
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <div className="space-y-4">
           <div>
@@ -180,67 +345,96 @@ export default function CSVImportFlow() {
           </div>
           <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
           
+          {/* Debug Info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-gray-100 border rounded text-xs">
+              <strong>Debug Info:</strong> Found {Object.keys(accountCategories).length} account line items
+              <br />
+              Headers: {headers.join(', ')}
+              <br />
+              Account Categories: {JSON.stringify(accountCategories, null, 2)}
+              <br />
+              <strong>Sample Data:</strong> {JSON.stringify(samples.slice(0, 3), null, 2)}
+            </div>
+          )}
+          
           {/* Account Line Items Editor */}
           {Object.keys(accountCategories).length > 0 && (
-            <div className="mt-6">
-              <h4 className="text-md font-medium mb-3">Account Line Items</h4>
-              <p className="text-sm text-gray-600 mb-3">
-                Categorize each account line item as Income or Expense. Values will be normalized (negative values → positive).
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-lg font-semibold mb-3 text-blue-900">📊 Account Line Items Categorization</h4>
+              <p className="text-sm text-blue-800 mb-4">
+                <strong>Manual Override:</strong> Review and adjust how each account line item is categorized. 
+                The AI has made initial suggestions, but you can change any account from Income to Expense (or vice versa).
               </p>
-              <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
+              <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 bg-white">
+                <div className="text-xs text-gray-500 mb-2">
+                  Found {Object.keys(accountCategories).length} account line items
+                </div>
                 {Object.entries(accountCategories).map(([accountName, category]) => (
-                  <div key={accountName} className="flex items-center gap-3 p-2 bg-white rounded border">
-                    <div className="w-1/2 font-medium text-sm">{accountName}</div>
+                  <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                    <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
+                      {accountName}
+                    </div>
                     <select 
-                      className="w-1/3 border rounded p-1 text-sm"
+                      className="w-1/3 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                       value={category}
                       onChange={e => updateAccountCategory(accountName, e.target.value)}
                     >
-                      <option value="income">Income</option>
-                      <option value="expense">Expense</option>
+                      <option value="income">💰 Income</option>
+                      <option value="expense">💸 Expense</option>
                     </select>
-                    <div className={`w-1/6 text-xs px-2 py-1 rounded text-center ${
-                      category === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    <div className={`w-1/6 text-xs px-2 py-1 rounded text-center font-semibold ${
+                      category === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {category}
+                      {category === 'income' ? '📈' : '📉'}
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-gray-600 mt-2">
-                💡 Change any account from Income to Expense (or vice versa) as needed for your dashboard
-              </p>
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>💡 Pro Tip:</strong> Values will be automatically normalized (negative values become positive) based on the category you select.
+                  For example, if "Move In Specials" should be an expense, select "Expense" and the system will treat it as a cost.
+                </p>
+              </div>
             </div>
           )}
         </div>
       )}
       
       {!!headers.length && (
-        <button 
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" 
-          onClick={submit}
-          disabled={loading}
-        >
-          {loading ? "Processing..." : "Preview Import"}
-        </button>
-      )}
-      
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-            </div>
-          </div>
+        <div className="flex gap-3">
+          <button 
+            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" 
+            onClick={previewImport}
+            disabled={loading}
+          >
+            {loading ? "Processing..." : "🔍 Preview Import"}
+          </button>
+          
+          {hasPreviewed && (
+            <button 
+              className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
+                loading ? 'bg-gray-400 cursor-not-allowed' : saved ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+              onClick={saveToDatabase}
+              disabled={loading}
+            >
+              {loading ? "Saving..." : saved ? "✅ Saved!" : "💾 Save to Database"}
+            </button>
+          )}
         </div>
       )}
       
       {!!preview.length && (
         <div>
           <h4 className="text-md font-medium mb-2">Import Preview</h4>
+          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-800">
+              <strong>✅ Preview Complete:</strong> {preview.length} records processed successfully. 
+              Review the data below and click "Save to Database" when ready.
+            </p>
+          </div>
           <pre className="text-xs border rounded p-2 max-h-80 overflow-auto bg-gray-50">
             {JSON.stringify(preview, null, 2)}
           </pre>
@@ -249,4 +443,3 @@ export default function CSVImportFlow() {
     </div>
   );
 }
-

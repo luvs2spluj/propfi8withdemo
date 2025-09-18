@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Building2, 
   DollarSign, 
@@ -11,7 +11,6 @@ import {
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
-import ApiService from '../services/api';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 
 const Dashboard: React.FC = () => {
@@ -20,32 +19,47 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    initializeUnifiedService();
-    loadDashboardData();
-    
-    // Listen for data updates from CSV uploads
-    const handleDataUpdate = () => {
-      loadDashboardData();
-    };
-
-    window.addEventListener('dataUpdated', handleDataUpdate);
-
-    return () => {
-      window.removeEventListener('dataUpdated', handleDataUpdate);
-    };
+  const checkForDuplicateCSVs = useCallback(() => {
+    try {
+      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+      
+      // Group CSVs by filename
+      const csvGroups = activeCSVs.reduce((groups: any, csv: any) => {
+        if (!groups[csv.fileName]) {
+          groups[csv.fileName] = [];
+        }
+        groups[csv.fileName].push(csv);
+        return groups;
+      }, {});
+      
+      // Find duplicates
+      const duplicates = Object.entries(csvGroups).filter(([name, csvs]: [string, any]) => csvs.length > 1);
+      
+      if (duplicates.length > 0) {
+        console.warn('⚠️ DUPLICATE CSVs detected:', duplicates);
+        
+        // Show warning to user
+        const duplicateNames = duplicates.map(([name]) => name).join(', ');
+        const confirmed = window.confirm(
+          `⚠️ DUPLICATE DATA DETECTED!\n\n` +
+          `The following CSV files have been uploaded multiple times:\n` +
+          `• ${duplicateNames}\n\n` +
+          `This is causing inflated dashboard values (e.g., $600k instead of $400k).\n\n` +
+          `Would you like to automatically remove the older duplicates and keep only the most recent uploads?\n\n` +
+          `Click "OK" to clean up duplicates, or "Cancel" to handle manually in CSV Management.`
+        );
+        
+        if (confirmed) {
+          cleanupDuplicateCSVs(duplicates);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking for duplicate CSVs:', error);
+    }
   }, []);
 
-  const initializeUnifiedService = async () => {
-    try {
-      await unifiedPropertyService.initialize();
-      console.log('🏢 Dashboard: Unified service initialized');
-    } catch (error) {
-      console.error('Dashboard: Failed to initialize unified service:', error);
-    }
-  };
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -56,29 +70,18 @@ const Dashboard: React.FC = () => {
       const unifiedProperties = unifiedPropertyService.getAllProperties();
       console.log('🏢 Unified properties:', unifiedProperties);
       
-      if (unifiedProperties.length > 0) {
+      if (unifiedProperties && unifiedProperties.length > 0) {
         setProperties(unifiedProperties);
-        console.log('✅ Using unified properties:', unifiedProperties.length);
-      } else {
-        // Fallback to API if no unified properties
-        console.log('📊 Loading properties from API...');
-        const propertiesResponse = await ApiService.getProperties();
-        console.log('📊 Properties API response:', propertiesResponse);
-        if (propertiesResponse.success && propertiesResponse.data) {
-          setProperties(propertiesResponse.data);
-          console.log('✅ Properties loaded from API:', propertiesResponse.data);
-        } else {
-          console.error('❌ Failed to load properties from API:', propertiesResponse.error || 'Unknown error');
-          setProperties([]);
-        }
+        
+        // Properties loaded successfully
+        console.log('✅ Properties loaded:', unifiedProperties.length);
       }
 
       // Load financial data from multiple sources
-      let combinedFinancialData = null;
       
       // Try to get data from local backend first
       try {
-        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
         if (localDataResponse.ok) {
           const localData = await localDataResponse.json();
           console.log('🏠 Local data loaded:', localData);
@@ -110,9 +113,9 @@ const Dashboard: React.FC = () => {
                   const maintenance = parseFloat(row['Maintenance Cost']) || 0;
                   const utilities = parseFloat(row['Utilities Cost']) || 0;
                   const insurance = parseFloat(row['Insurance Cost']) || 0;
-                  const propertyTax = parseFloat(row['Property Tax']) || 0;
+                  const taxes = parseFloat(row['Property Tax']) || 0;
                   const other = parseFloat(row['Other Expenses']) || 0;
-                  return monthSum + maintenance + utilities + insurance + propertyTax + other;
+                  return monthSum + maintenance + utilities + insurance + taxes + other;
                 }, 0);
                 return sum + monthlyExpenses;
               }
@@ -120,6 +123,28 @@ const Dashboard: React.FC = () => {
             }, 0);
 
             const totalNetIncome = totalRevenue - totalExpenses;
+
+            // Add CSV-based metrics from localStorage
+            const csvMetrics = calculateCSVMetrics();
+            console.log('📊 CSV-based metrics:', csvMetrics);
+            
+            // Use CSV data if available, otherwise use local data
+            // CSV data represents monthly averages, so we need to scale appropriately
+            let finalRevenue, finalExpenses, finalNetIncome;
+            
+            if (csvMetrics.totalIncome > 0) {
+              // CSV data is available - use it as the primary source
+              finalRevenue = csvMetrics.totalIncome;
+              finalExpenses = csvMetrics.totalExpense;
+              finalNetIncome = csvMetrics.netOperatingIncome;
+              console.log('📊 Using CSV data as primary source:', { finalRevenue, finalExpenses, finalNetIncome });
+            } else {
+              // No CSV data - use local backend data
+              finalRevenue = totalRevenue;
+              finalExpenses = totalExpenses;
+              finalNetIncome = totalNetIncome;
+              console.log('📊 Using local backend data as primary source:', { finalRevenue, finalExpenses, finalNetIncome });
+            }
 
             // Calculate average occupancy from Chico data
             const avgOccupancyRate = allData.reduce((sum: number, item: any) => {
@@ -129,55 +154,191 @@ const Dashboard: React.FC = () => {
                 }, 0);
                 return sum + (monthlyOccupancy / item.data.sample.length);
               }
-              return sum + 85; // Default occupancy
-            }, 0) / allData.length;
+              return sum + 95; // Fallback
+            }, 0) / Math.max(1, allData.length);
 
-            combinedFinancialData = {
-              total_revenue: totalRevenue,
-              total_expenses: totalExpenses,
-              total_net_income: totalNetIncome,
-              total_records: totalRecords,
-              avg_occupancy_rate: avgOccupancyRate.toFixed(1),
-              source: 'local'
-            };
-            
-            console.log('💰 Calculated financial data from local:', combinedFinancialData);
+            // Calculate total units
+            const totalUnits = allData.reduce((sum: number, item: any) => {
+              if (item.data?.sample && Array.isArray(item.data.sample)) {
+                return sum + (parseFloat(item.data.sample[0]?.['Total Units']) || 0);
+              }
+              return sum + 26; // Fallback for Chico
+            }, 0);
+
+            setFinancialData({
+              totalRevenue: finalRevenue,
+              totalExpenses: finalExpenses,
+              totalNetIncome: finalNetIncome,
+              totalRecords: totalRecords + csvMetrics.recordCount,
+              avgOccupancyRate: avgOccupancyRate,
+              totalUnits: totalUnits,
+              csvMetrics: csvMetrics
+            });
           }
         }
       } catch (error) {
-        console.log('⚠️ Local data not available, trying API...');
+        console.error('Failed to load local data:', error);
       }
-      
-      // Fallback to API if no local data
-      if (!combinedFinancialData) {
-        const financialResponse = await ApiService.getFinancialSummary();
-        console.log('💰 Financial API response:', financialResponse);
-        if (financialResponse.success && financialResponse.data) {
-          combinedFinancialData = financialResponse.data;
-          console.log('✅ Financial data loaded from API:', financialResponse.data);
-        } else {
-          console.error('❌ Failed to load financial data from API:', financialResponse.error || 'Unknown error');
-        }
-      }
-      
-      setFinancialData(combinedFinancialData);
-    } catch (error: any) {
-      console.error('❌ Failed to load dashboard data:', error);
-      setError('Failed to load dashboard data. Please check if the backend server is running.');
-      setProperties([]);
-      setFinancialData(null);
+
+    } catch (error) {
+      console.error('Dashboard: Failed to load data:', error);
+      setError('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    initializeUnifiedService();
+    loadDashboardData();
+    checkForDuplicateCSVs();
+    
+    // Listen for data updates from CSV uploads and deletions
+    const handleDataUpdate = (event: any) => {
+      console.log('🔄 Dashboard received data update event:', event.detail);
+      loadDashboardData();
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate);
+
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate);
+    };
+  }, [checkForDuplicateCSVs, loadDashboardData]);
+
+
+  const cleanupDuplicateCSVs = (duplicates: any[]) => {
+    try {
+      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      let cleanedCSVs = [...savedCSVs];
+      let removedCount = 0;
+      
+      duplicates.forEach(([fileName, csvList]: [string, any]) => {
+        // Sort by upload date (most recent first)
+        const sortedCSVs = csvList.sort((a: any, b: any) => 
+          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        );
+        
+        // Keep the most recent, remove the rest
+        const toRemove = sortedCSVs.slice(1);
+        toRemove.forEach((csvToRemove: any) => {
+          cleanedCSVs = cleanedCSVs.filter(csv => csv.id !== csvToRemove.id);
+          removedCount++;
+          console.log(`🗑️ Removed duplicate CSV: ${csvToRemove.fileName} (${csvToRemove.uploadedAt})`);
+        });
+      });
+      
+      localStorage.setItem('savedCSVs', JSON.stringify(cleanedCSVs));
+      
+      // Trigger dashboard update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          action: 'duplicates_cleaned',
+          removedCount: removedCount
+        } 
+      }));
+      
+      alert(`✅ Cleaned up ${removedCount} duplicate CSV(s). Dashboard values should now be accurate.`);
+      
+    } catch (error) {
+      console.error('Error cleaning up duplicates:', error);
+      alert('Failed to clean up duplicates. Please handle manually in CSV Management.');
+    }
   };
+
+  const initializeUnifiedService = async () => {
+    try {
+      await unifiedPropertyService.initialize();
+      console.log('🏢 Dashboard: Unified service initialized');
+    } catch (error) {
+      console.error('Dashboard: Failed to initialize unified service:', error);
+    }
+  };
+
+  const calculateCSVMetrics = () => {
+    try {
+      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let recordCount = 0;
+      
+      console.log('📊 Calculating CSV metrics from', savedCSVs.length, 'CSVs');
+      
+      // Check for duplicate CSVs and warn user
+      const csvNames = savedCSVs.filter((csv: any) => csv.isActive).map((csv: any) => csv.fileName);
+      const duplicateNames = csvNames.filter((name: string, index: number) => csvNames.indexOf(name) !== index);
+      
+      if (duplicateNames.length > 0) {
+        console.warn('⚠️ DUPLICATE CSVs detected:', duplicateNames);
+        // You could show a warning to the user here
+      }
+      
+      savedCSVs.forEach((csv: any) => {
+        if (!csv.isActive) return;
+        
+        console.log(`📁 Processing CSV: ${csv.fileName} (${csv.totalRecords} records)`);
+        console.log('📋 CSV Preview Data Sample:', csv.previewData.slice(0, 3));
+        
+        Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
+          const accountData = csv.previewData.find((item: any) => 
+            item.account_name === accountName
+          );
+          
+          if (accountData && accountData.time_series) {
+            console.log(`🔍 Account: ${accountName} (${category})`);
+            console.log('📊 Time Series Data:', accountData.time_series);
+            
+            const values = Object.values(accountData.time_series).filter(v => 
+              typeof v === 'number' && v !== 0
+            ) as number[];
+            
+            if (values.length > 0) {
+              // For cash flow statements, we want the AVERAGE monthly value
+              // This represents the typical monthly income/expense for this account
+              const monthlyAverage = values.reduce((sum, val) => sum + val, 0) / values.length;
+              const totalSum = values.reduce((sum, val) => sum + val, 0);
+              
+              console.log(`  💰 ${accountName} (${category}):`);
+              console.log(`    - ${values.length} months of data`);
+              console.log(`    - Monthly values: [${values.slice(0, 5).join(', ')}${values.length > 5 ? '...' : ''}]`);
+              console.log(`    - Monthly average: $${monthlyAverage.toLocaleString()}`);
+              console.log(`    - Total sum: $${totalSum.toLocaleString()}`);
+              
+              if (category === 'income') {
+                totalIncome += monthlyAverage;
+              } else if (category === 'expense') {
+                totalExpense += monthlyAverage;
+              }
+            }
+          }
+        });
+        
+        recordCount += csv.totalRecords;
+      });
+      
+      const metrics = {
+        totalIncome,
+        totalExpense,
+        netOperatingIncome: totalIncome - totalExpense,
+        recordCount
+      };
+      
+      console.log('📊 Final CSV metrics:', metrics);
+      return metrics;
+    } catch (error) {
+      console.error('Error calculating CSV metrics:', error);
+      return { totalIncome: 0, totalExpense: 0, netOperatingIncome: 0, recordCount: 0 };
+    }
+  };
+
 
   const totalProperties = properties.length;
   const totalUnits = properties.reduce((sum, p) => sum + (p.total_units || 0), 0);
-  const avgOccupancy = parseFloat(financialData?.avg_occupancy_rate || '0');
-  const totalRevenue = parseFloat(financialData?.total_revenue || '0');
-  const totalExpenses = parseFloat(financialData?.total_expenses || '0');
-  const totalNetIncome = parseFloat(financialData?.total_net_income || '0');
-  const totalRecords = parseInt(financialData?.total_records || '0');
+  const avgOccupancy = parseFloat(financialData?.avgOccupancy || financialData?.avg_occupancy_rate || '0');
+  const totalRevenue = parseFloat(financialData?.totalRevenue || financialData?.total_revenue || '0');
+  const totalExpenses = parseFloat(financialData?.totalExpenses || financialData?.total_expenses || '0');
+  const totalNetIncome = parseFloat(financialData?.totalNetIncome || financialData?.total_net_income || '0');
+  const totalRecords = parseInt(financialData?.recordCount || financialData?.total_records || '0');
 
   // Debug logging
   console.log('🔍 Dashboard calculated values:');

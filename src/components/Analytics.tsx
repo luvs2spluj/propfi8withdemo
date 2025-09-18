@@ -325,7 +325,7 @@ const Analytics: React.FC = () => {
       
       // Load data from local backend
       try {
-        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
         if (localDataResponse.ok) {
           const localData = await localDataResponse.json();
           console.log('📊 Analytics data loaded:', localData);
@@ -374,19 +374,25 @@ const Analytics: React.FC = () => {
             let otherExpenses: number[] = [];
             let netIncomes: number[] = [];
             
-            filteredData.forEach((month: any) => {
-              const monthlyRevenue = parseFloat(month['Monthly Revenue']) || 0;
-              const maintenance = parseFloat(month['Maintenance Cost']) || 0;
-              const utilities = parseFloat(month['Utilities Cost']) || 0;
-              const insurance = parseFloat(month['Insurance Cost']) || 0;
-              const propertyTax = parseFloat(month['Property Tax']) || 0;
-              const otherExp = parseFloat(month['Other Expenses']) || 0;
-              const netIncome = parseFloat(month['Net Income']) || 0;
+            filteredData.forEach((month: any, index: number) => {
+              console.log(`📊 Analytics Month ${index}:`, month);
+              
+              // Try different column name variations
+              const monthlyRevenue = parseFloat(month['Monthly Revenue'] || month['monthly_revenue'] || month['revenue'] || '0') || 0;
+              const maintenance = parseFloat(month['Maintenance Cost'] || month['maintenance_cost'] || '0') || 0;
+              const utilities = parseFloat(month['Utilities Cost'] || month['utilities_cost'] || '0') || 0;
+              const insurance = parseFloat(month['Insurance Cost'] || month['insurance_cost'] || '0') || 0;
+              const propertyTax = parseFloat(month['Property Tax'] || month['property_tax'] || '0') || 0;
+              const otherExp = parseFloat(month['Other Expenses'] || month['other_expenses'] || '0') || 0;
+              const netIncome = parseFloat(month['Net Income'] || month['net_income'] || '0') || 0;
+              const occupancyRate = parseFloat(month['Occupancy Rate'] || month['occupancy_rate'] || '0') || 0;
+              
+              console.log(`📊 Analytics processed month ${index}:`, { monthlyRevenue, maintenance, utilities, insurance, propertyTax, otherExp, netIncome, occupancyRate });
               
               totalRevenue += monthlyRevenue;
               totalExpenses += maintenance + utilities + insurance + propertyTax + otherExp;
               
-              occupancyRates.push(parseFloat(month['Occupancy Rate']) || 0);
+              occupancyRates.push(occupancyRate);
               maintenanceCosts.push(maintenance);
               utilitiesCosts.push(utilities);
               insuranceCosts.push(insurance);

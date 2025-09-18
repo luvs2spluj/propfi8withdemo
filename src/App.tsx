@@ -6,6 +6,7 @@ import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVs from './components/CSVs';
+import CSVManagement from './components/CSVManagement';
 import { Page } from './types';
 
 // Install dev logger in development (disabled for now)
@@ -31,24 +32,26 @@ function App() {
     };
   }, []);
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard />;
-      case 'financials':
-        return <Financials />;
-      case 'analytics':
-        return <Analytics />;
-      case 'properties':
-        return <PropertiesConsolidated />;
-      case 'csvs':
-        return <CSVs />;
-      case 'reports':
-        return <Reports />;
-      default:
-        return <Dashboard />;
-    }
-  };
+      const renderPage = () => {
+        switch (currentPage) {
+          case 'dashboard':
+            return <Dashboard />;
+          case 'financials':
+            return <Financials />;
+          case 'analytics':
+            return <Analytics />;
+          case 'properties':
+            return <PropertiesConsolidated />;
+          case 'csvs':
+            return <CSVs />;
+          case 'csv-management':
+            return <CSVManagement />;
+          case 'reports':
+            return <Reports />;
+          default:
+            return <Dashboard />;
+        }
+      };
 
   return (
     <div className="flex min-h-screen bg-gray-50">

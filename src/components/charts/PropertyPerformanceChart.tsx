@@ -73,7 +73,7 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
         let chartData = null;
         
         try {
-          const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+          const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
           if (localDataResponse.ok) {
             const localData = await localDataResponse.json();
             console.log('🏠 Local performance chart data loaded:', localData);
@@ -95,16 +95,40 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
                 console.log('📊 Sample data:', sampleData);
                 
                 // Extract months and performance data from the summary data
-                const monthlyData = sampleData.map((row: any) => {
-                  const date = new Date(row['Date']);
-                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  const revenue = parseFloat(row['Monthly Revenue']) || 0;
-                  const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
-                  const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
-                  const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
-                  const propertyTax = parseFloat(row['Property Tax']) || 0;
-                  const otherExpenses = parseFloat(row['Other Expenses']) || 0;
-                  const netIncome = parseFloat(row['Net Income']) || 0;
+                const monthlyData = sampleData.map((row: any, index: number) => {
+                  console.log(`📅 Performance Row ${index}:`, row);
+                  
+                  // Try different date column names
+                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
+                  console.log(`📅 Performance Date value for row ${index}:`, dateValue);
+                  
+                  let date: Date;
+                  let month: string;
+                  
+                  if (dateValue) {
+                    date = new Date(dateValue);
+                    if (isNaN(date.getTime())) {
+                      // If date parsing fails, try to create a date from the index
+                      console.log(`⚠️ Invalid date for performance row ${index}, using index-based date`);
+                      date = new Date(2024, index); // Start from Jan 2024
+                    }
+                    month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  } else {
+                    // Fallback: create month names based on index
+                    console.log(`⚠️ No date found for performance row ${index}, creating fallback month`);
+                    const fallbackDate = new Date(2024, index);
+                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  }
+                  
+                  const revenue = parseFloat(row['Monthly Revenue'] || row['monthly_revenue'] || row['revenue'] || '0') || 0;
+                  const maintenanceCost = parseFloat(row['Maintenance Cost'] || row['maintenance_cost'] || '0') || 0;
+                  const utilitiesCost = parseFloat(row['Utilities Cost'] || row['utilities_cost'] || '0') || 0;
+                  const insuranceCost = parseFloat(row['Insurance Cost'] || row['insurance_cost'] || '0') || 0;
+                  const propertyTax = parseFloat(row['Property Tax'] || row['property_tax'] || '0') || 0;
+                  const otherExpenses = parseFloat(row['Other Expenses'] || row['other_expenses'] || '0') || 0;
+                  const netIncome = parseFloat(row['Net Income'] || row['net_income'] || '0') || 0;
+                  
+                  console.log(`📊 Processed performance row ${index}:`, { month, revenue, expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses, netIncome });
                   
                   return {
                     month,

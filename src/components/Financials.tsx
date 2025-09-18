@@ -67,7 +67,7 @@ const Financials: React.FC = () => {
       let allProperties: Property[] = [];
       
       try {
-        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
         if (localDataResponse.ok) {
           const localData = await localDataResponse.json();
           console.log('🏠 Local financials data loaded:', localData);
@@ -123,7 +123,7 @@ const Financials: React.FC = () => {
       let propertyDataArray: PropertyData[] = [];
       
       try {
-        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
         if (localDataResponse.ok) {
           const localData = await localDataResponse.json();
           console.log('🏠 Local property data loaded:', localData);
@@ -149,25 +149,52 @@ const Financials: React.FC = () => {
                 console.log('📊 Sample data:', sampleData);
                 
                 // Calculate monthly revenue and expenses for each month
-                const monthlyDataArray = sampleData.map((row: any) => {
-                  const monthlyRevenue = parseFloat(row['Monthly Revenue']) || 0;
-                  const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
-                  const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
-                  const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
-                  const propertyTax = parseFloat(row['Property Tax']) || 0;
-                  const otherExpenses = parseFloat(row['Other Expenses']) || 0;
-                  const netIncome = parseFloat(row['Net Income']) || 0;
+                const monthlyDataArray = sampleData.map((row: any, index: number) => {
+                  console.log(`📅 Financials Row ${index}:`, row);
                   
-                  // Extract month from date
-                  const date = new Date(row['Date']);
-                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  // Try different column name variations
+                  const monthlyRevenue = parseFloat(row['Monthly Revenue'] || row['monthly_revenue'] || row['revenue'] || '0') || 0;
+                  const maintenanceCost = parseFloat(row['Maintenance Cost'] || row['maintenance_cost'] || '0') || 0;
+                  const utilitiesCost = parseFloat(row['Utilities Cost'] || row['utilities_cost'] || '0') || 0;
+                  const insuranceCost = parseFloat(row['Insurance Cost'] || row['insurance_cost'] || '0') || 0;
+                  const propertyTax = parseFloat(row['Property Tax'] || row['property_tax'] || '0') || 0;
+                  const otherExpenses = parseFloat(row['Other Expenses'] || row['other_expenses'] || '0') || 0;
+                  const netIncome = parseFloat(row['Net Income'] || row['net_income'] || '0') || 0;
+                  
+                  // Try different date column names
+                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
+                  console.log(`📅 Financials Date value for row ${index}:`, dateValue);
+                  
+                  let month: string;
+                  
+                  if (dateValue) {
+                    const date = new Date(dateValue);
+                    if (isNaN(date.getTime())) {
+                      // If date parsing fails, create a fallback month
+                      console.log(`⚠️ Invalid date for financials row ${index}, using index-based date`);
+                      const fallbackDate = new Date(2024, index);
+                      month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    } else {
+                      month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                    }
+                  } else {
+                    // Fallback: create month names based on index
+                    console.log(`⚠️ No date found for financials row ${index}, creating fallback month`);
+                    const fallbackDate = new Date(2024, index);
+                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  }
+                  
+                  const totalExpenses = maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses;
+                  const margin = monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0;
+                  
+                  console.log(`📊 Processed financials row ${index}:`, { month, monthlyRevenue, totalExpenses, netIncome, margin });
                   
                   return {
                     month,
                     revenue: monthlyRevenue,
-                    expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
+                    expenses: totalExpenses,
                     netIncome: netIncome,
-                    margin: monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0,
+                    margin: margin,
                     breakdown: {
                       maintenance: maintenanceCost,
                       insurance: insuranceCost,

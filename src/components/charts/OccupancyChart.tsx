@@ -70,7 +70,7 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
         let chartData = null;
         
         try {
-          const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+          const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
           if (localDataResponse.ok) {
             const localData = await localDataResponse.json();
             console.log('🏠 Local occupancy data loaded:', localData);
@@ -92,12 +92,36 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
                 console.log('📊 Sample data:', sampleData);
                 
                 // Extract months and occupancy data from the summary data
-                const monthlyData = sampleData.map((row: any) => {
-                  const date = new Date(row['Date']);
-                  const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  const occupancyRate = parseFloat(row['Occupancy Rate']) || 0;
-                  const totalUnits = parseFloat(row['Total Units']) || 0;
+                const monthlyData = sampleData.map((row: any, index: number) => {
+                  console.log(`📅 Row ${index}:`, row);
+                  
+                  // Try different date column names
+                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
+                  console.log(`📅 Date value for row ${index}:`, dateValue);
+                  
+                  let date: Date;
+                  let month: string;
+                  
+                  if (dateValue) {
+                    date = new Date(dateValue);
+                    if (isNaN(date.getTime())) {
+                      // If date parsing fails, try to create a date from the index
+                      console.log(`⚠️ Invalid date for row ${index}, using index-based date`);
+                      date = new Date(2024, index); // Start from Jan 2024
+                    }
+                    month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  } else {
+                    // Fallback: create month names based on index
+                    console.log(`⚠️ No date found for row ${index}, creating fallback month`);
+                    const fallbackDate = new Date(2024, index);
+                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                  }
+                  
+                  const occupancyRate = parseFloat(row['Occupancy Rate'] || row['occupancy_rate'] || '0') || 0;
+                  const totalUnits = parseFloat(row['Total Units'] || row['total_units'] || '0') || 0;
                   const occupiedUnits = Math.round((occupancyRate / 100) * totalUnits);
+                  
+                  console.log(`📊 Processed row ${index}:`, { month, occupancyRate, totalUnits, occupiedUnits });
                   
                   return {
                     month,

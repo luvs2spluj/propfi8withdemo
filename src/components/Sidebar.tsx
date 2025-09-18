@@ -6,6 +6,7 @@ import {
   DollarSign, 
   FileText,
   Upload,
+  Database,
   Home
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
@@ -13,14 +14,15 @@ import { Page, NavigationProps } from '../types';
 interface SidebarProps extends NavigationProps {}
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
-  const menuItems = [
-    { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
-    { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
-    { id: 'properties' as Page, label: 'Properties', icon: Building2 },
-    { id: 'csvs' as Page, label: 'CSVs', icon: Upload },
-    { id: 'reports' as Page, label: 'Reports', icon: FileText },
-  ];
+      const menuItems = [
+        { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
+        { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
+        { id: 'csv-management' as Page, label: 'CSV Management', icon: Database },
+        { id: 'reports' as Page, label: 'Reports', icon: FileText },
+        { id: 'properties' as Page, label: 'Properties', icon: Building2 },
+        { id: 'csvs' as Page, label: 'CSV Upload', icon: Upload },
+      ];
 
   return (
     <div className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col h-screen">

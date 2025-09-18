@@ -1,618 +1,584 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Trash2, 
-  Upload, 
-  AlertTriangle, 
-  CheckCircle, 
-  Calendar,
-  FileText,
-  RefreshCw
-} from 'lucide-react';
-import ApiService from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { Database, Edit3, Trash2, Save, RefreshCw, Eye } from 'lucide-react';
 
-interface CSVUpload {
+interface CSVRecord {
   id: string;
-  property_id: string;
-  filename: string;
-  file_size: number;
-  rows_processed: number;
-  rows_inserted: number;
-  rows_updated: number;
-  rows_skipped: number;
-  upload_status: string;
-  error_message?: string;
-  uploaded_at: string;
-  processed_at?: string;
-  property_name: string;
-  source?: string;
+  fileName: string;
+  fileType: 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'general';
+  uploadedAt: string;
+  totalRecords: number;
+  accountCategories: Record<string, string>;
+  bucketAssignments: Record<string, string>;
+  tags: Record<string, string[]>;
+  isActive: boolean;
+  previewData: any[];
 }
 
-interface Property {
+interface DashboardBucket {
   id: string;
   name: string;
-  address?: string;
-  type?: string;
-  total_units?: number;
+  description: string;
+  calculation: string;
+  color: string;
 }
 
-const CSVManagement: React.FC = () => {
-  const [uploads, setUploads] = useState<CSVUpload[]>([]);
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedProperty, setSelectedProperty] = useState<string>('');
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  
-  // Upload states
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadProperty, setUploadProperty] = useState<string>('');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState<string>('');
+const DASHBOARD_BUCKETS: DashboardBucket[] = [
+  {
+    id: 'total_income',
+    name: 'Total Income',
+    description: 'Sum of all income accounts',
+    calculation: 'Sum of Income accounts',
+    color: 'bg-green-100 text-green-800'
+  },
+  {
+    id: 'total_expense',
+    name: 'Total Expense', 
+    description: 'Sum of all expense accounts',
+    calculation: 'Sum of Expense accounts',
+    color: 'bg-red-100 text-red-800'
+  },
+  {
+    id: 'net_operating_income',
+    name: 'Net Operating Income (NOI)',
+    description: 'Income minus Expenses',
+    calculation: 'Total Income - Total Expense',
+    color: 'bg-blue-100 text-blue-800'
+  },
+  {
+    id: 'gross_rental_income',
+    name: 'Gross Rental Income',
+    description: 'Rental income from tenants',
+    calculation: 'Sum of Rental Income accounts',
+    color: 'bg-green-100 text-green-800'
+  },
+  {
+    id: 'operating_expenses',
+    name: 'Operating Expenses',
+    description: 'Property operating costs',
+    calculation: 'Sum of Operating Expense accounts',
+    color: 'bg-orange-100 text-orange-800'
+  }
+];
 
-  const loadUploads = useCallback(async () => {
-    try {
-      let allUploads: CSVUpload[] = [];
-      
-      // Load from Supabase backend
-      try {
-        const response = await ApiService.getUploadHistory();
-        if (response.success && response.data) {
-          allUploads = [...response.data];
-        }
-      } catch (error) {
-        console.log('Supabase uploads not available');
-      }
-      
-      // Load from local backend
-      try {
-        const localResponse = await fetch('http://localhost:5000/api/processed-data');
-        if (localResponse.ok) {
-          const localData = await localResponse.json();
-          if (localData.success && localData.data) {
-            // Convert local data to CSVUpload format
-            Object.keys(localData.data).forEach(propertyName => {
-              localData.data[propertyName].forEach((item: any) => {
-                const localUpload: CSVUpload = {
-                  id: item.id,
-                  property_id: `local-${propertyName.toLowerCase()}`,
-                  filename: `${propertyName} CSV Data`,
-                  file_size: 0,
-                  rows_processed: item.data?.totalRows || 0,
-                  rows_inserted: item.data?.processedRows || 0,
-                  rows_updated: 0,
-                  rows_skipped: 0,
-                  upload_status: 'completed',
-                  uploaded_at: item.createdAt,
-                  processed_at: item.timestamp,
-                  property_name: propertyName,
-                  source: 'local'
-                };
-                allUploads.push(localUpload);
-              });
-            });
-          }
-        }
-      } catch (error) {
-        console.log('Local uploads not available');
-      }
-      
-      // Filter uploads by selected property
-      const filteredUploads = selectedProperty 
-        ? allUploads.filter((upload: CSVUpload) => upload.property_id === selectedProperty)
-        : allUploads;
-      setUploads(filteredUploads);
-    } catch (error: any) {
-      console.error('Error loading uploads:', error);
-    }
-  }, [selectedProperty]);
+export default function CSVManagement() {
+  const [savedCSVs, setSavedCSVs] = useState<CSVRecord[]>([]);
+  const [selectedCSV, setSelectedCSV] = useState<CSVRecord | null>(null);
+  const [editingCategories, setEditingCategories] = useState<Record<string, string>>({});
+  const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({});
+  const [editingTags, setEditingTags] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
+  // Load saved CSVs from localStorage
   useEffect(() => {
-    loadData();
+    const loadCSVs = () => {
+      try {
+        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        setSavedCSVs(savedCSVs);
+      } catch (error) {
+        console.error('Error loading CSVs:', error);
+        setSavedCSVs([]);
+      }
+    };
+
+    loadCSVs();
+    
+    // Listen for storage changes (when new CSVs are saved)
+    const handleStorageChange = () => {
+      loadCSVs();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  useEffect(() => {
-    if (selectedProperty) {
-      loadUploads();
-    }
-  }, [selectedProperty, loadUploads]);
+  const handleEditCSV = (csv: CSVRecord) => {
+    setSelectedCSV(csv);
+    setEditingCategories({ ...csv.accountCategories });
+    setEditingBuckets({ ...csv.bucketAssignments });
+    setEditingTags({ ...csv.tags });
+    setShowPreview(false);
+  };
 
-  const loadData = async () => {
+  const updateCategory = (accountName: string, category: string) => {
+    setEditingCategories(prev => ({
+      ...prev,
+      [accountName]: category
+    }));
+  };
+
+  const updateBucket = (accountName: string, bucket: string) => {
+    setEditingBuckets(prev => ({
+      ...prev,
+      [accountName]: bucket
+    }));
+  };
+
+  const updateTags = (accountName: string, tags: string[]) => {
+    setEditingTags(prev => ({
+      ...prev,
+      [accountName]: tags
+    }));
+  };
+
+  const saveChanges = async () => {
+    if (!selectedCSV) return;
+    setSaving(true);
+    
     try {
-      setIsLoading(true);
-      setError(null);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Load properties
-      const propertiesResponse = await ApiService.getProperties();
-      if (propertiesResponse.success && propertiesResponse.data) {
-        setProperties(propertiesResponse.data);
-        if (propertiesResponse.data.length > 0) {
-          setSelectedProperty(propertiesResponse.data[0].id);
-        }
-      }
-    } catch (error: any) {
-      setError('Failed to load data: ' + error.message);
+      // Update the CSV record
+      const updatedCSV = {
+        ...selectedCSV,
+        accountCategories: editingCategories,
+        bucketAssignments: editingBuckets,
+        tags: editingTags
+      };
+      
+      // Update localStorage
+      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const updatedCSVs = savedCSVs.map((csv: CSVRecord) => 
+        csv.id === selectedCSV.id ? updatedCSV : csv
+      );
+      localStorage.setItem('savedCSVs', JSON.stringify(updatedCSVs));
+      
+      setSavedCSVs(updatedCSVs);
+      setSelectedCSV(updatedCSV);
+      console.log('CSV categorization saved:', updatedCSV);
+    } catch (error) {
+      console.error('Save failed:', error);
     } finally {
-      setIsLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleDeleteUpload = async (uploadId: string) => {
+  const toggleCSVActive = async (csvId: string) => {
+    setLoading(true);
     try {
-      const upload = uploads.find(u => u.id === uploadId);
-      
-      if (upload?.source === 'local') {
-        // Delete from local backend
-        const response = await fetch(`http://localhost:5000/api/processed-data`, {
-          method: 'DELETE'
-        });
-        
-        if (response.ok) {
-          setUploads(uploads.filter(upload => upload.id !== uploadId));
-          setDeleteConfirm(null);
-          setError(null);
-        } else {
-          setError('Failed to delete local data');
-        }
-      } else {
-        // Delete from Supabase backend
-        await ApiService.deletePropertyDataByUpload(uploadId);
-        
-        const response = await ApiService.deleteUpload(uploadId);
-        if (response.success) {
-          setUploads(uploads.filter(upload => upload.id !== uploadId));
-          setDeleteConfirm(null);
-          setError(null);
-        } else {
-          setError('Failed to delete upload: ' + response.error);
-        }
-      }
-    } catch (error: any) {
-      setError('Failed to delete upload: ' + error.message);
-    }
-  };
-
-  const handleClearAllData = async () => {
-    try {
-      // Clear local backend data
-      const localResponse = await fetch('http://localhost:5000/api/processed-data', {
-        method: 'DELETE'
-      });
-      
-      if (localResponse.ok) {
-        console.log('✅ Local data cleared');
-      }
-      
-      // Clear Supabase data (if available)
-      try {
-        // This would need to be implemented in the API service
-        // For now, just clear the local data
-      } catch (error) {
-        console.log('Supabase clear not available');
-      }
-      
-      // Refresh the data
-      setUploads([]);
-      setDeleteConfirm(null);
-      setError(null);
-      
-      // Reload data to show empty state
-      loadData();
-      
-    } catch (error: any) {
-      setError('Failed to clear data: ' + error.message);
-    }
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadFile(file);
-      setError(null);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!uploadFile || !uploadProperty) {
-      setError('Please select both a file and a property');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    setUploadStatus('Uploading file...');
-    setError(null);
-
-    try {
-      // Simulate progress
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 200);
-
-      const response = await ApiService.uploadCSV(uploadFile, uploadProperty);
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      setUploadStatus('Processing complete!');
-
-      if (response.success) {
-        setUploadStatus('Upload successful!');
-        setUploadFile(null);
-        setUploadProperty('');
-        
-        // Refresh the uploads list
-        await loadData();
-        
-        // Clear status after 3 seconds
-        setTimeout(() => {
-          setUploadStatus('');
-          setUploadProgress(0);
-        }, 3000);
-      } else {
-        setError(response.error || response.message || 'Upload failed');
-        setUploadStatus('Upload failed');
-      }
-    } catch (error: any) {
-      setError('Upload failed: ' + error.message);
-      setUploadStatus('Upload failed');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setSavedCSVs(prev => prev.map(csv => 
+        csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
+      ));
+    } catch (error) {
+      console.error('Toggle failed:', error);
     } finally {
-      setIsUploading(false);
+      setLoading(false);
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'failed':
-        return <AlertTriangle className="w-4 h-4 text-red-500" />;
-      case 'processing':
-        return <RefreshCw className="w-4 h-4 text-blue-500 animate-spin" />;
-      default:
-        return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading CSV management...</p>
-          </div>
-        </div>
-      </div>
+  const deleteCSV = async (csvId: string) => {
+    const csvToDelete = savedCSVs.find(csv => csv.id === csvId);
+    if (!csvToDelete) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${csvToDelete.fileName}"?\n\n` +
+      `This will permanently remove:\n` +
+      `• ${csvToDelete.totalRecords} records\n` +
+      `• All categorizations and bucket assignments\n` +
+      `• Dashboard data from this CSV\n\n` +
+      `This action cannot be undone.`
     );
-  }
+    
+    if (!confirmed) return;
+    
+    setLoading(true);
+    try {
+      // Remove from localStorage
+      const updatedCSVs = savedCSVs.filter(csv => csv.id !== csvId);
+      localStorage.setItem('savedCSVs', JSON.stringify(updatedCSVs));
+      
+      // Update state
+      setSavedCSVs(updatedCSVs);
+      
+      // Clear selection if deleted CSV was selected
+      if (selectedCSV?.id === csvId) {
+        setSelectedCSV(null);
+        setEditingCategories({});
+        setEditingBuckets({});
+        setEditingTags({});
+      }
+      
+      // Trigger dashboard update to recalculate totals
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          action: 'csv_deleted',
+          csvId: csvId,
+          fileName: csvToDelete.fileName
+        } 
+      }));
+      
+      // Refresh bucket totals in this component
+      setTimeout(() => {
+        const updatedBucketTotals = calculateAllBucketedTotals();
+        console.log('📊 Updated bucket totals after deletion:', updatedBucketTotals);
+      }, 100);
+      
+      console.log(`✅ CSV "${csvToDelete.fileName}" deleted successfully`);
+      
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete CSV. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getFileTypeColor = (fileType: string) => {
+    const colors = {
+      cash_flow: 'bg-blue-100 text-blue-800',
+      balance_sheet: 'bg-green-100 text-green-800',
+      rent_roll: 'bg-purple-100 text-purple-800',
+      income_statement: 'bg-orange-100 text-orange-800',
+      general: 'bg-gray-100 text-gray-800'
+    };
+    return colors[fileType as keyof typeof colors] || colors.general;
+  };
+
+  const calculateTotals = () => {
+    if (!selectedCSV) return { totalIncome: 0, totalExpense: 0, netIncome: 0 };
+    
+    let totalIncome = 0;
+    let totalExpense = 0;
+    
+    for (const [accountName, category] of Object.entries(editingCategories)) {
+      const accountData = selectedCSV.previewData.find((item: any) => 
+        item.account_name === accountName
+      );
+      
+      if (accountData) {
+        let accountValue = 0;
+        
+        // Extract value from time series data
+        if (accountData.time_series) {
+          const values = Object.values(accountData.time_series).filter(v => 
+            typeof v === 'number' && v !== 0
+          ) as number[];
+          
+          if (values.length > 0) {
+            accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+          }
+        }
+        
+        if (category === 'income') {
+          totalIncome += accountValue;
+        } else if (category === 'expense') {
+          totalExpense += accountValue;
+        }
+      }
+    }
+    
+    return {
+      totalIncome,
+      totalExpense,
+      netIncome: totalIncome - totalExpense
+    };
+  };
+
+  const totals = calculateTotals();
+
+  // Calculate bucketed totals for all CSVs
+  const calculateAllBucketedTotals = () => {
+    const bucketTotals: Record<string, number> = {};
+    
+    savedCSVs.forEach(csv => {
+      if (!csv.isActive) return;
+      
+      Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
+        const accountData = csv.previewData.find((item: any) => 
+          item.account_name === accountName
+        );
+        
+        if (accountData && accountData.time_series) {
+          const values = Object.values(accountData.time_series).filter(v => 
+            typeof v === 'number' && v !== 0
+          ) as number[];
+          
+          if (values.length > 0) {
+            const accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+            
+            // Assign to appropriate bucket
+            if (category === 'income') {
+              bucketTotals['total_income'] = (bucketTotals['total_income'] || 0) + accountValue;
+              if (/rent|rental/.test(accountName.toLowerCase())) {
+                bucketTotals['gross_rental_income'] = (bucketTotals['gross_rental_income'] || 0) + accountValue;
+              }
+            } else if (category === 'expense') {
+              bucketTotals['total_expense'] = (bucketTotals['total_expense'] || 0) + accountValue;
+              bucketTotals['operating_expenses'] = (bucketTotals['operating_expenses'] || 0) + accountValue;
+            }
+          }
+        }
+      });
+    });
+    
+    // Calculate NOI
+    bucketTotals['net_operating_income'] = (bucketTotals['total_income'] || 0) - (bucketTotals['total_expense'] || 0);
+    
+    return bucketTotals;
+  };
+
+  const allBucketTotals = calculateAllBucketedTotals();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">CSV Management</h1>
-          <p className="text-gray-600 mt-1">Upload, manage, and process CSV files for your properties.</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={loadData}
-            className="btn-secondary flex items-center"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </button>
-          <button
-            onClick={() => setDeleteConfirm('all')}
-            className="btn-danger flex items-center"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear All Data
-          </button>
-        </div>
-      </div>
-
-      {/* Upload Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center mb-4">
-          <Upload className="w-5 h-5 text-primary-600 mr-2" />
-          <h2 className="text-xl font-semibold text-gray-900">Upload New CSV File</h2>
+      {/* Bucketed Totals Summary */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900">CSV Management</h1>
+          <p className="text-gray-600 mt-1">Manage your saved CSV files and categorize data for dashboard integration</p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Property
-            </label>
-            <select
-              value={uploadProperty}
-              onChange={(e) => setUploadProperty(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              disabled={isUploading}
-            >
-              <option value="">Choose a property...</option>
-              {properties.map(property => (
-                <option key={property.id} value={property.id}>
-                  {property.name}
-                </option>
-              ))}
-            </select>
+        <div className="p-6">
+          <h3 className="text-lg font-semibold mb-4">📊 Dashboard Bucket Totals Summary</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {DASHBOARD_BUCKETS.map(bucket => {
+              const value = allBucketTotals[bucket.id] || 0;
+              return (
+                <div key={bucket.id} className="p-4 border rounded-lg">
+                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
+                    {bucket.name}
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select CSV File
-            </label>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-            />
+                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                    ${value.toLocaleString()}
           </div>
+                  <p className="text-sm text-gray-600">{bucket.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{bucket.calculation}</p>
         </div>
-
-        {uploadFile && (
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
-            <div className="flex items-center">
-              <FileText className="w-4 h-4 text-gray-500 mr-2" />
-              <span className="text-sm text-gray-700">
-                Selected: <strong>{uploadFile.name}</strong> ({(uploadFile.size / 1024).toFixed(1)} KB)
-              </span>
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        {uploadStatus && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">{uploadStatus}</span>
-              <span className="text-sm text-gray-500">{uploadProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-          </div>
-        )}
-
-        <button
-          onClick={handleUpload}
-          disabled={!uploadFile || !uploadProperty || isUploading}
-          className="btn-primary flex items-center"
-        >
-          {isUploading ? (
-            <>
-              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            <>
-              <Upload className="w-4 h-4 mr-2" />
-              Upload CSV
-            </>
-          )}
-        </button>
-
-        <div className="mt-4 text-sm text-gray-600">
-          <p><strong>Expected CSV format:</strong></p>
-          <ul className="list-disc list-inside mt-1 space-y-1">
-            <li>Date (YYYY-MM-DD format)</li>
-            <li>Monthly Revenue (or Revenue, Income)</li>
-            <li>Occupancy Rate (0-100%)</li>
-            <li>Total Units (optional)</li>
-            <li>Expenses (optional)</li>
-            <li>Net Income (optional - calculated automatically)</li>
-          </ul>
         </div>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6 flex items-center">
-          <AlertTriangle className="w-5 h-5 text-red-400 mr-3" />
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
-
-      {/* Property Selector */}
-      <div className="card">
-        <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">Property:</label>
-          <select
-            value={selectedProperty}
-            onChange={(e) => setSelectedProperty(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            disabled={properties.length === 0}
-          >
-            <option value="">All Properties</option>
-            {properties.map(property => (
-              <option key={property.id} value={property.id}>
-                {property.name}
-              </option>
-            ))}
-          </select>
-          {selectedProperty && (
-            <span className="text-sm text-gray-500">
-              Showing uploads for: {properties.find(p => p.id === selectedProperty)?.name}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Uploads Table */}
-      <div className="card">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Uploaded CSV Files</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            {uploads.length} file{uploads.length !== 1 ? 's' : ''} uploaded
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">CSV Files Management</h2>
+          <p className="text-gray-600 mt-1">Edit categorizations and manage individual CSV files</p>
         </div>
 
-        {uploads.length === 0 ? (
-          <div className="p-8 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No CSV files uploaded yet.</p>
-            <p className="text-sm text-gray-400 mt-2">Upload CSV files to see them here.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    File
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Processing Results
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Uploaded
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {uploads.map((upload) => (
-                  <tr key={upload.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <FileText className="w-5 h-5 text-gray-400 mr-3" />
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* CSV List */}
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Saved CSVs</h3>
+              <div className="space-y-3">
+                {savedCSVs.map((csv) => (
+                  <div key={csv.id} className={`p-4 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <Database className="w-5 h-5 text-gray-500" />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {upload.filename}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {formatFileSize(upload.file_size)}
+                          <h4 className="font-medium text-gray-900">{csv.fileName}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
+                              {csv.fileType.replace('_', ' ')}
+                            </span>
+                            <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
+                            <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                           </div>
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getStatusIcon(upload.upload_status)}
-                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(upload.upload_status)}`}>
-                          {upload.upload_status}
-                        </span>
-                      </div>
-                      {upload.error_message && (
-                        <div className="text-xs text-red-600 mt-1">
-                          {upload.error_message}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="space-y-1">
-                        <div>Processed: {upload.rows_processed}</div>
-                        <div className="text-green-600">Inserted: {upload.rows_inserted}</div>
-                        <div className="text-blue-600">Updated: {upload.rows_updated}</div>
-                        <div className="text-yellow-600">Skipped: {upload.rows_skipped}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(upload.uploaded_at)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => setDeleteConfirm(upload.id)}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                          title="Delete upload and data"
+                          onClick={() => toggleCSVActive(csv.id)}
+                          className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                          disabled={loading}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditCSV(csv)}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteCSV(csv.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          disabled={loading}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
           </div>
-        )}
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {deleteConfirm === 'all' ? 'Clear All Data' : 'Delete CSV Upload'}
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                {deleteConfirm === 'all' 
-                  ? 'This will permanently delete ALL CSV data from both local and Supabase backends. This action cannot be undone.'
-                  : 'This will permanently delete the CSV file and all associated data. This action cannot be undone.'
-                }
-              </p>
-              <div className="flex space-x-3 justify-center">
+            {/* CSV Editor */}
+            <div>
+              {selectedCSV ? (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Edit: {selectedCSV.fileName}</h3>
+                    <div className="flex gap-2">
                 <button
-                  onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
+                        onClick={() => setShowPreview(!showPreview)}
+                        className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
                 >
-                  Cancel
+                        <Eye className="w-4 h-4" />
+                        {showPreview ? 'Hide Preview' : 'Show Preview'}
                 </button>
                 <button
-                  onClick={() => deleteConfirm === 'all' ? handleClearAllData() : handleDeleteUpload(deleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                        onClick={saveChanges}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {deleteConfirm === 'all' ? 'Clear All' : 'Delete'}
+                        <Save className="w-4 h-4" />
+                        {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+                  </div>
+
+                  {/* Totals Preview */}
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="text-md font-semibold mb-3 text-blue-900">📊 Categorized Totals Preview</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">${totals.totalIncome.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">Total Income</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-600">${totals.totalExpense.toLocaleString()}</div>
+                        <div className="text-sm text-gray-600">Total Expense</div>
+                      </div>
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold ${totals.netIncome >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                          ${totals.netIncome.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">Net Income (NOI)</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Account Line Items Editor - Same as CSV Import Flow */}
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <h4 className="text-md font-medium mb-3">Account Line Items Categorization</h4>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Review and adjust how each account line item is categorized. Values will be normalized (negative values → positive).
+                    </p>
+                    <div className="space-y-2 max-h-80 overflow-y-auto border rounded-lg p-4 bg-white">
+                      <div className="text-xs text-gray-500 mb-2">
+                        Found {Object.keys(editingCategories).length} account line items
+                      </div>
+                      {Object.entries(editingCategories).map(([accountName, category]) => (
+                        <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                          <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
+                            {accountName}
+                          </div>
+                          <select 
+                            className="w-1/3 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            value={category}
+                            onChange={e => updateCategory(accountName, e.target.value)}
+                          >
+                            <option value="income">💰 Income</option>
+                            <option value="expense">💸 Expense</option>
+                          </select>
+                          <div className={`w-1/6 text-xs px-2 py-1 rounded text-center font-semibold ${
+                            category === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {category === 'income' ? '📈' : '📉'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Bucket Assignment */}
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium">Dashboard Bucket Assignment</h5>
+                      <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
+                        {Object.entries(editingCategories).map(([accountName, category]) => (
+                          <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                            <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
+                              {accountName}
+                            </div>
+                            <select 
+                              className="w-1/2 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              value={editingBuckets[accountName] || ''}
+                              onChange={e => updateBucket(accountName, e.target.value)}
+                            >
+                              <option value="">Select bucket...</option>
+                              {DASHBOARD_BUCKETS.map(bucket => (
+                                <option key={bucket.id} value={bucket.id}>
+                                  {bucket.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium">Tags</h5>
+                      <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
+                        {Object.entries(editingCategories).map(([accountName, category]) => (
+                          <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                            <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
+                              {accountName}
+                            </div>
+                            <input
+                              type="text"
+                              value={editingTags[accountName]?.join(', ') || ''}
+                              onChange={e => updateTags(accountName, e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
+                              placeholder="Enter tags separated by commas"
+                              className="w-1/2 p-2 border rounded text-xs"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview Data */}
+                  {showPreview && (
+                    <div className="mt-4">
+                      <h4 className="text-md font-medium mb-2">Data Preview</h4>
+                      <pre className="text-xs border rounded p-2 max-h-60 overflow-auto bg-gray-50">
+                        {JSON.stringify(selectedCSV.previewData.slice(0, 10), null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <p>Select a CSV to edit categorizations</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Dashboard Buckets Info */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold">Dashboard Buckets</h3>
+          <p className="text-gray-600 text-sm">How your CSV data populates the dashboard</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {DASHBOARD_BUCKETS.map(bucket => (
+              <div key={bucket.id} className="p-4 border rounded-lg">
+                <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
+                  {bucket.name}
+                </div>
+                <p className="text-sm text-gray-600 mb-2">{bucket.description}</p>
+                <p className="text-xs text-gray-500">{bucket.calculation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default CSVManagement;
+}
