@@ -3,7 +3,7 @@ import { join } from "path";
 import YAML from "yaml";
 
 const cfgDir = join(process.cwd(), "config");
-const syn = YAML.parse(readFileSync(join(cfgDir, "synonyms.yml"), "utf8"));
+const syn = YAML.parse(readFileSync(join(cfgDir, "synonyms.yml"), "utf8")) as Record<string, string[]>;
 const modelPath = join(process.cwd(), "model", "header_model.json");
 const learned = existsSync(modelPath) ? JSON.parse(readFileSync(modelPath, "utf8") || "{}") : {};
 
@@ -12,8 +12,8 @@ const norm = (s: string): string =>
 
 // Build synonym map
 const synToCanon = new Map<string, string>();
-for (const [canon, syns] of Object.entries<Record<string, string[]>>(syn)) {
-  const allTerms = [canon, ...(syns as string[])];
+for (const [canon, syns] of Object.entries(syn)) {
+  const allTerms = [canon, ...syns];
   allTerms.forEach(t => synToCanon.set(norm(t), canon));
 }
 
