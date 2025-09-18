@@ -3,15 +3,15 @@ import { suggestFieldLearned } from "../lib/learnedSuggest.js";
 
 export const mapSuggestRouter = Router();
 
-/** Body: { headers: string[], samples?: string[][] } */
+/** Body: { headers: string[], samples?: string[][], fileType?: string } */
 mapSuggestRouter.post("/suggest", async (req, res) => {
-  const { headers = [], samples = [] } = req.body || {};
+  const { headers = [], samples = [], fileType = 'general' } = req.body || {};
   const result: Record<string, { field: string; score: number }> = {};
   
   for (const h of headers) {
     const colIdx = headers.indexOf(h);
     const sampleVals = samples.map((row: any) => row[colIdx]).filter(Boolean);
-    result[h] = suggestFieldLearned(h, sampleVals);
+    result[h] = suggestFieldLearned(h, sampleVals, fileType);
   }
   
   res.json({ field_map: result, version: "1.0.0" });

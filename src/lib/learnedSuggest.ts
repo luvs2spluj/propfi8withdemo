@@ -55,7 +55,11 @@ function isTimeSeriesColumn(header: string): boolean {
 }
 
 /** learned = { tokenToField: { token: { field: count } }, valueHints: { fingerprint: { field: count } } } */
-export function suggestFieldLearned(header: string, sampleValues: string[] = []): { field: string; score: number } {
+export function suggestFieldLearned(header: string, sampleValues: string[] = [], fileType: string = 'general'): { field: string; score: number } {
+  // File-type specific suggestions
+  const fileTypeSuggestion = getFileTypeSuggestion(header, fileType);
+  if (fileTypeSuggestion.score > 0.8) return fileTypeSuggestion;
+  
   const base = synonymScore(header);
   
   // Learned token voting
@@ -88,6 +92,48 @@ export function suggestFieldLearned(header: string, sampleValues: string[] = [])
   // Blend: prefer learned if its score maps to > base.score
   const blended = (score / Math.max(1, score + 5)); // squashed
   return blended > base.score ? { field: lf, score: blended } : base;
+}
+
+function getFileTypeSuggestion(header: string, fileType: string): { field: string; score: number } {
+  const h = norm(header);
+  
+  switch (fileType) {
+    case 'cash_flow':
+      if (/account|name|description|item/.test(h)) {
+        // Check if it looks like income or expense based on sample values
+        return { field: "income", score: 0.7 }; // Default to income, user can change
+      }
+      if (/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(h)) {
+        return { field: "time_series", score: 0.9 };
+      }
+      break;
+      
+    case 'rent_roll':
+      if (/tenant|resident|name|lessee/.test(h)) return { field: "tenant_name", score: 0.9 };
+      if (/unit|apt|apartment|suite|space/.test(h)) return { field: "unit_id", score: 0.9 };
+      if (/rent|amount|income/.test(h)) return { field: "income", score: 0.9 };
+      if (/email/.test(h)) return { field: "email", score: 0.9 };
+      if (/phone|tel/.test(h)) return { field: "phone", score: 0.9 };
+      if (/move.?in|lease start/.test(h)) return { field: "move_in", score: 0.9 };
+      if (/move.?out|lease end/.test(h)) return { field: "move_out", score: 0.9 };
+      break;
+      
+    case 'balance_sheet':
+      if (/asset|cash|receivable|prepaid|inventory/.test(h)) return { field: "asset", score: 0.9 };
+      if (/liabilit|payable|loan|note|debt/.test(h)) return { field: "liability", score: 0.9 };
+      if (/equity|retained|owner/.test(h)) return { field: "equity", score: 0.9 };
+      break;
+      
+    case 'income_statement':
+      if (/revenue|income|sales|rent/.test(h)) return { field: "income", score: 0.9 };
+      if (/expense|cost|operating|maintenance/.test(h)) return { field: "expense", score: 0.9 };
+      if (/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(h)) {
+        return { field: "time_series", score: 0.9 };
+      }
+      break;
+  }
+  
+  return { field: "", score: 0 };
 }
 
 function fingerprint(v: string): string {

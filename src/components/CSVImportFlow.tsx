@@ -4,8 +4,11 @@ import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5000";
 
+type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'general';
+
 export default function CSVImportFlow() {
   const [file, setFile] = useState<File | null>(null);
+  const [fileType, setFileType] = useState<FileType>('general');
   const [headers, setHeaders] = useState<string[]>([]);
   const [, setSamples] = useState<string[][]>([]);
   const [map, setMap] = useState<Record<string, FieldSuggestion>>({});
@@ -25,14 +28,15 @@ export default function CSVImportFlow() {
         setHeaders(cols);
         setSamples(sampleRows.map((row: any) => cols.map((c: string) => row[c])));
         
-        fetch(`${API}/api/map/suggest`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            headers: cols, 
-            samples: sampleRows.map((row: any) => cols.map((c: string) => row[c])) 
-          })
-        })
+            fetch(`${API}/api/map/suggest`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                headers: cols, 
+                samples: sampleRows.map((row: any) => cols.map((c: string) => row[c])),
+                fileType: fileType
+              })
+            })
         .then(res => {
           if (!res.ok) {
             throw new Error(`API Error: ${res.status} ${res.statusText}`);
@@ -57,9 +61,10 @@ export default function CSVImportFlow() {
     setError(null);
     
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("field_map", JSON.stringify(map));
+          const fd = new FormData();
+          fd.append("file", file);
+          fd.append("field_map", JSON.stringify(map));
+          fd.append("file_type", fileType);
       
       const res = await fetch(`${API}/api/import`, { 
         method: "POST", 
@@ -85,12 +90,39 @@ export default function CSVImportFlow() {
       <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
       
       <div>
-        <input 
-          type="file" 
-          accept=".csv" 
-          onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-        />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              File Type
+            </label>
+            <select 
+              value={fileType} 
+              onChange={e => setFileType(e.target.value as FileType)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="general">General CSV</option>
+              <option value="cash_flow">Cash Flow Statement</option>
+              <option value="balance_sheet">Balance Sheet</option>
+              <option value="rent_roll">Rent Roll</option>
+              <option value="income_statement">Income Statement</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              Select the type of financial document to get better AI mapping suggestions
+            </p>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              CSV File
+            </label>
+            <input 
+              type="file" 
+              accept=".csv" 
+              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
+        </div>
       </div>
       
       {!!headers.length && (
@@ -98,8 +130,17 @@ export default function CSVImportFlow() {
           <h4 className="text-md font-medium mb-2">Header Mapping</h4>
           <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
             <p className="text-sm text-blue-800">
-              <strong>💡 Tip:</strong> For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series" to group them together. 
-              For account names, select "income" or "expense" based on the type of data.
+              <strong>💡 Tip:</strong> {
+                fileType === 'cash_flow' ? 
+                  'For "Account Name" columns, select "income" or "expense". For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series".' :
+                fileType === 'rent_roll' ?
+                  'For tenant names, select "tenant_name". For unit numbers, select "unit_id". For rent amounts, select "income".' :
+                fileType === 'balance_sheet' ?
+                  'For asset accounts, select "asset". For liability accounts, select "liability". For equity accounts, select "equity".' :
+                fileType === 'income_statement' ?
+                  'For revenue accounts, select "income". For expense accounts, select "expense". For monthly columns, select "time_series".' :
+                  'For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series" to group them together. For account names, select "income" or "expense" based on the type of data.'
+              }
             </p>
           </div>
           <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
