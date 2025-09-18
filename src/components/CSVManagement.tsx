@@ -148,6 +148,18 @@ export default function CSVManagement() {
     console.log('🎯 Bucket assignments:', csv.bucketAssignments);
     console.log('🏷️ Tags:', csv.tags);
     
+    // Debug: Show actual account names and their categories
+    const accountNames = Object.keys(csv.accountCategories);
+    console.log('🔍 Account names with categories:', accountNames.slice(0, 5).map(name => ({
+      name,
+      category: csv.accountCategories[name],
+      bucket: csv.bucketAssignments[name]
+    })));
+    
+    // Debug: Show preview data account names
+    const previewAccountNames = csv.previewData.map((item: any) => item.account_name).filter(Boolean);
+    console.log('🔍 Preview data account names:', previewAccountNames.slice(0, 5));
+    
     setSelectedCSV(csv);
     setEditingCategories({ ...csv.accountCategories });
     setEditingBuckets({ ...csv.bucketAssignments });
@@ -781,12 +793,20 @@ export default function CSVManagement() {
                               {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
                                 // Debug: Log what we're trying to display
                                 if (index < 3) {
+                                  const accountName = row.account_name;
+                                  const editingCategory = editingCategories[accountName];
+                                  const csvCategory = selectedCSV.accountCategories[accountName];
+                                  const editingBucket = editingBuckets[accountName];
+                                  const csvBucket = selectedCSV.bucketAssignments[accountName];
+                                  
                                   console.log(`🔍 Row ${index}:`, {
-                                    accountName: row.account_name,
-                                    editingCategory: editingCategories[row.account_name],
-                                    csvCategory: selectedCSV.accountCategories[row.account_name],
-                                    editingBucket: editingBuckets[row.account_name],
-                                    csvBucket: selectedCSV.bucketAssignments[row.account_name]
+                                    accountName,
+                                    editingCategory,
+                                    csvCategory,
+                                    editingBucket,
+                                    csvBucket,
+                                    finalCategory: editingCategory || csvCategory || 'Uncategorized',
+                                    finalBucket: editingBucket || csvBucket || 'Unassigned'
                                   });
                                 }
                                 
