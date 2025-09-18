@@ -862,8 +862,6 @@ export default function CSVManagement() {
             </div>
           </div>
         </div>
-      </div>
-
       {/* Dashboard Buckets Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -884,6 +882,7 @@ export default function CSVManagement() {
           </div>
         </div>
       </div>
+
     </div>
     );
 }
