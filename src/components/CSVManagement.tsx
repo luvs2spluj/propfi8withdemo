@@ -70,6 +70,7 @@ export default function CSVManagement() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
 
   // Load saved CSVs from Supabase and localStorage
   useEffect(() => {
@@ -125,6 +126,16 @@ export default function CSVManagement() {
     setEditingBuckets({ ...csv.bucketAssignments });
     setEditingTags({ ...csv.tags });
     setShowPreview(false);
+    setPreviewMode(false);
+  };
+
+  const handlePreviewCSV = (csv: CSVRecord) => {
+    setSelectedCSV(csv);
+    setEditingCategories({ ...csv.accountCategories });
+    setEditingBuckets({ ...csv.bucketAssignments });
+    setEditingTags({ ...csv.tags });
+    setShowPreview(true);
+    setPreviewMode(true);
   };
 
   const updateCategory = (accountName: string, category: string) => {
@@ -354,8 +365,8 @@ export default function CSVManagement() {
 
   const allBucketTotals = calculateAllBucketedTotals();
 
-  return (
-    <div className="space-y-6">
+    return (
+      <div className="space-y-6">
       {/* Bucketed Totals Summary */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
@@ -415,62 +426,109 @@ export default function CSVManagement() {
                       </div>
                       <div className="flex items-center gap-2">
                         <button
+                          onClick={() => handlePreviewCSV(csv)}
+                          className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                          title="Preview CSV structure"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => toggleCSVActive(csv.id)}
                           className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
                           disabled={loading}
+                          title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
                         >
                           <RefreshCw className="w-4 h-4" />
                         </button>
-                        <button
+          <button
                           onClick={() => handleEditCSV(csv)}
                           className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                        >
+                          title="Edit CSV categorizations"
+          >
                           <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
+          </button>
+          <button
                           onClick={() => deleteCSV(csv.id)}
                           className="p-1 text-red-600 hover:bg-red-100 rounded"
                           disabled={loading}
+                          title="Delete CSV"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
+          </button>
+        </div>
+      </div>
                     <div className="text-xs text-gray-600">
                       Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
                     </div>
-                  </div>
+        </div>
                 ))}
           </div>
-      </div>
+        </div>
 
             {/* CSV Editor */}
             <div>
               {selectedCSV ? (
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">Edit: {selectedCSV.fileName}</h3>
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold">
+                        {previewMode ? 'Preview: ' : 'Edit: '}{selectedCSV.fileName}
+                      </h3>
+                      {previewMode && (
+                        <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                          👁️ Preview Mode
+              </span>
+                      )}
+            </div>
                     <div className="flex gap-2">
-                <button
-                        onClick={() => setShowPreview(!showPreview)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-                          showPreview 
-                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                            : 'bg-gray-600 text-white hover:bg-gray-700'
-                        }`}
-                >
-                        <Eye className="w-4 h-4" />
-                        {showPreview ? 'Hide Data Preview' : 'Show Data Preview'}
-                </button>
-                <button
-                        onClick={saveChanges}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                >
-                        <Save className="w-4 h-4" />
-                        {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
+                      {previewMode ? (
+                        <>
+                          <button
+                            onClick={() => setShowPreview(!showPreview)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                              showPreview 
+                                ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                                : 'bg-gray-600 text-white hover:bg-gray-700'
+                            }`}
+                          >
+                            <Eye className="w-4 h-4" />
+                            {showPreview ? 'Hide Data Preview' : 'Show Data Preview'}
+                          </button>
+        <button
+                            onClick={() => {
+                              setPreviewMode(false);
+                              setShowPreview(false);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            Switch to Edit Mode
+                          </button>
+            </>
+          ) : (
+            <>
+                          <button
+                            onClick={() => setShowPreview(!showPreview)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                              showPreview 
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : 'bg-gray-600 text-white hover:bg-gray-700'
+                            }`}
+                          >
+                            <Eye className="w-4 h-4" />
+                            {showPreview ? 'Hide Data Preview' : 'Show Data Preview'}
+                          </button>
+                          <button
+                            onClick={saveChanges}
+                            disabled={saving}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                          >
+                            <Save className="w-4 h-4" />
+                            {saving ? 'Saving...' : 'Save Changes'}
+                          </button>
+            </>
+          )}
+                    </div>
                   </div>
 
                   {/* Enhanced Preview Section - Always visible when CSV is selected */}
@@ -479,9 +537,9 @@ export default function CSVManagement() {
                       <h4 className="text-lg font-semibold text-blue-900">📊 CSV Data Overview</h4>
                       <div className="text-sm text-blue-700">
                         {selectedCSV.totalRecords} records • {selectedCSV.fileType.replace('_', ' ')} • Uploaded {new Date(selectedCSV.uploadedAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                    
+        </div>
+      </div>
+
                     {/* Quick Stats */}
                     <div className="grid grid-cols-4 gap-4 mb-4">
                       <div className="text-center p-3 bg-white rounded-lg border">
@@ -508,7 +566,7 @@ export default function CSVManagement() {
                         </div>
                         <div className="text-xs text-gray-600">Assigned Buckets</div>
                       </div>
-                    </div>
+        </div>
 
                     {/* Sample Data Preview */}
                     <div className="bg-white rounded-lg border p-3">
@@ -540,8 +598,8 @@ export default function CSVManagement() {
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
+        </div>
+      </div>
 
                   {/* Totals Preview */}
                   <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
@@ -562,18 +620,19 @@ export default function CSVManagement() {
                         <div className="text-sm text-gray-600">Net Income (NOI)</div>
                       </div>
                     </div>
-                  </div>
+        </div>
 
                   {/* Account Line Items Editor - Same as CSV Import Flow */}
-                  <div className="space-y-4 max-h-96 overflow-y-auto">
-                    <h4 className="text-md font-medium mb-3">Account Line Items Categorization</h4>
-                    <p className="text-sm text-gray-600 mb-3">
-                      Review and adjust how each account line item is categorized. Values will be normalized (negative values → positive).
-                    </p>
+                  {!previewMode && (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      <h4 className="text-md font-medium mb-3">Account Line Items Categorization</h4>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Review and adjust how each account line item is categorized. Values will be normalized (negative values → positive).
+                      </p>
                     <div className="space-y-2 max-h-80 overflow-y-auto border rounded-lg p-4 bg-white">
                       <div className="text-xs text-gray-500 mb-2">
                         Found {Object.keys(editingCategories).length} account line items
-                      </div>
+          </div>
                       {Object.entries(editingCategories).map(([accountName, category]) => (
                         <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
                           <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
@@ -643,6 +702,38 @@ export default function CSVManagement() {
                       </div>
                     </div>
                   </div>
+                  )}
+
+                  {/* Preview Mode Message */}
+                  {previewMode && !showPreview && (
+                    <div className="mt-6 p-6 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                      <div className="text-center">
+                        <Eye className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+                        <h4 className="text-lg font-semibold text-purple-900 mb-2">Preview Mode Active</h4>
+                        <p className="text-purple-700 mb-4">
+                          You're viewing <strong>{selectedCSV.fileName}</strong> in preview mode. 
+                          Click "Show Data Preview" to see the detailed CSV structure, or switch to edit mode to make changes.
+                        </p>
+                        <div className="flex justify-center gap-3">
+                          <button
+                            onClick={() => setShowPreview(true)}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+                          >
+                            Show Data Preview
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPreviewMode(false);
+                              setShowPreview(false);
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Switch to Edit Mode
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Enhanced Preview Data */}
                   {showPreview && (
@@ -672,8 +763,8 @@ export default function CSVManagement() {
                                   <td className="px-4 py-3 font-medium text-gray-900">
                                     <div className="max-w-xs truncate" title={row.account_name || 'N/A'}>
                                       {row.account_name || 'N/A'}
-                                    </div>
-                                  </td>
+                      </div>
+                    </td>
                                   <td className="px-4 py-3">
                                     <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                                       editingCategories[row.account_name] === 'income' 
@@ -718,8 +809,8 @@ export default function CSVManagement() {
                                       ) : (
                                         <span className="text-gray-400 italic">No tags</span>
                                       )}
-                                    </div>
-                                  </td>
+                      </div>
+                    </td>
                                   <td className="px-4 py-3 text-sm">
                                     {row.time_series ? (
                                       <div className="max-w-xs">
@@ -744,11 +835,11 @@ export default function CSVManagement() {
                                     ) : (
                                       <span className="text-gray-400 italic">No financial data</span>
                                     )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
                         </div>
                       </div>
                       
@@ -760,14 +851,14 @@ export default function CSVManagement() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
-                </div>
+          </div>
+        )}
+      </div>
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p>Select a CSV to edit categorizations</p>
-                </div>
+              </div>
               )}
             </div>
           </div>
