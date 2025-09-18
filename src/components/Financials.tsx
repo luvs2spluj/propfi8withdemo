@@ -6,9 +6,11 @@ import {
   Calendar,
   Download,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Percent
 } from 'lucide-react';
 import ApiService from '../services/api';
+import { getCSVData } from '../lib/supabase';
 
 interface PropertyData {
   id: string;
@@ -119,284 +121,121 @@ const Financials: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      // Try to get data from local backend first
+      // Load data from CSV files instead of mock API
       let propertyDataArray: PropertyData[] = [];
       
-      try {
-        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
-        if (localDataResponse.ok) {
-          const localData = await localDataResponse.json();
-          console.log('🏠 Local property data loaded:', localData);
-          
-          if (localData.success && localData.data) {
-            // Find the selected property data
-            const selectedPropertyName = properties.find(p => p.id === selectedProperty)?.name;
-            if (selectedPropertyName && localData.data[selectedPropertyName]) {
-              const localItem = localData.data[selectedPropertyName];
-              
-              // Handle both array and object formats - find the entry with actual data
-              const dataItem = Array.isArray(localItem) ? 
-                localItem.find((entry: any) => 
-                  entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
-                ) || localItem[localItem.length - 1] : localItem;
-              
-              // Check if this is the Chico summary data format (original CSV structure)
-              if (dataItem.data?.sample && Array.isArray(dataItem.data.sample)) {
-                // This is the Chico summary data format with Monthly Revenue column
-                console.log('📊 Processing Chico summary data format for financials');
-                
-                const sampleData = dataItem.data.sample;
-                console.log('📊 Sample data:', sampleData);
-                
-                // Calculate monthly revenue and expenses for each month
-                const monthlyDataArray = sampleData.map((row: any, index: number) => {
-                  console.log(`📅 Financials Row ${index}:`, row);
-                  
-                  // Try different column name variations
-                  const monthlyRevenue = parseFloat(row['Monthly Revenue'] || row['monthly_revenue'] || row['revenue'] || '0') || 0;
-                  const maintenanceCost = parseFloat(row['Maintenance Cost'] || row['maintenance_cost'] || '0') || 0;
-                  const utilitiesCost = parseFloat(row['Utilities Cost'] || row['utilities_cost'] || '0') || 0;
-                  const insuranceCost = parseFloat(row['Insurance Cost'] || row['insurance_cost'] || '0') || 0;
-                  const propertyTax = parseFloat(row['Property Tax'] || row['property_tax'] || '0') || 0;
-                  const otherExpenses = parseFloat(row['Other Expenses'] || row['other_expenses'] || '0') || 0;
-                  const netIncome = parseFloat(row['Net Income'] || row['net_income'] || '0') || 0;
-                  
-                  // Try different date column names
-                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
-                  console.log(`📅 Financials Date value for row ${index}:`, dateValue);
-                  
-                  let month: string;
-                  
-                  if (dateValue) {
-                    const date = new Date(dateValue);
-                    if (isNaN(date.getTime())) {
-                      // If date parsing fails, create a fallback month
-                      console.log(`⚠️ Invalid date for financials row ${index}, using index-based date`);
-                      const fallbackDate = new Date(2024, index);
-                      month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    } else {
-                      month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    }
-                  } else {
-                    // Fallback: create month names based on index
-                    console.log(`⚠️ No date found for financials row ${index}, creating fallback month`);
-                    const fallbackDate = new Date(2024, index);
-                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  }
-                  
-                  const totalExpenses = maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses;
-                  const margin = monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0;
-                  
-                  console.log(`📊 Processed financials row ${index}:`, { month, monthlyRevenue, totalExpenses, netIncome, margin });
-                  
-                  return {
-                    month,
-                    revenue: monthlyRevenue,
-                    expenses: totalExpenses,
-                    netIncome: netIncome,
-                    margin: margin,
-                    breakdown: {
-                      maintenance: maintenanceCost,
-                      insurance: insuranceCost,
-                      utilities: utilitiesCost,
-                      propertyTax: propertyTax,
-                      other: otherExpenses
-                    }
-                  };
-                });
-                
-                // Sort by date with most recent first
-                const sortedMonthlyData = monthlyDataArray.sort((a: any, b: any) => {
-                  const dateA = new Date(a.month);
-                  const dateB = new Date(b.month);
-                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
-                });
-                
-                console.log('📊 Monthly data array:', sortedMonthlyData);
-                setPropertyData(sortedMonthlyData);
-                setIsLoading(false);
-                return;
-              }
-              
-              // Check if this is the transformed individual records format but we need to reconstruct summary data
-              if (dataItem.data?.data && Array.isArray(dataItem.data.data) && dataItem.data.data.length > 0) {
-                // This is the transformed individual records format - we need to reconstruct the summary data
-                console.log('📊 Processing transformed individual records format for financials');
-                console.log('📊 Data structure:', dataItem.data);
-                
-                // Check if we have the original summary data in a different field
-                if (dataItem.data.originalSample && Array.isArray(dataItem.data.originalSample)) {
-                  console.log('📊 Found original sample data, using that instead');
-                  const sampleData = dataItem.data.originalSample;
-                  
-                  const monthlyDataArray = sampleData.map((row: any) => {
-                    const monthlyRevenue = parseFloat(row['Monthly Revenue']) || 0;
-                    const maintenanceCost = parseFloat(row['Maintenance Cost']) || 0;
-                    const utilitiesCost = parseFloat(row['Utilities Cost']) || 0;
-                    const insuranceCost = parseFloat(row['Insurance Cost']) || 0;
-                    const propertyTax = parseFloat(row['Property Tax']) || 0;
-                    const otherExpenses = parseFloat(row['Other Expenses']) || 0;
-                    const netIncome = parseFloat(row['Net Income']) || 0;
-                    
-                    const date = new Date(row['Date']);
-                    const month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    
-                    return {
-                      month,
-                      revenue: monthlyRevenue,
-                      expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
-                      netIncome: netIncome,
-                      margin: monthlyRevenue > 0 ? ((netIncome) / monthlyRevenue * 100) : 0,
-                      breakdown: {
-                        maintenance: maintenanceCost,
-                        insurance: insuranceCost,
-                        utilities: utilitiesCost,
-                        propertyTax: propertyTax,
-                        other: otherExpenses
-                      }
-                    };
-                  });
-                  
-                  // Sort by date with most recent first
-                  const sortedMonthlyData = monthlyDataArray.sort((a: any, b: any) => {
-                    const dateA = new Date(a.month);
-                    const dateB = new Date(b.month);
-                    return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
-                  });
-                  
-                  console.log('📊 Monthly data array from original sample:', sortedMonthlyData);
-                  setPropertyData(sortedMonthlyData);
-                  setIsLoading(false);
-                  return;
-                }
-              }
-              
-              if (dataItem.data?.data && Array.isArray(dataItem.data.data)) {
-                // This is the original Chico data format with individual records
-                console.log('📊 Processing original Chico data format for financials');
-                
-                // Extract unique months from the data and sort with most recent first
-                const months = Array.from(new Set(dataItem.data.data.map((row: any) => row.period))).sort((a, b) => {
-                  const dateA = new Date(a as string);
-                  const dateB = new Date(b as string);
-                  return dateB.getTime() - dateA.getTime(); // Reverse order: newest first
-                }) as string[];
-                console.log('📅 Available months from Chico data:', months);
-                
-                // Calculate monthly revenue and expenses for each month
-                const monthlyDataArray = months.map((month: string) => {
-                  // Find all actual income accounts for this month (not expenses)
-                  const monthlyRecords = dataItem.data.data.filter((row: any) => 
-                    row.period === month && 
-                    (row.account_name === 'Application Fees' ||
-                     row.account_name === 'Credit Reporting Services Income' ||
-                     row.account_name === 'Insurance Svcs Income' ||
-                     row.account_name === 'Lock / Key Sales' ||
-                     row.account_name === 'Late Fees' ||
-                     row.account_name === 'Insurance Admin Fee')
-                  );
-                  
-                  // Sum up the revenue for this month
-                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
-                    sum + (parseFloat(record.amount) || 0), 0
-                  );
-                  
-                  // Calculate actual expenses from expense accounts
-                  const expenseRecords = dataItem.data.data.filter((row: any) => 
-                    row.period === month && 
-                    (row.account_name.toLowerCase().includes('maintenance') ||
-                     row.account_name.toLowerCase().includes('utilities') ||
-                     row.account_name.toLowerCase().includes('insurance') ||
-                     row.account_name.toLowerCase().includes('tax') ||
-                     row.account_name.toLowerCase().includes('expense') ||
-                     row.account_name.toLowerCase().includes('dnu-') ||
-                     row.account_name.toLowerCase().includes('salaries') ||
-                     row.account_name.toLowerCase().includes('bank charges'))
-                  );
-                  
-                  const monthlyExpenses = expenseRecords.reduce((sum: number, record: any) => 
-                    sum + Math.abs(parseFloat(record.amount) || 0), 0
-                  );
-                  
-                  // Calculate specific expense categories
-                  const maintenanceCost = expenseRecords.filter((row: any) => 
-                    row.account_name.toLowerCase().includes('maintenance') ||
-                    row.account_name.toLowerCase().includes('dnu-mrr') ||
-                    row.account_name.toLowerCase().includes('dnu-carpet') ||
-                    row.account_name.toLowerCase().includes('hvac')
-                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
-                  
-                  const insuranceCost = expenseRecords.filter((row: any) => 
-                    row.account_name.toLowerCase().includes('insurance')
-                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
-                  
-                  const utilitiesCost = expenseRecords.filter((row: any) => 
-                    row.account_name.toLowerCase().includes('utilities')
-                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
-                  
-                  const propertyTaxCost = expenseRecords.filter((row: any) => 
-                    row.account_name.toLowerCase().includes('tax')
-                  ).reduce((sum: number, record: any) => sum + Math.abs(parseFloat(record.amount) || 0), 0);
-                  
-                  const otherExpenses = monthlyExpenses - maintenanceCost - insuranceCost - utilitiesCost - propertyTaxCost;
-                  
-                  // const monthlyNetIncome = monthlyRevenue - monthlyExpenses; // Unused variable
-                  
-                  return {
-                    id: `financials-${month}`,
-                    property_id: selectedProperty,
-                    date: month,
-                    revenue: monthlyRevenue.toString(),
-                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                    maintenance_cost: maintenanceCost.toString(),
-                    utilities_cost: utilitiesCost.toString(),
-                    insurance_cost: insuranceCost.toString(),
-                    property_tax: propertyTaxCost.toString(),
-                    other_expenses: otherExpenses.toString(),
-                    notes: `Monthly data from ${month}`,
-                    property_name: selectedPropertyName
-                  };
-                });
-                
-                propertyDataArray = monthlyDataArray;
-                console.log('📊 Monthly financials data from Chico:', monthlyDataArray);
-              } else {
-                // Fallback to summary data format
-                const convertedData: PropertyData = {
-                  id: dataItem.id || 'local-data',
-                  property_id: selectedProperty,
-                  date: dataItem.timestamp || new Date().toISOString(),
-                  revenue: dataItem.data?.aiAnalysis?.totalAmount?.toString() || '0',
-                  occupancy_rate: '85', // Default
-                  maintenance_cost: '0',
-                  utilities_cost: '0',
-                  insurance_cost: '0',
-                  property_tax: '0',
-                  other_expenses: '0',
-                  notes: `Local data: ${dataItem.data?.aiAnalysis?.totalRecords || 0} records`,
-                  property_name: selectedPropertyName
-                };
-                
-                propertyDataArray = [convertedData];
-                console.log('🏠 Converted local property data:', convertedData);
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Local property data not available, trying API...');
+      // Get CSV data from Supabase first, fallback to localStorage
+      const supabaseCSVs = await getCSVData();
+      let activeCSVs = supabaseCSVs;
+      
+      if (supabaseCSVs.length === 0) {
+        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+        console.log('📊 No Supabase data, using localStorage for financials:', activeCSVs.length, 'active CSVs');
+      } else {
+        console.log('📊 Using Supabase data for financials:', activeCSVs.length, 'active CSVs');
       }
       
-      // Fallback to API if no local data
-      if (propertyDataArray.length === 0) {
-        const response = await ApiService.getPropertyData(selectedProperty);
-        if (response.success && response.data) {
-          propertyDataArray = response.data;
-        } else {
-          setError('Failed to load property data');
-          setPropertyData([]);
-          return;
-        }
+      if (activeCSVs.length > 0) {
+        console.log('📊 Processing CSV data for financials:', activeCSVs.map((csv: any) => csv.file_name || csv.fileName));
+        
+        // Process CSV data similar to Dashboard
+        activeCSVs.forEach((csv: any) => {
+          const fileName = csv.file_name || csv.fileName;
+          const accountCategories = csv.account_categories || csv.accountCategories;
+          const previewData = csv.preview_data || csv.previewData;
+          
+          console.log(`📁 Processing CSV: ${fileName} for financials`);
+          
+          // Process each account in the CSV
+          Object.entries(accountCategories).forEach(([accountName, category]) => {
+            const accountData = previewData.find((item: any) => 
+              item.account_name?.trim() === accountName
+            );
+            
+            if (accountData && accountData.time_series) {
+              console.log(`🔍 Processing account: ${accountName} (${category})`);
+              
+              // Filter out non-monthly entries and get only numeric values
+              const monthlyEntries = Object.entries(accountData.time_series)
+                .filter(([month, value]) => 
+                  month.toLowerCase() !== 'total' && 
+                  month.toLowerCase() !== 'sum' && 
+                  month.toLowerCase() !== 'grand total' &&
+                  typeof value === 'number' && 
+                  value !== 0
+                );
+              
+              // Process each month
+              monthlyEntries.forEach(([month, value]) => {
+                // Find existing data point for this month or create new one
+                let existingData = propertyDataArray.find(d => d.date === month);
+                if (!existingData) {
+                  existingData = {
+                    id: `${csv.id}-${month}`,
+                    property_id: selectedProperty,
+                    date: month,
+                    month: month,
+                    revenue: '0',
+                    occupancy_rate: '95',
+                    maintenance_cost: '0',
+                    utilities_cost: '0',
+                    insurance_cost: '0',
+                    property_tax: '0',
+                    other_expenses: '0',
+                    expenses: '0',
+                    netIncome: '0',
+                    notes: '',
+                    property_name: 'Chico'
+                  };
+                  propertyDataArray.push(existingData);
+                }
+                
+                // Add this account's value to the appropriate category
+                if (category === 'income') {
+                  const currentRevenue = parseFloat(existingData.revenue) || 0;
+                  existingData.revenue = (currentRevenue + (value as number)).toString();
+                } else if (category === 'expense') {
+                  const currentExpenses = parseFloat(existingData.expenses || '0') || 0;
+                  existingData.expenses = (currentExpenses + (value as number)).toString();
+                  
+                  // Categorize expenses by type
+                  const accountLower = accountName.toLowerCase();
+                  if (accountLower.includes('maintenance') || accountLower.includes('repair')) {
+                    const currentMaintenance = parseFloat(existingData.maintenance_cost) || 0;
+                    existingData.maintenance_cost = (currentMaintenance + (value as number)).toString();
+                  } else if (accountLower.includes('utility') || accountLower.includes('water') || accountLower.includes('garbage')) {
+                    const currentUtilities = parseFloat(existingData.utilities_cost) || 0;
+                    existingData.utilities_cost = (currentUtilities + (value as number)).toString();
+                  } else if (accountLower.includes('insurance')) {
+                    const currentInsurance = parseFloat(existingData.insurance_cost) || 0;
+                    existingData.insurance_cost = (currentInsurance + (value as number)).toString();
+                  } else if (accountLower.includes('tax')) {
+                    const currentTax = parseFloat(existingData.property_tax) || 0;
+                    existingData.property_tax = (currentTax + (value as number)).toString();
+                  } else {
+                    const currentOther = parseFloat(existingData.other_expenses) || 0;
+                    existingData.other_expenses = (currentOther + (value as number)).toString();
+                  }
+                }
+              });
+            }
+          });
+        });
+        
+        // Calculate net income for each month
+        propertyDataArray.forEach(data => {
+          const revenue = parseFloat(data.revenue) || 0;
+          const expenses = parseFloat(data.expenses || '0') || 0;
+          data.netIncome = (revenue - expenses).toString();
+        });
+        
+        // Sort by date
+        propertyDataArray.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        console.log('📊 Processed financial data:', propertyDataArray.length, 'months');
+      } else {
+        console.log('📊 No active CSV data found for financials');
       }
       
       setPropertyData(propertyDataArray);
@@ -405,14 +244,14 @@ const Financials: React.FC = () => {
       setError('Failed to load property data');
       setPropertyData([]);
     } finally {
-      setIsLoading(false);
+                setIsLoading(false);
     }
   };
 
   // Calculate financial summary from real data
   const calculateFinancialSummary = () => {
     if (!propertyData || propertyData.length === 0) {
-      return {
+                  return {
         totalRevenue: 0,
         totalExpenses: 0,
         netIncome: 0,
@@ -422,9 +261,9 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), calculate from that
-    if (propertyData.length > 1 && propertyData.some(record => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
-      const totalRevenue = propertyData.reduce((sum, record) => sum + parseFloat(record.revenue), 0);
-      const totalExpenses = propertyData.reduce((sum, record) => sum + parseFloat(record.expenses || '0'), 0);
+    if (propertyData.length > 1 && propertyData.some((record: any) => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
+      const totalRevenue = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.revenue), 0);
+      const totalExpenses = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.expenses || '0'), 0);
       
       const netIncome = totalRevenue - totalExpenses;
       const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
@@ -457,8 +296,8 @@ const Financials: React.FC = () => {
     }
 
     // Otherwise, calculate from individual records
-    const totalRevenue = propertyData.reduce((sum, record) => sum + parseFloat(record.revenue), 0);
-    const totalExpenses = propertyData.reduce((sum, record) => {
+    const totalRevenue = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.revenue), 0);
+    const totalExpenses = propertyData.reduce((sum: number, record: any) => {
       const maintenance = parseFloat(record.maintenance_cost) || 0;
       const utilities = parseFloat(record.utilities_cost) || 0;
       const insurance = parseFloat(record.insurance_cost) || 0;
@@ -487,8 +326,8 @@ const Financials: React.FC = () => {
     }
 
     // If we have monthly data (multiple records with month names), use actual data
-    if (propertyData.length > 1 && propertyData.some(record => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
-      return propertyData.map(record => {
+    if (propertyData.length > 1 && propertyData.some((record: any) => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
+      return propertyData.map((record: any) => {
         const revenue = parseFloat(record.revenue);
         const expenses = parseFloat(record.expenses || '0');
         const netIncome = parseFloat(record.netIncome || '0');
@@ -500,15 +339,8 @@ const Financials: React.FC = () => {
           expenses,
           netIncome,
           margin,
-          breakdown: record.breakdown || {
-            maintenance: 0,
-            insurance: 0,
-            utilities: 0,
-            propertyTax: 0,
-            other: 0
-          }
-        };
-      });
+                  };
+                });
     }
 
     // If we have summary data (single record with total amount), generate monthly breakdown
@@ -518,62 +350,48 @@ const Financials: React.FC = () => {
       
       // Generate 12 months of data (Aug 2024 to Jul 2025)
       const months = [
-        'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'
+        'Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024',
+        'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025', 'Jun 2025', 'Jul 2025'
       ];
       
       return months.map((month, index) => {
-        // Add some realistic variation (±10%)
-        const variation = (Math.random() - 0.5) * 0.2;
-        const revenue = monthlyRevenue * (1 + variation);
+        const baseRevenue = monthlyRevenue;
+        const variance = (Math.random() - 0.5) * 0.1; // ±5% variance
+        const revenue = baseRevenue * (1 + variance);
         const expenses = revenue * 0.6; // 60% expenses
-        const net = revenue - expenses;
-        const margin = revenue > 0 ? (net / revenue) * 100 : 0;
-
-        return {
-          month,
-          revenue,
-          expenses,
-          netIncome: net,
-          margin
+        const netIncome = revenue - expenses;
+        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
+                    
+                    return {
+                      month,
+          revenue: Math.round(revenue),
+          expenses: Math.round(expenses),
+          netIncome: Math.round(netIncome),
+          margin: Math.round(margin * 10) / 10, // Round to 1 decimal place
         };
       });
     }
 
     // Otherwise, use actual monthly data
     return propertyData
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Reverse order: newest first
-      .map(record => {
+      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Reverse order: newest first
+      .map((record: any) => {
         const date = new Date(record.date);
         const month = date.toLocaleDateString('en-US', { month: 'short' });
         const revenue = parseFloat(record.revenue);
-        const expenses = (parseFloat(record.maintenance_cost) || 0) +
-                       (parseFloat(record.utilities_cost) || 0) +
-                       (parseFloat(record.insurance_cost) || 0) +
-                       (parseFloat(record.property_tax) || 0) +
-                       (parseFloat(record.other_expenses) || 0);
-        const net = revenue - expenses;
-        const margin = revenue > 0 ? (net / revenue) * 100 : 0;
+        const expenses = parseFloat(record.expenses || '0');
+        const netIncome = parseFloat(record.netIncome || '0');
+        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
 
         return {
-          month,
+          month: `${month} ${date.getFullYear()}`,
           revenue,
           expenses,
-          netIncome: net,
-          margin
-        };
-      });
+          netIncome,
+          margin,
+                  };
+                });
   };
-
-  const financialSummary = calculateFinancialSummary();
-  const monthlyData = generateMonthlyData();
-  
-  // Debug logging
-  console.log('🔍 Financials Debug:', {
-    propertyDataLength: propertyData.length,
-    propertyData: propertyData,
-    financialSummary,
-    monthlyDataLength: monthlyData.length
-  });
 
   // Calculate expense categories from real data or generate from monthly data
   const calculateExpenseCategories = () => {
@@ -595,32 +413,32 @@ const Financials: React.FC = () => {
 
       return [
         { category: 'Maintenance & Repairs', amount: totalMaintenance, percentage: 25.0, color: 'red' },
-        { category: 'Utilities', amount: totalUtilities, percentage: 20.0, color: 'yellow' },
+        { category: 'Utilities', amount: totalUtilities, percentage: 20.0, color: 'blue' },
         { category: 'Insurance', amount: totalInsurance, percentage: 15.0, color: 'green' },
-        { category: 'Property Tax', amount: totalPropertyTax, percentage: 25.0, color: 'blue' },
-        { category: 'Other Expenses', amount: totalOther, percentage: 15.0, color: 'gray' },
+        { category: 'Property Tax', amount: totalPropertyTax, percentage: 25.0, color: 'purple' },
+        { category: 'Other Expenses', amount: totalOther, percentage: 15.0, color: 'orange' },
       ];
     }
 
     // Otherwise, use actual data
-    const totalMaintenance = propertyData.reduce((sum, record) => sum + (parseFloat(record.maintenance_cost) || 0), 0);
-    const totalUtilities = propertyData.reduce((sum, record) => sum + (parseFloat(record.utilities_cost) || 0), 0);
-    const totalInsurance = propertyData.reduce((sum, record) => sum + (parseFloat(record.insurance_cost) || 0), 0);
-    const totalPropertyTax = propertyData.reduce((sum, record) => sum + (parseFloat(record.property_tax) || 0), 0);
-    const totalOther = propertyData.reduce((sum, record) => sum + (parseFloat(record.other_expenses) || 0), 0);
+    const totalMaintenance = propertyData.reduce((sum: number, record: any) => sum + (parseFloat(record.maintenance_cost) || 0), 0);
+    const totalUtilities = propertyData.reduce((sum: number, record: any) => sum + (parseFloat(record.utilities_cost) || 0), 0);
+    const totalInsurance = propertyData.reduce((sum: number, record: any) => sum + (parseFloat(record.insurance_cost) || 0), 0);
+    const totalPropertyTax = propertyData.reduce((sum: number, record: any) => sum + (parseFloat(record.property_tax) || 0), 0);
+    const totalOther = propertyData.reduce((sum: number, record: any) => sum + (parseFloat(record.other_expenses) || 0), 0);
     
     const totalExpenses = totalMaintenance + totalUtilities + totalInsurance + totalPropertyTax + totalOther;
 
+    if (totalExpenses === 0) return [];
+
     return [
-      { category: 'Maintenance & Repairs', amount: totalMaintenance, percentage: totalExpenses > 0 ? (totalMaintenance / totalExpenses) * 100 : 0, color: 'red' },
-      { category: 'Utilities', amount: totalUtilities, percentage: totalExpenses > 0 ? (totalUtilities / totalExpenses) * 100 : 0, color: 'yellow' },
-      { category: 'Insurance', amount: totalInsurance, percentage: totalExpenses > 0 ? (totalInsurance / totalExpenses) * 100 : 0, color: 'green' },
-      { category: 'Property Tax', amount: totalPropertyTax, percentage: totalExpenses > 0 ? (totalPropertyTax / totalExpenses) * 100 : 0, color: 'blue' },
-      { category: 'Other Expenses', amount: totalOther, percentage: totalExpenses > 0 ? (totalOther / totalExpenses) * 100 : 0, color: 'gray' },
+      { category: 'Maintenance & Repairs', amount: totalMaintenance, percentage: (totalMaintenance / totalExpenses) * 100, color: 'red' },
+      { category: 'Utilities', amount: totalUtilities, percentage: (totalUtilities / totalExpenses) * 100, color: 'blue' },
+      { category: 'Insurance', amount: totalInsurance, percentage: (totalInsurance / totalExpenses) * 100, color: 'green' },
+      { category: 'Property Tax', amount: totalPropertyTax, percentage: (totalPropertyTax / totalExpenses) * 100, color: 'purple' },
+      { category: 'Other Expenses', amount: totalOther, percentage: (totalOther / totalExpenses) * 100, color: 'orange' },
     ];
   };
-
-  const expenseCategories = calculateExpenseCategories();
 
   // Calculate revenue sources from actual data or generate realistic breakdown
   const calculateRevenueSources = () => {
@@ -643,28 +461,39 @@ const Financials: React.FC = () => {
 
     // Otherwise, use hardcoded values for now
     return [
-      { source: 'Rent Payments', amount: 1420000, percentage: 93.0 },
-      { source: 'Late Fees', amount: 45000, percentage: 2.9 },
-      { source: 'Application Fees', amount: 25000, percentage: 1.6 },
-      { source: 'Pet Fees', amount: 18000, percentage: 1.2 },
-      { source: 'Other Income', amount: 12450, percentage: 0.8 },
+      { source: 'Rent Payments', amount: 500000, percentage: 85.0 },
+      { source: 'Late Fees', amount: 30000, percentage: 5.0 },
+      { source: 'Application Fees', amount: 24000, percentage: 4.0 },
+      { source: 'Pet Fees', amount: 18000, percentage: 3.0 },
+      { source: 'Other Income', amount: 18000, percentage: 3.0 },
     ];
   };
 
+  const financialSummary = calculateFinancialSummary();
+  const monthlyData = generateMonthlyData();
+  const expenseCategories = calculateExpenseCategories();
   const revenueSources = calculateRevenueSources();
 
+  // Helper function for color classes
   const getColorClass = (color: string) => {
     const colors = {
       red: 'bg-red-500',
       blue: 'bg-blue-500',
       green: 'bg-green-500',
-      yellow: 'bg-yellow-500',
       purple: 'bg-purple-500',
       orange: 'bg-orange-500',
-      gray: 'bg-gray-500'
+      yellow: 'bg-yellow-500'
     };
     return colors[color as keyof typeof colors] || 'bg-gray-500';
   };
+
+  // Debug logging
+  console.log('🔍 Financials Debug:', {
+    propertyDataLength: propertyData.length,
+    propertyData: propertyData,
+    financialSummary,
+    monthlyDataLength: monthlyData.length
+  });
 
   return (
     <div className="space-y-6">
@@ -749,152 +578,148 @@ const Financials: React.FC = () => {
       {!isLoading && !error && propertyData.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ${financialSummary.totalRevenue.toLocaleString()}
-              </p>
-              <p className="text-sm text-green-600 mt-1">+12.5% vs last year</p>
+            <div className="metric-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ${financialSummary.totalRevenue.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">+12.5% vs last year</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-600" />
+
+            <div className="metric-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Expenses</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ${financialSummary.totalExpenses.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-red-600 mt-1">+3.2% vs last year</p>
+                </div>
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Net Income</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ${financialSummary.netIncome.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">+18.7% vs last year</p>
+                </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Profit Margin</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {financialSummary.profitMargin}%
+                  </p>
+                  <p className="text-sm text-green-600 mt-1">+2.1% vs last year</p>
+                </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Percent className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Monthly Average</p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    ${financialSummary.monthlyAverage.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">Revenue per month</p>
+                </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ${financialSummary.totalExpenses.toLocaleString()}
-              </p>
-              <p className="text-sm text-red-600 mt-1">+3.2% vs last year</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <TrendingDown className="w-6 h-6 text-red-600" />
+          {/* Monthly Breakdown */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Financial Breakdown</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-900">Month</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-900">Revenue</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-900">Expenses</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-900">Net Income</th>
+                    <th className="text-right py-3 px-4 font-medium text-gray-900">Margin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyData.map((data, index) => (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
+                      <td className="text-right py-3 px-4 text-gray-900">${data.revenue.toLocaleString()}</td>
+                      <td className="text-right py-3 px-4 text-gray-900">${data.expenses.toLocaleString()}</td>
+                      <td className="text-right py-3 px-4 text-gray-900">${data.netIncome.toLocaleString()}</td>
+                      <td className="text-right py-3 px-4 text-gray-900">{data.margin}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
 
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Net Income</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ${financialSummary.netIncome.toLocaleString()}
-              </p>
-              <p className="text-sm text-green-600 mt-1">+18.7% vs last year</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Profit Margin</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {financialSummary.profitMargin}%
-              </p>
-              <p className="text-sm text-green-600 mt-1">+2.1% vs last year</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="metric-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Average</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                ${financialSummary.monthlyAverage.toLocaleString()}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">Revenue per month</p>
-            </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly Breakdown */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Financial Breakdown</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-900">Month</th>
-                <th className="text-right py-3 px-4 font-medium text-gray-900">Revenue</th>
-                <th className="text-right py-3 px-4 font-medium text-gray-900">Expenses</th>
-                <th className="text-right py-3 px-4 font-medium text-gray-900">Net Income</th>
-                <th className="text-right py-3 px-4 font-medium text-gray-900">Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthlyData.map((data, index) => (
-                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">${data.revenue.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">${data.expenses.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">${data.netIncome.toLocaleString()}</td>
-                  <td className="py-3 px-4 text-right text-gray-900">
-                    {((data.netIncome / data.revenue) * 100).toFixed(1)}%
-                  </td>
-                </tr>
+          {/* Expense Breakdown */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
+            <div className="space-y-4">
+              {expenseCategories.map((expense, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full ${getColorClass(expense.color)}`}></div>
+                    <span className="text-sm font-medium text-gray-900">{expense.category}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">${expense.amount.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">{expense.percentage}%</p>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Expense Breakdown */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
-          <div className="space-y-4">
-            {expenseCategories.map((expense, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full ${getColorClass(expense.color)}`}></div>
-                  <span className="text-sm font-medium text-gray-900">{expense.category}</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">${expense.amount.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500">{expense.percentage}%</p>
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        {/* Revenue Sources */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Sources</h3>
-          <div className="space-y-4">
-            {revenueSources.map((source, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-900">{source.source}</span>
+          {/* Revenue Sources */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Sources</h3>
+            <div className="space-y-4">
+              {revenueSources.map((source, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-900">{source.source}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">${source.amount.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500">{source.percentage}%</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">${source.amount.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500">{source.percentage}%</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
         </>
       )}
     </div>
