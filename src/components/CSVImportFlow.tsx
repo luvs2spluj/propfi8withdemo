@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import Papa from "papaparse";
 import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
 
-const API = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5000";
 
 export default function CSVImportFlow() {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [samples, setSamples] = useState<string[][]>([]);
+  const [, setSamples] = useState<string[][]>([]);
   const [map, setMap] = useState<Record<string, FieldSuggestion>>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -17,18 +17,18 @@ export default function CSVImportFlow() {
     Papa.parse(f, {
       header: true,
       preview: 30,
-      complete: (r) => {
+      complete: (r: any) => {
         const cols = r.meta.fields || [];
         const sampleRows = (r.data as any[]).slice(0, 5);
         setHeaders(cols);
-        setSamples(sampleRows.map(row => cols.map(c => row[c])));
+        setSamples(sampleRows.map((row: any) => cols.map((c: string) => row[c])));
         
         fetch(`${API}/api/map/suggest`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             headers: cols, 
-            samples: sampleRows.map(row => cols.map(c => row[c])) 
+            samples: sampleRows.map((row: any) => cols.map((c: string) => row[c])) 
           })
         })
         .then(res => res.json())

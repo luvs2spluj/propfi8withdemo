@@ -10,7 +10,7 @@ mapSuggestRouter.post("/suggest", async (req, res) => {
   
   for (const h of headers) {
     const colIdx = headers.indexOf(h);
-    const sampleVals = samples.map(row => row[colIdx]).filter(Boolean);
+    const sampleVals = samples.map((row: any) => row[colIdx]).filter(Boolean);
     result[h] = suggestFieldLearned(h, sampleVals);
   }
   

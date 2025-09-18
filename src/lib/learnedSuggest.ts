@@ -13,7 +13,8 @@ const norm = (s: string): string =>
 // Build synonym map
 const synToCanon = new Map<string, string>();
 for (const [canon, syns] of Object.entries<Record<string, string[]>>(syn)) {
-  [canon, ...syns].forEach(t => synToCanon.set(norm(t), canon));
+  const allTerms = [canon, ...(syns as string[])];
+  allTerms.forEach(t => synToCanon.set(norm(t), canon));
 }
 
 function synonymScore(h: string): { field: string; score: number } {
@@ -24,9 +25,9 @@ function synonymScore(h: string): { field: string; score: number } {
   const tokens = new Set(n.split(" "));
   let best: { field: string; score: number } | null = null;
   
-  for (const [synNorm, canon] of synToCanon.entries()) {
+  for (const [synNorm, canon] of Array.from(synToCanon.entries())) {
     const synTokens = new Set(synNorm.split(" "));
-    const overlap = [...tokens].filter(t => synTokens.has(t)).length / Math.max(1, synTokens.size);
+    const overlap = Array.from(tokens).filter(t => synTokens.has(t)).length / Math.max(1, synTokens.size);
     if (!best || overlap > best.score) best = { field: canon, score: overlap };
   }
   
