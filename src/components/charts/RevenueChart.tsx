@@ -11,7 +11,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import ApiService from '../../services/api';
+import { getCSVData } from '../../lib/supabase';
 
 ChartJS.register(
   CategoryScale,
@@ -55,11 +55,15 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
     const chartData: PropertyData[] = [];
     
     activeCSVs.forEach((csv: any) => {
-      console.log(`📊 Processing CSV: ${csv.fileName} for chart data`);
+      const fileName = csv.file_name || csv.fileName;
+      const accountCategories = csv.account_categories || csv.accountCategories;
+      const previewData = csv.preview_data || csv.previewData;
+      
+      console.log(`📊 Processing CSV: ${fileName} for chart data`);
       
       // Process each account in the CSV
-      Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
-        const accountData = csv.previewData.find((item: any) => 
+      Object.entries(accountCategories).forEach(([accountName, category]) => {
+        const accountData = previewData.find((item: any) => 
           item.account_name === accountName
         );
         
@@ -116,9 +120,18 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
         let chartData = null;
         
         try {
-          // Load data from active CSVs in localStorage
-          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-          const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+          // Try to get data from Supabase first
+          const supabaseCSVs = await getCSVData();
+          let activeCSVs = supabaseCSVs;
+          
+          // If no Supabase data, fall back to localStorage
+          if (supabaseCSVs.length === 0) {
+            const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+            activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+            console.log('📊 No Supabase data, using localStorage for chart:', activeCSVs.length, 'active CSVs');
+          } else {
+            console.log('📊 Using Supabase data for chart:', activeCSVs.length, 'active CSVs');
+          }
           
           console.log('📊 Active CSVs for chart data:', activeCSVs.length);
           

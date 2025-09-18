@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
 import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
+import { saveCSVData } from "../lib/supabase";
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5001";
 
@@ -280,7 +281,21 @@ export default function CSVImportFlow() {
         previewData: preview
       };
 
-      // Save to localStorage for now (in real app, this would be API call)
+      // Save to Supabase first
+      const supabaseResult = await saveCSVData({
+        id: csvRecord.id,
+        file_name: csvRecord.fileName,
+        file_type: csvRecord.fileType,
+        uploaded_at: csvRecord.uploadedAt,
+        total_records: csvRecord.totalRecords,
+        account_categories: csvRecord.accountCategories,
+        bucket_assignments: csvRecord.bucketAssignments,
+        tags: csvRecord.tags,
+        is_active: csvRecord.isActive,
+        preview_data: csvRecord.previewData
+      });
+
+      // Also save to localStorage as backup
       const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
       savedCSVs.push(csvRecord);
       localStorage.setItem('savedCSVs', JSON.stringify(savedCSVs));

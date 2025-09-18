@@ -18,10 +18,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
         { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
         { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
-        { id: 'csv-management' as Page, label: 'CSV Management', icon: Database },
         { id: 'reports' as Page, label: 'Reports', icon: FileText },
         { id: 'properties' as Page, label: 'Properties', icon: Building2 },
         { id: 'csvs' as Page, label: 'CSV Upload', icon: Upload },
+        { id: 'csv-management' as Page, label: 'CSV Management', icon: Database },
       ];
 
   return (

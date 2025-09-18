@@ -12,6 +12,7 @@ import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
+import { getCSVData } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -81,7 +82,7 @@ const Dashboard: React.FC = () => {
       console.log('📊 Loading financial data from active CSVs only...');
       
       // Calculate metrics from active CSVs only
-      const csvMetrics = calculateCSVMetrics();
+      const csvMetrics = await calculateCSVMetrics();
       console.log('📈 CSV Metrics calculated:', csvMetrics);
       
       if (csvMetrics.totalIncome > 0 || csvMetrics.totalExpense > 0) {
@@ -199,19 +200,33 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const calculateCSVMetrics = () => {
+  const calculateCSVMetrics = async () => {
     try {
-      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-      const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+      // Try to get data from Supabase first
+      const supabaseCSVs = await getCSVData();
+      let activeCSVs = supabaseCSVs;
+      
+      // If no Supabase data, fall back to localStorage
+      if (supabaseCSVs.length === 0) {
+        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+        console.log('📊 No Supabase data, using localStorage:', activeCSVs.length, 'active CSVs');
+      } else {
+        console.log('📊 Using Supabase data:', activeCSVs.length, 'active CSVs');
+      }
+      
       let totalIncome = 0;
       let totalExpense = 0;
       let recordCount = 0;
       
-      console.log('📊 Calculating CSV metrics from', savedCSVs.length, 'total CSVs,', activeCSVs.length, 'active CSVs');
-      console.log('📋 Active CSVs:', activeCSVs.map((csv: any) => ({ fileName: csv.fileName, isActive: csv.isActive, totalRecords: csv.totalRecords })));
+      console.log('📋 Active CSVs:', activeCSVs.map((csv: any) => ({ 
+        fileName: csv.file_name || csv.fileName, 
+        isActive: csv.is_active || csv.isActive, 
+        totalRecords: csv.total_records || csv.totalRecords 
+      })));
       
       // Check for duplicate CSVs and warn user
-      const csvNames = savedCSVs.filter((csv: any) => csv.isActive).map((csv: any) => csv.fileName);
+      const csvNames = activeCSVs.map((csv: any) => csv.file_name || csv.fileName);
       const duplicateNames = csvNames.filter((name: string, index: number) => csvNames.indexOf(name) !== index);
       
       if (duplicateNames.length > 0) {
@@ -220,12 +235,17 @@ const Dashboard: React.FC = () => {
       }
       
       activeCSVs.forEach((csv: any) => {
+        const fileName = csv.file_name || csv.fileName;
+        const totalRecords = csv.total_records || csv.totalRecords;
+        const accountCategories = csv.account_categories || csv.accountCategories;
+        const previewData = csv.preview_data || csv.previewData;
+        const fileType = csv.file_type || csv.fileType;
         
-        console.log(`📁 Processing CSV: ${csv.fileName} (${csv.totalRecords} records)`);
-        console.log('📋 CSV Preview Data Sample:', csv.previewData.slice(0, 3));
+        console.log(`📁 Processing CSV: ${fileName} (${totalRecords} records)`);
+        console.log('📋 CSV Preview Data Sample:', previewData.slice(0, 3));
         
-        Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
-          const accountData = csv.previewData.find((item: any) => 
+        Object.entries(accountCategories).forEach(([accountName, category]) => {
+          const accountData = previewData.find((item: any) => 
             item.account_name === accountName
           );
           

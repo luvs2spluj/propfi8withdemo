@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Edit3, Trash2, Save, RefreshCw, Eye } from 'lucide-react';
+import { getCSVData, deleteCSVData } from '../lib/supabase';
 
 interface CSVRecord {
   id: string;
@@ -70,27 +71,52 @@ export default function CSVManagement() {
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Load saved CSVs from localStorage
+  // Load saved CSVs from Supabase and localStorage
   useEffect(() => {
-    const loadCSVs = () => {
+    const loadCSVs = async () => {
       try {
-        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-        setSavedCSVs(savedCSVs);
+        // Try to get data from Supabase first
+        const supabaseCSVs = await getCSVData();
+        
+        if (supabaseCSVs.length > 0) {
+          // Convert Supabase format to CSVRecord format
+          const convertedCSVs = supabaseCSVs.map((csv: any) => ({
+            id: csv.id,
+            fileName: csv.file_name,
+            fileType: csv.file_type,
+            uploadedAt: csv.uploaded_at,
+            totalRecords: csv.total_records,
+            accountCategories: csv.account_categories,
+            bucketAssignments: csv.bucket_assignments,
+            tags: csv.tags,
+            isActive: csv.is_active,
+            previewData: csv.preview_data
+          }));
+          setSavedCSVs(convertedCSVs);
+          console.log('📊 Loaded CSVs from Supabase:', convertedCSVs.length);
+        } else {
+          // Fall back to localStorage
+          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+          setSavedCSVs(savedCSVs);
+          console.log('📊 Loaded CSVs from localStorage:', savedCSVs.length);
+        }
       } catch (error) {
         console.error('Error loading CSVs:', error);
-        setSavedCSVs([]);
+        // Fall back to localStorage on error
+        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        setSavedCSVs(savedCSVs);
       }
     };
 
     loadCSVs();
     
-    // Listen for storage changes (when new CSVs are saved)
-    const handleStorageChange = () => {
+    // Listen for data updates (when new CSVs are saved)
+    const handleDataUpdate = () => {
       loadCSVs();
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
   }, []);
 
   const handleEditCSV = (csv: CSVRecord) => {
@@ -186,6 +212,12 @@ export default function CSVManagement() {
     
     setLoading(true);
     try {
+      // Delete from Supabase first
+      const supabaseResult = await deleteCSVData(csvId);
+      if (supabaseResult) {
+        console.log('✅ CSV deleted from Supabase');
+      }
+      
       // Remove from localStorage
       const updatedCSVs = savedCSVs.filter(csv => csv.id !== csvId);
       localStorage.setItem('savedCSVs', JSON.stringify(updatedCSVs));
