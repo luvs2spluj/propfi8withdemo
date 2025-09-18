@@ -253,9 +253,16 @@ const Dashboard: React.FC = () => {
             console.log(`🔍 Account: ${accountName} (${category})`);
             console.log('📊 Time Series Data:', accountData.time_series);
             
-            const values = Object.values(accountData.time_series).filter(v => 
-              typeof v === 'number' && v !== 0
-            ) as number[];
+            // Filter out non-monthly entries and get only numeric values
+            const values = Object.entries(accountData.time_series)
+              .filter(([month, value]) => 
+                month.toLowerCase() !== 'total' && 
+                month.toLowerCase() !== 'sum' && 
+                month.toLowerCase() !== 'grand total' &&
+                typeof value === 'number' && 
+                value !== 0
+              )
+              .map(([, value]) => value as number);
             
             if (values.length > 0) {
               // Handle different file types appropriately

@@ -68,6 +68,11 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
         if (accountData && accountData.time_series) {
           // Process time series data for all accounts
           Object.entries(accountData.time_series).forEach(([month, value]) => {
+            // Skip non-monthly entries like "Total"
+            if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+              return;
+            }
+            
             if (typeof value === 'number' && value > 0) {
               // Find existing data point for this month or create new one
               let existingData = chartData.find(d => d.date === month);

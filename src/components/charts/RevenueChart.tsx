@@ -70,6 +70,11 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
         if (accountData && accountData.time_series && category === 'income') {
           // Process time series data for income accounts
           Object.entries(accountData.time_series).forEach(([month, value]) => {
+            // Skip non-monthly entries like "Total"
+            if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+              return;
+            }
+            
             if (typeof value === 'number' && value > 0) {
               // Find existing data point for this month or create new one
               let existingData = chartData.find(d => d.date === month);
