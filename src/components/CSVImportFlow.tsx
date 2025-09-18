@@ -46,13 +46,13 @@ export default function CSVImportFlow() {
         }
         setMap(autoMap);
         
-        // Auto-categorize accounts based on names
+        // Auto-categorize individual account line items based on names
         const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
         if (accountCol && sampleRows.length > 0) {
           const categories: Record<string, string> = {};
           for (const row of sampleRows) {
             const accountName = String(row[accountCol] || "").trim();
-            if (accountName) {
+            if (accountName && accountName !== "") {
               categories[accountName] = categorizeAccount(accountName);
             }
           }
@@ -180,10 +180,13 @@ export default function CSVImportFlow() {
           </div>
           <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
           
-          {/* Account Category Editor */}
+          {/* Account Line Items Editor */}
           {Object.keys(accountCategories).length > 0 && (
             <div className="mt-6">
-              <h4 className="text-md font-medium mb-3">Account Categories</h4>
+              <h4 className="text-md font-medium mb-3">Account Line Items</h4>
+              <p className="text-sm text-gray-600 mb-3">
+                Categorize each account line item as Income or Expense. Values will be normalized (negative values → positive).
+              </p>
               <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
                 {Object.entries(accountCategories).map(([accountName, category]) => (
                   <div key={accountName} className="flex items-center gap-3 p-2 bg-white rounded border">
@@ -196,7 +199,7 @@ export default function CSVImportFlow() {
                       <option value="income">Income</option>
                       <option value="expense">Expense</option>
                     </select>
-                    <div className={`w-1/6 text-xs px-2 py-1 rounded ${
+                    <div className={`w-1/6 text-xs px-2 py-1 rounded text-center ${
                       category === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                     }`}>
                       {category}
@@ -205,7 +208,7 @@ export default function CSVImportFlow() {
                 ))}
               </div>
               <p className="text-xs text-gray-600 mt-2">
-                💡 Adjust categories as needed. Values will be normalized (negative income → positive expense)
+                💡 Change any account from Income to Expense (or vice versa) as needed for your dashboard
               </p>
             </div>
           )}
