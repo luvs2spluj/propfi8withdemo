@@ -1,0 +1,5 @@
+version: "1.0.0"
+buckets:
+  property: [property_name, address, city, state, zip, unit_id]
+  tenant: [tenant_name, email, phone, move_in, move_out, deposit, status]
+  financial: [period, income, expense, noi, capex, taxes, insurance, mortgage, balance, arrears, asset, liability, equity]

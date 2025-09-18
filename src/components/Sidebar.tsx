@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
     { id: 'upload-ai' as Page, label: 'AI Parser', icon: Brain },
+    { id: 'csv-import-flow' as Page, label: 'CSV Import Flow', icon: Upload },
     { id: 'csv-management-ai' as Page, label: 'CSV Management', icon: Database },
     { id: 'property-management-ai' as Page, label: 'Property Management', icon: Building2 },
     { id: 'ai-training' as Page, label: 'AI Training', icon: GraduationCap },

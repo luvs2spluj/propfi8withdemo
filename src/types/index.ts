@@ -17,7 +17,8 @@ export type Page =
   | 'property-management-ai' 
   | 'ai-training' 
   | 'csv-data' 
-  | 'csv-management';
+  | 'csv-management'
+  | 'csv-import-flow';
 
 export interface NavigationProps {
   currentPage: Page;

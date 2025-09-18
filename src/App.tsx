@@ -12,6 +12,7 @@ import PropertyManagementAI from './components/PropertyManagementAI';
 import AITraining from './components/AITraining';
 import CSVDataViewer from './components/CSVDataViewer';
 import CSVManagement from './components/CSVManagement';
+import CSVImportFlow from './components/CSVImportFlow';
 import { Page } from './types';
 
 // Install dev logger in development (disabled for now)
@@ -64,6 +65,8 @@ function App() {
         return <CSVDataViewer />;
       case 'csv-management':
         return <CSVManagement />;
+      case 'csv-import-flow':
+        return <CSVImportFlow />;
       default:
         return <Dashboard />;
     }
