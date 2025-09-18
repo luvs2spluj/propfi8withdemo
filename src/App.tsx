@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
-import Properties from './components/Properties';
+import PropertiesConsolidated from './components/PropertiesConsolidated';
 import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
-import CSVUpload from './components/CSVUpload';
-import CSVUploadAI from './components/CSVUploadAI';
-import CSVManagementAI from './components/CSVManagementAI';
-import PropertyManagementAI from './components/PropertyManagementAI';
-import AITraining from './components/AITraining';
-import CSVDataViewer from './components/CSVDataViewer';
-import CSVManagement from './components/CSVManagement';
-import CSVImportFlow from './components/CSVImportFlow';
+import CSVs from './components/CSVs';
 import { Page } from './types';
 
 // Install dev logger in development (disabled for now)
@@ -47,26 +40,11 @@ function App() {
       case 'analytics':
         return <Analytics />;
       case 'properties':
-        return <Properties />;
+        return <PropertiesConsolidated />;
+      case 'csvs':
+        return <CSVs />;
       case 'reports':
         return <Reports />;
-      case 'upload':
-        return <CSVUpload />;
-      case 'upload-ai':
-        return <CSVUploadAI />;
-      case 'csv-management-ai':
-        return <CSVManagementAI />;
-      case 'property-management-ai':
-        return <PropertyManagementAI />;
-      case 'ai-training':
-        return <AITraining />;
-      // Note: csv-data and csv-management cases preserved for future use
-      case 'csv-data':
-        return <CSVDataViewer />;
-      case 'csv-management':
-        return <CSVManagement />;
-      case 'csv-import-flow':
-        return <CSVImportFlow />;
       default:
         return <Dashboard />;
     }

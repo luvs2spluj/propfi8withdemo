@@ -6,13 +6,7 @@ import {
   DollarSign, 
   FileText,
   Upload,
-  Brain,
-  Database,
-  GraduationCap,
-  // Settings, // Unused import
   Home
-  // Table, // Unused import
-  // Trash2 // Unused import
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
 
@@ -24,14 +18,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
     { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
     { id: 'properties' as Page, label: 'Properties', icon: Building2 },
+    { id: 'csvs' as Page, label: 'CSVs', icon: Upload },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
-    { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
-    { id: 'upload-ai' as Page, label: 'AI Parser', icon: Brain },
-    { id: 'csv-import-flow' as Page, label: 'CSV Import Flow', icon: Upload },
-    { id: 'csv-management-ai' as Page, label: 'CSV Management', icon: Database },
-    { id: 'property-management-ai' as Page, label: 'Property Management', icon: Building2 },
-    { id: 'ai-training' as Page, label: 'AI Training', icon: GraduationCap },
-    // Note: csv-data, csv-management tabs removed but logic preserved for future use
   ];
 
   return (

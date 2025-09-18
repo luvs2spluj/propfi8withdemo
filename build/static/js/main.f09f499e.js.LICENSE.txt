@@ -1,3 +1,10 @@
+/* @license
+Papa Parse
+v5.5.3
+https://github.com/mholt/PapaParse
+License: MIT
+*/
+
 /*!
  * @kurkle/color v0.3.4
  * https://github.com/kurkle/color#readme

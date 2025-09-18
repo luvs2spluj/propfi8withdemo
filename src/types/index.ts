@@ -10,15 +10,8 @@ export type Page =
   | 'financials' 
   | 'analytics' 
   | 'properties' 
-  | 'reports' 
-  | 'upload' 
-  | 'upload-ai' 
-  | 'csv-management-ai' 
-  | 'property-management-ai' 
-  | 'ai-training' 
-  | 'csv-data' 
-  | 'csv-management'
-  | 'csv-import-flow';
+  | 'csvs'
+  | 'reports';
 
 export interface NavigationProps {
   currentPage: Page;
