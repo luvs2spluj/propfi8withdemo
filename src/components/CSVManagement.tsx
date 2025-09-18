@@ -125,6 +125,14 @@ export default function CSVManagement() {
     console.log('📊 Account categories:', csv.accountCategories);
     console.log('🎯 Bucket assignments:', csv.bucketAssignments);
     console.log('🏷️ Tags:', csv.tags);
+    console.log('📋 Preview data sample:', csv.previewData.slice(0, 3));
+    
+    // Debug: Check if account names match
+    const previewAccountNames = csv.previewData.map((item: any) => item.account_name).filter(Boolean);
+    const categoryAccountNames = Object.keys(csv.accountCategories);
+    console.log('🔍 Preview account names:', previewAccountNames.slice(0, 5));
+    console.log('🔍 Category account names:', categoryAccountNames.slice(0, 5));
+    console.log('🔍 Names match check:', previewAccountNames.every(name => categoryAccountNames.includes(name)));
     
     setSelectedCSV(csv);
     setEditingCategories({ ...csv.accountCategories });
@@ -770,7 +778,19 @@ export default function CSVManagement() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                              {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => (
+                              {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
+                                // Debug: Log what we're trying to display
+                                if (index < 3) {
+                                  console.log(`🔍 Row ${index}:`, {
+                                    accountName: row.account_name,
+                                    editingCategory: editingCategories[row.account_name],
+                                    csvCategory: selectedCSV.accountCategories[row.account_name],
+                                    editingBucket: editingBuckets[row.account_name],
+                                    csvBucket: selectedCSV.bucketAssignments[row.account_name]
+                                  });
+                                }
+                                
+                                return (
                                 <tr key={index} className="hover:bg-blue-50 transition-colors">
                                   <td className="px-4 py-3 font-medium text-gray-900">
                                     <div className="max-w-xs truncate" title={row.account_name || 'N/A'}>
@@ -850,7 +870,8 @@ export default function CSVManagement() {
                                     )}
                     </td>
                   </tr>
-                ))}
+                                );
+                              })}
               </tbody>
             </table>
                         </div>
