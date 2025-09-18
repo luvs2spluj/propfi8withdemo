@@ -321,7 +321,7 @@ export default function CSVManagement() {
     
     for (const [accountName, category] of Object.entries(categoriesToUse)) {
       const accountData = selectedCSV.previewData.find((item: any) => 
-        item.account_name === accountName
+        item.account_name?.trim() === accountName
       );
       
       if (accountData) {
@@ -794,13 +794,15 @@ export default function CSVManagement() {
                                 // Debug: Log what we're trying to display
                                 if (index < 3) {
                                   const accountName = row.account_name;
-                                  const editingCategory = editingCategories[accountName];
-                                  const csvCategory = selectedCSV.accountCategories[accountName];
-                                  const editingBucket = editingBuckets[accountName];
-                                  const csvBucket = selectedCSV.bucketAssignments[accountName];
+                                  const trimmedName = accountName?.trim();
+                                  const editingCategory = editingCategories[trimmedName];
+                                  const csvCategory = selectedCSV.accountCategories[trimmedName];
+                                  const editingBucket = editingBuckets[trimmedName];
+                                  const csvBucket = selectedCSV.bucketAssignments[trimmedName];
                                   
                                   console.log(`🔍 Row ${index}:`, {
                                     accountName,
+                                    trimmedName,
                                     editingCategory,
                                     csvCategory,
                                     editingBucket,
@@ -818,50 +820,65 @@ export default function CSVManagement() {
                       </div>
                     </td>
                                   <td className="px-4 py-3">
-                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                                      (editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name]) === 'income' 
-                                        ? 'bg-green-100 text-green-800' 
-                                        : (editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name]) === 'expense'
-                                        ? 'bg-red-100 text-red-800'
-                                        : (editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name]) === 'asset'
-                                        ? 'bg-blue-100 text-blue-800'
-                                        : (editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name]) === 'liability'
-                                        ? 'bg-orange-100 text-orange-800'
-                                        : (editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name]) === 'equity'
-                                        ? 'bg-purple-100 text-purple-800'
-                                        : 'bg-gray-100 text-gray-800'
-                                    }`}>
-                                      {editingCategories[row.account_name] || selectedCSV.accountCategories[row.account_name] || 'Uncategorized'}
-                                    </span>
+                                    {(() => {
+                                      const trimmedName = row.account_name?.trim();
+                                      const category = editingCategories[trimmedName] || selectedCSV.accountCategories[trimmedName];
+                                      return (
+                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                                          category === 'income' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : category === 'expense'
+                                            ? 'bg-red-100 text-red-800'
+                                            : category === 'asset'
+                                            ? 'bg-blue-100 text-blue-800'
+                                            : category === 'liability'
+                                            ? 'bg-orange-100 text-orange-800'
+                                            : category === 'equity'
+                                            ? 'bg-purple-100 text-purple-800'
+                                            : 'bg-gray-100 text-gray-800'
+                                        }`}>
+                                          {category || 'Uncategorized'}
+                                        </span>
+                                      );
+                                    })()}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-600">
-                                    <span className={`px-2 py-1 rounded text-xs ${
-                                      (editingBuckets[row.account_name] || selectedCSV.bucketAssignments[row.account_name]) && 
-                                      (editingBuckets[row.account_name] || selectedCSV.bucketAssignments[row.account_name]) !== 'Unassigned'
-                                        ? 'bg-indigo-100 text-indigo-800'
-                                        : 'bg-gray-100 text-gray-600'
-                                    }`}>
-                                      {editingBuckets[row.account_name] || selectedCSV.bucketAssignments[row.account_name] || 'Unassigned'}
-                                    </span>
+                                    {(() => {
+                                      const trimmedName = row.account_name?.trim();
+                                      const bucket = editingBuckets[trimmedName] || selectedCSV.bucketAssignments[trimmedName];
+                                      return (
+                                        <span className={`px-2 py-1 rounded text-xs ${
+                                          bucket && bucket !== 'Unassigned'
+                                            ? 'bg-indigo-100 text-indigo-800'
+                                            : 'bg-gray-100 text-gray-600'
+                                        }`}>
+                                          {bucket || 'Unassigned'}
+                                        </span>
+                                      );
+                                    })()}
                                   </td>
                                   <td className="px-4 py-3 text-sm text-gray-600">
                                     <div className="max-w-xs">
-                                      {(editingTags[row.account_name] || selectedCSV.tags[row.account_name])?.length > 0 ? (
-                                        <div className="flex flex-wrap gap-1">
-                                          {(editingTags[row.account_name] || selectedCSV.tags[row.account_name]).slice(0, 2).map((tag: string, tagIndex: number) => (
-                                            <span key={tagIndex} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
-                                              {tag}
-                                            </span>
-                                          ))}
-                                          {(editingTags[row.account_name] || selectedCSV.tags[row.account_name]).length > 2 && (
-                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                              +{(editingTags[row.account_name] || selectedCSV.tags[row.account_name]).length - 2}
-                                            </span>
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <span className="text-gray-400 italic">No tags</span>
-                                      )}
+                                      {(() => {
+                                        const trimmedName = row.account_name?.trim();
+                                        const tags = editingTags[trimmedName] || selectedCSV.tags[trimmedName];
+                                        return tags?.length > 0 ? (
+                                          <div className="flex flex-wrap gap-1">
+                                            {tags.slice(0, 2).map((tag: string, tagIndex: number) => (
+                                              <span key={tagIndex} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                                                {tag}
+                                              </span>
+                                            ))}
+                                            {tags.length > 2 && (
+                                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                                +{tags.length - 2}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400 italic">No tags</span>
+                                        );
+                                      })()}
                       </div>
                     </td>
                                   <td className="px-4 py-3 text-sm">
