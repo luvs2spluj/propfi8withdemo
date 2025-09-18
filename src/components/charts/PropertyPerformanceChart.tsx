@@ -32,8 +32,8 @@ interface PropertyData {
   insurance_cost: string;
   property_tax: string;
   other_expenses: string;
-  expenses?: string;
-  netIncome?: string;
+  expenses: string;
+  netIncome: string;
   property_name: string;
 }
 

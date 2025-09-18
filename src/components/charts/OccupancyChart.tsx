@@ -50,6 +50,7 @@ interface OccupancyChartProps {
 const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
   const [chartData, setChartData] = useState<PropertyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<string>('all');
 
   const processCSVDataForOccupancyChart = (activeCSVs: any[]): PropertyData[] => {
     const chartData: PropertyData[] = [];
