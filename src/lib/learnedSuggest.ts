@@ -19,6 +19,12 @@ for (const [canon, syns] of Object.entries(syn)) {
 
 function synonymScore(h: string): { field: string; score: number } {
   const n = norm(h);
+  
+  // Special handling for time-series data (months, quarters, years)
+  if (isTimeSeriesColumn(n)) {
+    return { field: "period", score: 0.9 };
+  }
+  
   if (synToCanon.has(n)) return { field: synToCanon.get(n)!, score: 1.0 };
   
   // token overlap fallback
@@ -32,6 +38,20 @@ function synonymScore(h: string): { field: string; score: number } {
   }
   
   return best || { field: "", score: 0 };
+}
+
+function isTimeSeriesColumn(header: string): boolean {
+  // Check for month patterns
+  const monthPatterns = [
+    /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i,
+    /january|february|march|april|may|june|july|august|september|october|november|december/i,
+    /q1|q2|q3|q4/i,
+    /quarter/i,
+    /\d{4}/, // Year pattern
+    /total/i
+  ];
+  
+  return monthPatterns.some(pattern => pattern.test(header));
 }
 
 /** learned = { tokenToField: { token: { field: count } }, valueHints: { fingerprint: { field: count } } } */

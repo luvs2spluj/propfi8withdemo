@@ -39,12 +39,17 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
   // Normalize preview
   const rows = (parsed.data as any[]).map((row) => {
     const out: any = {};
+    const timeSeriesData: any = {};
+    
     for (const [orig, v] of Object.entries<any>(field_map)) {
       const canon = v.field;
       const raw = row[orig];
       if (raw == null || String(raw).trim() === "") continue;
       
-      if (["income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "arrears", "asset", "liability", "equity"].includes(canon)) {
+      if (canon === "time_series") {
+        // Handle time-series data (months, quarters, etc.)
+        timeSeriesData[orig] = normalizeCurrency(String(raw));
+      } else if (["income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "arrears", "asset", "liability", "equity"].includes(canon)) {
         out[canon] = normalizeCurrency(String(raw));
       } else if (canon === "period" && looksLikeDate(String(raw))) {
         out[canon] = new Date(String(raw));
@@ -52,6 +57,12 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
         out[canon] = raw;
       }
     }
+    
+    // Add time-series data as a nested object
+    if (Object.keys(timeSeriesData).length > 0) {
+      out.time_series = timeSeriesData;
+    }
+    
     if (propertyId) out.property = propertyId;
     return out;
   });

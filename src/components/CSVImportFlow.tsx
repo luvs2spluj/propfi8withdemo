@@ -96,6 +96,12 @@ export default function CSVImportFlow() {
       {!!headers.length && (
         <div>
           <h4 className="text-md font-medium mb-2">Header Mapping</h4>
+          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800">
+              <strong>💡 Tip:</strong> For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series" to group them together. 
+              For account names, select "income" or "expense" based on the type of data.
+            </p>
+          </div>
           <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
         </div>
       )}

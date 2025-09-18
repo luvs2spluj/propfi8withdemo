@@ -6,13 +6,15 @@ const color = (f: string): string => {
   if (["property_name", "address", "city", "state", "zip", "unit_id"].includes(f)) return "bg-blue-100";
   if (["tenant_name", "email", "phone", "move_in", "move_out", "deposit", "status"].includes(f)) return "bg-green-100";
   if (["period", "income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "balance", "arrears", "asset", "liability", "equity"].includes(f)) return "bg-purple-100";
+  if (f === "time_series") return "bg-orange-100";
   return "bg-gray-100";
 };
 
 const ALL = [
   "property_name", "address", "city", "state", "zip", "unit_id",
   "tenant_name", "email", "phone", "move_in", "move_out", "deposit", "status",
-  "period", "income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "balance", "arrears", "asset", "liability", "equity"
+  "period", "income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "balance", "arrears", "asset", "liability", "equity",
+  "time_series"
 ];
 
 interface HeaderMapperProps {
