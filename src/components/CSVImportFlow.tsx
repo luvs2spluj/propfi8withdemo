@@ -47,7 +47,7 @@ export default function CSVImportFlow() {
         setMap(autoMap);
         
         // Auto-categorize accounts based on names
-        const accountCol = cols.find(col => /account|name|description|item/.test(col.toLowerCase()));
+        const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
         if (accountCol && sampleRows.length > 0) {
           const categories: Record<string, string> = {};
           for (const row of sampleRows) {
