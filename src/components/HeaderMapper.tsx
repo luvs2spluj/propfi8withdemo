@@ -28,6 +28,20 @@ export default function HeaderMapper({ headers, suggestions, onChange }: HeaderM
     <div className="space-y-2">
       {headers.map(h => {
         const s = suggestions[h] || { field: "", score: 0 };
+        const isAccountName = /account|name|description|item/.test(h.toLowerCase());
+        
+        if (isAccountName) {
+          return (
+            <div key={h} className="flex items-center gap-3 p-2 rounded bg-gray-100">
+              <div className="w-1/3 font-mono text-xs">{h}</div>
+              <div className="w-2/3 text-sm text-gray-600 italic">
+                AI will auto-categorize accounts (Rental Income → income, Maintenance → expense)
+              </div>
+              <span className="text-[10px] opacity-60">auto</span>
+            </div>
+          );
+        }
+        
         return (
           <div key={h} className={`flex items-center gap-3 p-2 rounded ${color(s.field)}`}>
             <div className="w-1/3 font-mono text-xs">{h}</div>

@@ -132,7 +132,7 @@ export default function CSVImportFlow() {
             <p className="text-sm text-blue-800">
               <strong>💡 Tip:</strong> {
                 fileType === 'cash_flow' ? 
-                  'For "Account Name" columns, select "income" or "expense". For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series".' :
+                  'AI will automatically categorize accounts (Rental Income → income, Maintenance → expense). For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series".' :
                 fileType === 'rent_roll' ?
                   'For tenant names, select "tenant_name". For unit numbers, select "unit_id". For rent amounts, select "income".' :
                 fileType === 'balance_sheet' ?

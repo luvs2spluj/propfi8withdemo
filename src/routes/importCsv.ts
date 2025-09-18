@@ -5,6 +5,23 @@ import multer from "multer";
 import { normalizeCurrency, looksLikeDate } from "../lib/validators.js";
 import { uploadRawCSV, logImportRun, logImportEvent } from "../lib/supabase.js";
 
+function categorizeAccount(accountName: string): string {
+  const name = accountName.toLowerCase();
+  
+  // Income accounts
+  if (/rent|rental|income|revenue|sales|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit/.test(name)) {
+    return "income";
+  }
+  
+  // Expense accounts
+  if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance|tax|management|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital/.test(name)) {
+    return "expense";
+  }
+  
+  // Default to expense for unknown accounts
+  return "expense";
+}
+
 export const importCsvRouter = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -36,10 +53,22 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
   });
   await logImportEvent?.({ run_id: null, level: "info", message: "Uploaded", context: { storagePath } });
 
-  // Normalize preview
+  // Normalize preview with smart account categorization
   const rows = (parsed.data as any[]).map((row) => {
     const out: any = {};
     const timeSeriesData: any = {};
+    let accountName = "";
+    
+    // Find the account name column
+    for (const [orig, v] of Object.entries<any>(field_map)) {
+      if (v.field === "" && /account|name|description|item/.test(orig.toLowerCase())) {
+        accountName = String(row[orig] || "");
+        break;
+      }
+    }
+    
+    // Categorize the account automatically
+    const accountCategory = categorizeAccount(accountName);
     
     for (const [orig, v] of Object.entries<any>(field_map)) {
       const canon = v.field;
@@ -53,14 +82,29 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
         out[canon] = normalizeCurrency(String(raw));
       } else if (canon === "period" && looksLikeDate(String(raw))) {
         out[canon] = new Date(String(raw));
+      } else if (canon === "") {
+        // Skip unmapped columns (like account names)
+        continue;
       } else {
         out[canon] = raw;
       }
     }
     
-    // Add time-series data as a nested object
-    if (Object.keys(timeSeriesData).length > 0) {
+    // Add categorized account data
+    if (accountCategory && Object.keys(timeSeriesData).length > 0) {
+      out.account_name = accountName;
+      out.account_category = accountCategory;
       out.time_series = timeSeriesData;
+      
+      // Calculate totals for dashboard
+      const monthlyValues = Object.values(timeSeriesData).filter(v => typeof v === 'number') as number[];
+      const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+      
+      if (accountCategory === "income") {
+        out.total_income = totalValue;
+      } else if (accountCategory === "expense") {
+        out.total_expense = totalValue;
+      }
     }
     
     if (propertyId) out.property = propertyId;

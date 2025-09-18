@@ -100,9 +100,8 @@ function getFileTypeSuggestion(header: string, fileType: string, sampleValues: s
   switch (fileType) {
     case 'cash_flow':
       if (/account|name|description|item/.test(h)) {
-        // Smart detection based on account names
-        const accountType = detectAccountType(sampleValues);
-        return { field: accountType, score: 0.8 };
+        // Don't map account name column - it's just labels
+        return { field: "", score: 0 };
       }
       if (/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(h)) {
         return { field: "time_series", score: 0.9 };
