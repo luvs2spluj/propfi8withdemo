@@ -22,6 +22,21 @@ function categorizeAccount(accountName: string): string {
   return "expense";
 }
 
+function normalizeValueByCategory(value: number, category: string): number {
+  // Ensure all values are positive for proper categorization
+  const absValue = Math.abs(value);
+  
+  if (category === "income") {
+    // Income should always be positive
+    return absValue;
+  } else if (category === "expense") {
+    // Expense should always be positive
+    return absValue;
+  }
+  
+  return absValue;
+}
+
 export const importCsvRouter = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -34,6 +49,7 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
   if (parsed.errors?.length) return res.status(400).json({ error: parsed.errors[0].message });
 
   const field_map = JSON.parse(req.body.field_map || "{}");
+  const accountCategories = JSON.parse(req.body.account_categories || "{}");
   const propertyId = req.body.property_id || null;
   const ownerId = req.body.owner_id || "local";
 
@@ -67,8 +83,8 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
       }
     }
     
-    // Categorize the account automatically
-    const accountCategory = categorizeAccount(accountName);
+    // Use user-provided category or auto-categorize
+    const accountCategory = accountCategories[accountName] || categorizeAccount(accountName);
     
     for (const [orig, v] of Object.entries<any>(field_map)) {
       const canon = v.field;
@@ -76,8 +92,13 @@ importCsvRouter.post("/", upload.single("file"), async (req, res) => {
       if (raw == null || String(raw).trim() === "") continue;
       
       if (canon === "time_series") {
-        // Handle time-series data (months, quarters, etc.)
-        timeSeriesData[orig] = normalizeCurrency(String(raw));
+        // Handle time-series data (months, quarters, etc.) with normalization
+        const value = normalizeCurrency(String(raw));
+        if (value !== null) {
+          // Normalize values based on account category
+          const normalizedValue = normalizeValueByCategory(value, accountCategory);
+          timeSeriesData[orig] = normalizedValue;
+        }
       } else if (["income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "arrears", "asset", "liability", "equity"].includes(canon)) {
         out[canon] = normalizeCurrency(String(raw));
       } else if (canon === "period" && looksLikeDate(String(raw))) {

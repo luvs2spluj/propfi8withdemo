@@ -10,11 +10,12 @@ export default function CSVImportFlow() {
   const [file, setFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<FileType>('general');
   const [headers, setHeaders] = useState<string[]>([]);
-  const [, setSamples] = useState<string[][]>([]);
+  const [samples, setSamples] = useState<string[][]>([]);
   const [map, setMap] = useState<Record<string, FieldSuggestion>>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
 
   const handleFile = (f: File) => {
     setFile(f);
@@ -44,8 +45,45 @@ export default function CSVImportFlow() {
           }
         }
         setMap(autoMap);
+        
+        // Auto-categorize accounts based on names
+        const accountCol = cols.find(col => /account|name|description|item/.test(col.toLowerCase()));
+        if (accountCol && sampleRows.length > 0) {
+          const categories: Record<string, string> = {};
+          for (const row of sampleRows) {
+            const accountName = String(row[accountCol] || "").trim();
+            if (accountName) {
+              categories[accountName] = categorizeAccount(accountName);
+            }
+          }
+          setAccountCategories(categories);
+        }
       }
     });
+  };
+
+  const categorizeAccount = (accountName: string): string => {
+    const name = accountName.toLowerCase();
+    
+    // Income accounts
+    if (/rent|rental|income|revenue|sales|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit/.test(name)) {
+      return "income";
+    }
+    
+    // Expense accounts
+    if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance|tax|management|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital/.test(name)) {
+      return "expense";
+    }
+    
+    // Default to expense for unknown accounts
+    return "expense";
+  };
+
+  const updateAccountCategory = (accountName: string, category: string) => {
+    setAccountCategories(prev => ({
+      ...prev,
+      [accountName]: category
+    }));
   };
 
   const onChange = (orig: string, field: string) => 
@@ -61,6 +99,7 @@ export default function CSVImportFlow() {
           fd.append("file", file);
           fd.append("field_map", JSON.stringify(map));
           fd.append("file_type", fileType);
+          fd.append("account_categories", JSON.stringify(accountCategories));
       
       const res = await fetch(`${API}/api/import`, { 
         method: "POST", 
@@ -140,6 +179,36 @@ export default function CSVImportFlow() {
             </p>
           </div>
           <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
+          
+          {/* Account Category Editor */}
+          {Object.keys(accountCategories).length > 0 && (
+            <div className="mt-6">
+              <h4 className="text-md font-medium mb-3">Account Categories</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-3 bg-gray-50">
+                {Object.entries(accountCategories).map(([accountName, category]) => (
+                  <div key={accountName} className="flex items-center gap-3 p-2 bg-white rounded border">
+                    <div className="w-1/2 font-medium text-sm">{accountName}</div>
+                    <select 
+                      className="w-1/3 border rounded p-1 text-sm"
+                      value={category}
+                      onChange={e => updateAccountCategory(accountName, e.target.value)}
+                    >
+                      <option value="income">Income</option>
+                      <option value="expense">Expense</option>
+                    </select>
+                    <div className={`w-1/6 text-xs px-2 py-1 rounded ${
+                      category === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {category}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-2">
+                💡 Adjust categories as needed. Values will be normalized (negative income → positive expense)
+              </p>
+            </div>
+          )}
         </div>
       )}
       
