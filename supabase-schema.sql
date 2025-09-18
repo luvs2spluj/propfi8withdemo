@@ -119,6 +119,32 @@ CREATE TRIGGER update_property_data_updated_at BEFORE UPDATE ON property_data
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- CSV data table for storing uploaded CSV information
+CREATE TABLE IF NOT EXISTS csv_data (
+    id VARCHAR(255) PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    total_records INTEGER DEFAULT 0,
+    account_categories JSONB DEFAULT '{}',
+    bucket_assignments JSONB DEFAULT '{}',
+    tags JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    preview_data JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- RLS policies for csv_data table
+ALTER TABLE csv_data ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow all operations for authenticated users" ON csv_data
+    FOR ALL USING (auth.role() = 'authenticated');
+
+-- Trigger for automatic timestamp updates on csv_data
+CREATE TRIGGER update_csv_data_updated_at BEFORE UPDATE ON csv_data
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Insert sample data
 INSERT INTO properties (name, address, type, total_units) VALUES
 ('Downtown Plaza', '123 Main St, Downtown', 'Apartment Complex', 24),

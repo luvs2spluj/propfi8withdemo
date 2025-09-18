@@ -1,74 +1,94 @@
-# 🚀 Supabase Setup Instructions
+# Supabase Setup Instructions
 
-## ❌ Current Issue
-The application is trying to connect to `your-ai-project.supabase.co` instead of your actual Supabase project.
+## ✅ Current Status
+- Supabase connection is **WORKING** ✅
+- Environment variables are **CONFIGURED** ✅
+- Frontend code is **READY** ✅
+- Database table needs to be **CREATED** ⚠️
 
-## ✅ Solution Applied
-I've added the correct Supabase credentials to your `.env` file:
+## 🔧 Manual Setup Required
 
-```bash
-# AI Parser Supabase Configuration
-REACT_APP_SUPABASE_URL_AI=https://iqwhrvtcrseidfyznqaf.supabase.co
-REACT_APP_SUPABASE_ANON_KEY_AI=sb_publishable_ULLJeduhFHc_KRINLLXxug_zGvRBLPf
+Since the automated table creation didn't work, you need to manually create the `csv_data` table in Supabase.
+
+### Step 1: Go to Supabase Dashboard
+1. Open your browser and go to: https://supabase.com/dashboard
+2. Sign in to your account
+3. Select your project: `iqwhrvtcrseidfyznqaf`
+
+### Step 2: Open SQL Editor
+1. In the left sidebar, click on **"SQL Editor"**
+2. Click **"New Query"**
+
+### Step 3: Run This SQL
+Copy and paste the following SQL into the editor and click **"Run"**:
+
+```sql
+-- CSV data table for storing uploaded CSV information
+CREATE TABLE IF NOT EXISTS csv_data (
+    id VARCHAR(255) PRIMARY KEY,
+    file_name VARCHAR(255) NOT NULL,
+    file_type VARCHAR(50) NOT NULL,
+    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    total_records INTEGER DEFAULT 0,
+    account_categories JSONB DEFAULT '{}',
+    bucket_assignments JSONB DEFAULT '{}',
+    tags JSONB DEFAULT '[]',
+    is_active BOOLEAN DEFAULT true,
+    preview_data JSONB DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE csv_data ENABLE ROW LEVEL SECURITY;
+
+-- Create policy for authenticated users
+CREATE POLICY "Allow all operations for authenticated users" ON csv_data
+    FOR ALL USING (auth.role() = 'authenticated');
 ```
 
-## 🎯 Next Steps Required
+### Step 4: Verify Setup
+After running the SQL, you should see:
+- ✅ Table created successfully
+- ✅ RLS enabled
+- ✅ Policy created
 
-### 1. Set Up Database Tables
-You need to run the SQL schema in your Supabase dashboard:
-
-1. **Go to Supabase Dashboard**: https://supabase.com/dashboard
-2. **Select your project**: `iqwhrvtcrseidfyznqaf`
-3. **Go to SQL Editor**
-4. **Copy the contents** of `ai-parser-schema.sql`
-5. **Paste and Run** the SQL to create all tables
-
-### 2. Restart Development Server
-The server needs to be restarted to pick up the new environment variables:
-
+### Step 5: Test Connection
+Run this command to test the connection:
 ```bash
-# Stop current server (if running)
-pkill -f "react-scripts start"
-
-# Start server with new environment variables
-cd /Users/alexhorton/hortonpropertiesdatadashboard1
-PORT=3001 npm start
+node test-supabase-connection.js
 ```
 
-### 3. Test Property Management
-Once the database is set up and server restarted:
+You should see:
+```
+✅ Database connection successful!
+📊 CSV data table accessible
+```
 
-1. Navigate to **"Property Management"** tab
-2. Click **"Add Property"**
-3. Fill in property details
-4. Save the property
+## 🚀 After Setup
+Once the table is created, your frontend will be able to:
+- ✅ Save CSV data to Supabase
+- ✅ Load CSV data from Supabase
+- ✅ Delete CSV data from Supabase
+- ✅ Fall back to localStorage if Supabase is unavailable
 
-## 📋 Database Tables Created
-- `properties_ai` - Properties for AI parser
-- `csv_files_ai` - CSV file metadata
-- `parsed_data_ai` - Parsed CSV data
-- `header_matches_ai` - AI header matching results
-- `processing_jobs_ai` - Processing job status
-- `user_sessions_ai` - User session data
+## 🔍 Environment Variables
+Your `.env.local` file should contain:
+```
+REACT_APP_SUPABASE_URL=https://iqwhrvtcrseidfyznqaf.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=sb_publishable_ULLJeduhFHc_KRINLLXxug_zGvRBLPf
+REACT_APP_API_BASE=http://localhost:5001
+```
 
-## 🔧 Environment Variables
-Your `.env` file now contains:
-- ✅ Main Supabase credentials
-- ✅ AI Parser Supabase credentials
-- ✅ Database connection string
-- ✅ Project reference
+## 🎯 Next Steps
+1. Create the table in Supabase (follow steps above)
+2. Test the connection: `node test-supabase-connection.js`
+3. Start your development server: `npm run dev`
+4. Upload a CSV file to test the integration
 
-## 🚨 Important Notes
-- The AI parser uses **separate tables** from your main project
-- All tables have `_ai` suffix to avoid conflicts
-- Row Level Security is enabled for all tables
-- Storage bucket `csv-files-ai` is created for file uploads
-
-## 🎉 After Setup
-Once the database is set up, you'll be able to:
-- ✅ Add/edit/delete properties
-- ✅ Upload CSV files with AI parsing
-- ✅ View parsed data and analysis
-- ✅ Manage CSV files through the interface
-
-The Property Management system will be fully functional!
+## 🆘 Troubleshooting
+If you encounter issues:
+1. Check that you're logged into the correct Supabase project
+2. Verify the SQL ran without errors
+3. Check the browser console for any error messages
+4. Ensure your environment variables are correct

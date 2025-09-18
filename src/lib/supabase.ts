@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = process.env.SUPABASE_URL;
-const key = process.env.SUPABASE_SERVICE_ROLE;
+// Use REACT_APP_ prefixed environment variables for frontend
+const url = process.env.REACT_APP_SUPABASE_URL;
+const key = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 export const supabase = (url && key) 
   ? createClient(url, key, { auth: { persistSession: false } }) 
