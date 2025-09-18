@@ -246,7 +246,7 @@ const Dashboard: React.FC = () => {
         
         Object.entries(accountCategories).forEach(([accountName, category]) => {
           const accountData = previewData.find((item: any) => 
-            item.account_name === accountName
+            item.account_name?.trim() === accountName
           );
           
           if (accountData && accountData.time_series) {

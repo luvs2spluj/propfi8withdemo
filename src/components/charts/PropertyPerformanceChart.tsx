@@ -62,7 +62,7 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
       // Process each account in the CSV
       Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
         const accountData = csv.previewData.find((item: any) => 
-          item.account_name === accountName
+          item.account_name?.trim() === accountName
         );
         
         if (accountData && accountData.time_series) {
