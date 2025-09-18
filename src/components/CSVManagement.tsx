@@ -453,20 +453,94 @@ export default function CSVManagement() {
                     <div className="flex gap-2">
                 <button
                         onClick={() => setShowPreview(!showPreview)}
-                        className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                          showPreview 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                            : 'bg-gray-600 text-white hover:bg-gray-700'
+                        }`}
                 >
                         <Eye className="w-4 h-4" />
-                        {showPreview ? 'Hide Preview' : 'Show Preview'}
+                        {showPreview ? 'Hide Data Preview' : 'Show Data Preview'}
                 </button>
                 <button
                         onClick={saveChanges}
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+                  </div>
+
+                  {/* Enhanced Preview Section - Always visible when CSV is selected */}
+                  <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-lg font-semibold text-blue-900">📊 CSV Data Overview</h4>
+                      <div className="text-sm text-blue-700">
+                        {selectedCSV.totalRecords} records • {selectedCSV.fileType.replace('_', ' ')} • Uploaded {new Date(selectedCSV.uploadedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                      <div className="text-center p-3 bg-white rounded-lg border">
+                        <div className="text-lg font-bold text-green-600">
+                          {Object.values(editingCategories).filter(cat => cat === 'income').length}
+                        </div>
+                        <div className="text-xs text-gray-600">Income Accounts</div>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg border">
+                        <div className="text-lg font-bold text-red-600">
+                          {Object.values(editingCategories).filter(cat => cat === 'expense').length}
+                        </div>
+                        <div className="text-xs text-gray-600">Expense Accounts</div>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg border">
+                        <div className="text-lg font-bold text-blue-600">
+                          {Object.values(editingCategories).filter(cat => ['asset', 'liability', 'equity'].includes(cat)).length}
+                        </div>
+                        <div className="text-xs text-gray-600">Balance Sheet</div>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg border">
+                        <div className="text-lg font-bold text-purple-600">
+                          {Object.keys(editingBuckets).filter(bucket => editingBuckets[bucket] !== 'Unassigned').length}
+                        </div>
+                        <div className="text-xs text-gray-600">Assigned Buckets</div>
+                      </div>
+                    </div>
+
+                    {/* Sample Data Preview */}
+                    <div className="bg-white rounded-lg border p-3">
+                      <h5 className="text-sm font-medium mb-2 text-gray-700">Sample Account Data:</h5>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {Object.entries(editingCategories).slice(0, 5).map(([accountName, category]) => (
+                          <div key={accountName} className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded">
+                            <span className="font-medium text-gray-800 truncate flex-1" title={accountName}>
+                              {accountName}
+                            </span>
+                            <span className={`px-2 py-1 rounded text-xs ml-2 ${
+                              category === 'income' ? 'bg-green-100 text-green-800' :
+                              category === 'expense' ? 'bg-red-100 text-red-800' :
+                              category === 'asset' ? 'bg-blue-100 text-blue-800' :
+                              category === 'liability' ? 'bg-orange-100 text-orange-800' :
+                              category === 'equity' ? 'bg-purple-100 text-purple-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {category}
+                            </span>
+                            <span className="text-gray-500 ml-2">
+                              {editingBuckets[accountName] || 'Unassigned'}
+                            </span>
+                          </div>
+                        ))}
+                        {Object.keys(editingCategories).length > 5 && (
+                          <div className="text-xs text-gray-500 text-center py-1">
+                            +{Object.keys(editingCategories).length - 5} more accounts...
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Totals Preview */}
@@ -570,30 +644,38 @@ export default function CSVManagement() {
                     </div>
                   </div>
 
-                  {/* Preview Data */}
+                  {/* Enhanced Preview Data */}
                   {showPreview && (
-                    <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
-                      <h4 className="text-md font-semibold mb-3">📋 Data Preview</h4>
-                      <div className="max-h-96 overflow-auto">
+                    <div className="mt-6 p-6 bg-white border-2 border-blue-200 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-lg font-semibold text-blue-900">📋 Detailed Data Preview</h4>
+                        <div className="text-sm text-blue-700">
+                          Showing {Math.min(20, selectedCSV.previewData.length)} of {selectedCSV.previewData.length} records
+                        </div>
+                      </div>
+                      
+                      <div className="max-h-96 overflow-auto border border-gray-200 rounded-lg">
                         <div className="overflow-x-auto">
-                          <table className="min-w-full text-xs border-collapse border border-gray-300">
-                            <thead>
-                              <tr className="bg-gray-100">
-                                <th className="border border-gray-300 px-2 py-1 text-left">Account Name</th>
-                                <th className="border border-gray-300 px-2 py-1 text-left">Category</th>
-                                <th className="border border-gray-300 px-2 py-1 text-left">Bucket</th>
-                                <th className="border border-gray-300 px-2 py-1 text-left">Tags</th>
-                                <th className="border border-gray-300 px-2 py-1 text-left">Time Series Data</th>
+                          <table className="min-w-full text-sm border-collapse">
+                            <thead className="bg-blue-50">
+                              <tr>
+                                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Account Name</th>
+                                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Category</th>
+                                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Dashboard Bucket</th>
+                                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Tags</th>
+                                <th className="border-b border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Financial Data</th>
                               </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-gray-200">
                               {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => (
-                                <tr key={index} className="hover:bg-gray-50">
-                                  <td className="border border-gray-300 px-2 py-1 font-medium">
-                                    {row.account_name || 'N/A'}
+                                <tr key={index} className="hover:bg-blue-50 transition-colors">
+                                  <td className="px-4 py-3 font-medium text-gray-900">
+                                    <div className="max-w-xs truncate" title={row.account_name || 'N/A'}>
+                                      {row.account_name || 'N/A'}
+                                    </div>
                                   </td>
-                                  <td className="border border-gray-300 px-2 py-1">
-                                    <span className={`px-2 py-1 rounded text-xs ${
+                                  <td className="px-4 py-3">
+                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                                       editingCategories[row.account_name] === 'income' 
                                         ? 'bg-green-100 text-green-800' 
                                         : editingCategories[row.account_name] === 'expense'
@@ -609,39 +691,75 @@ export default function CSVManagement() {
                                       {editingCategories[row.account_name] || 'Uncategorized'}
                                     </span>
                                   </td>
-                                  <td className="border border-gray-300 px-2 py-1">
-                                    {editingBuckets[row.account_name] || 'Unassigned'}
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      editingBuckets[row.account_name] && editingBuckets[row.account_name] !== 'Unassigned'
+                                        ? 'bg-indigo-100 text-indigo-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {editingBuckets[row.account_name] || 'Unassigned'}
+                                    </span>
                                   </td>
-                                  <td className="border border-gray-300 px-2 py-1">
-                                    {editingTags[row.account_name]?.join(', ') || 'No tags'}
+                                  <td className="px-4 py-3 text-sm text-gray-600">
+                                    <div className="max-w-xs">
+                                      {editingTags[row.account_name]?.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1">
+                                          {editingTags[row.account_name].slice(0, 2).map((tag: string, tagIndex: number) => (
+                                            <span key={tagIndex} className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                                              {tag}
+                                            </span>
+                                          ))}
+                                          {editingTags[row.account_name].length > 2 && (
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                              +{editingTags[row.account_name].length - 2}
+                                            </span>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-400 italic">No tags</span>
+                                      )}
+                                    </div>
                                   </td>
-                                  <td className="border border-gray-300 px-2 py-1">
+                                  <td className="px-4 py-3 text-sm">
                                     {row.time_series ? (
                                       <div className="max-w-xs">
-                                        {Object.entries(row.time_series).slice(0, 3).map(([month, value]: [string, any]) => (
-                                          <div key={month} className="text-xs">
-                                            {month}: ${typeof value === 'number' ? value.toLocaleString() : value}
-                                          </div>
-                                        ))}
-                                        {Object.keys(row.time_series).length > 3 && (
-                                          <div className="text-xs text-gray-500">
-                                            +{Object.keys(row.time_series).length - 3} more...
-                                          </div>
-                                        )}
+                                        <div className="space-y-1">
+                                          {Object.entries(row.time_series).slice(0, 3).map(([month, value]: [string, any]) => (
+                                            <div key={month} className="flex justify-between text-xs">
+                                              <span className="text-gray-600">{month}:</span>
+                                              <span className={`font-medium ${
+                                                typeof value === 'number' && value < 0 ? 'text-red-600' : 'text-green-600'
+                                              }`}>
+                                                ${typeof value === 'number' ? Math.abs(value).toLocaleString() : value}
+                                              </span>
+                                            </div>
+                                          ))}
+                                          {Object.keys(row.time_series).length > 3 && (
+                                            <div className="text-xs text-gray-500 pt-1 border-t">
+                                              +{Object.keys(row.time_series).length - 3} more periods
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    ) : 'No time series data'}
+                                    ) : (
+                                      <span className="text-gray-400 italic">No financial data</span>
+                                    )}
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
-                        {selectedCSV.previewData.length > 20 && (
-                          <div className="mt-2 text-xs text-gray-500 text-center">
-                            Showing first 20 rows of {selectedCSV.previewData.length} total rows
-                          </div>
-                        )}
                       </div>
+                      
+                      {selectedCSV.previewData.length > 20 && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="text-sm text-blue-700 text-center">
+                            📊 <strong>{selectedCSV.previewData.length - 20} more records</strong> available. 
+                            Use the categorization editor above to manage all accounts.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
