@@ -15,6 +15,7 @@ export type Page =
   | 'upload-ai' 
   | 'csv-management-ai' 
   | 'property-management-ai' 
+  | 'ai-training' 
   | 'csv-data' 
   | 'csv-management';
 

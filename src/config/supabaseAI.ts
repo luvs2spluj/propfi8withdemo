@@ -198,23 +198,6 @@ export class AIParserService {
     }
   }
 
-  async getParsedData(csvFileId: string): Promise<{ success: boolean; data?: ParsedDataAI[]; error?: string }> {
-    try {
-      const { data, error } = await this.supabase
-        .from(AI_TABLES.PARSED_DATA)
-        .select('*')
-        .eq('csv_file_id', csvFileId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true, data: data || [] };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  }
 
   // Header Match Operations
   async saveHeaderMatches(csvFileId: string, headerMatches: any[]): Promise<{ success: boolean; data?: HeaderMatchAI[]; error?: string }> {
@@ -444,6 +427,81 @@ export class AIParserService {
       }
 
       return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  // Training Methods
+  async getHeaderMatches(csvFileId: string): Promise<{ success: boolean; data?: HeaderMatchAI[]; error?: string }> {
+    try {
+      const { data, error } = await this.supabase
+        .from(AI_TABLES.HEADER_MATCHES)
+        .select('*')
+        .eq('csv_file_id', csvFileId)
+        .order('confidence_score', { ascending: false });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async updateHeaderMatch(headerMatchId: string, updates: Partial<HeaderMatchAI>): Promise<{ success: boolean; data?: HeaderMatchAI; error?: string }> {
+    try {
+      const { data, error } = await this.supabase
+        .from(AI_TABLES.HEADER_MATCHES)
+        .update(updates)
+        .eq('id', headerMatchId)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getParsedData(csvFileId: string): Promise<{ success: boolean; data?: ParsedDataAI[]; error?: string }> {
+    try {
+      const { data, error } = await this.supabase
+        .from(AI_TABLES.PARSED_DATA)
+        .select('*')
+        .eq('csv_file_id', csvFileId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: data || [] };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async updateParsedData(parsedDataId: string, updates: Partial<ParsedDataAI>): Promise<{ success: boolean; data?: ParsedDataAI; error?: string }> {
+    try {
+      const { data, error } = await this.supabase
+        .from(AI_TABLES.PARSED_DATA)
+        .update(updates)
+        .eq('id', parsedDataId)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }

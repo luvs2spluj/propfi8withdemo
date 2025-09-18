@@ -8,6 +8,7 @@ import {
   Upload,
   Brain,
   Database,
+  GraduationCap,
   // Settings, // Unused import
   Home
   // Table, // Unused import
@@ -28,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'upload-ai' as Page, label: 'AI Parser', icon: Brain },
     { id: 'csv-management-ai' as Page, label: 'CSV Management', icon: Database },
     { id: 'property-management-ai' as Page, label: 'Property Management', icon: Building2 },
+    { id: 'ai-training' as Page, label: 'AI Training', icon: GraduationCap },
     // Note: csv-data, csv-management tabs removed but logic preserved for future use
   ];
 

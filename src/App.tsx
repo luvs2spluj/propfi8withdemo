@@ -9,6 +9,7 @@ import CSVUpload from './components/CSVUpload';
 import CSVUploadAI from './components/CSVUploadAI';
 import CSVManagementAI from './components/CSVManagementAI';
 import PropertyManagementAI from './components/PropertyManagementAI';
+import AITraining from './components/AITraining';
 import CSVDataViewer from './components/CSVDataViewer';
 import CSVManagement from './components/CSVManagement';
 import { Page } from './types';
@@ -56,6 +57,8 @@ function App() {
         return <CSVManagementAI />;
       case 'property-management-ai':
         return <PropertyManagementAI />;
+      case 'ai-training':
+        return <AITraining />;
       // Note: csv-data and csv-management cases preserved for future use
       case 'csv-data':
         return <CSVDataViewer />;
