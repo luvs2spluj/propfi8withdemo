@@ -10,6 +10,31 @@ const color = (f: string): string => {
   return "bg-gray-100";
 };
 
+const ALL_FIELDS = {
+  cash_flow: [
+    "period", "income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "balance", "arrears",
+    "time_series"
+  ],
+  balance_sheet: [
+    "asset", "liability", "equity", "cash", "receivable", "payable", "loan", "mortgage", "investment",
+    "period"
+  ],
+  rent_roll: [
+    "tenant_name", "email", "phone", "unit_id", "move_in", "move_out", "deposit", "status",
+    "income", "period"
+  ],
+  income_statement: [
+    "period", "income", "expense", "revenue", "cost", "noi", "taxes", "insurance", "mortgage",
+    "time_series"
+  ],
+  general: [
+    "property_name", "address", "city", "state", "zip", "unit_id",
+    "tenant_name", "email", "phone", "move_in", "move_out", "deposit", "status",
+    "period", "income", "expense", "noi", "capex", "taxes", "insurance", "mortgage", "balance", "arrears", "asset", "liability", "equity",
+    "time_series"
+  ]
+};
+
 const ALL = [
   "property_name", "address", "city", "state", "zip", "unit_id",
   "tenant_name", "email", "phone", "move_in", "move_out", "deposit", "status",
@@ -21,9 +46,10 @@ interface HeaderMapperProps {
   headers: string[];
   suggestions: Record<string, FieldSuggestion>;
   onChange: (orig: string, field: string) => void;
+  fileType?: string;
 }
 
-export default function HeaderMapper({ headers, suggestions, onChange }: HeaderMapperProps) {
+export default function HeaderMapper({ headers, suggestions, onChange, fileType = 'general' }: HeaderMapperProps) {
   return (
     <div className="space-y-2">
       {headers.map(h => {
@@ -66,7 +92,7 @@ export default function HeaderMapper({ headers, suggestions, onChange }: HeaderM
               onChange={e => onChange(h, e.target.value)}
             >
               <option value="">— map to… —</option>
-              {ALL.map(f => <option key={f} value={f}>{f}</option>)}
+              {(ALL_FIELDS[fileType as keyof typeof ALL_FIELDS] || ALL).map(f => <option key={f} value={f}>{f}</option>)}
             </select>
             <span className="text-[10px] opacity-60">conf {s.score?.toFixed?.(2) ?? "0.00"}</span>
           </div>

@@ -293,21 +293,37 @@ const Dashboard: React.FC = () => {
             ) as number[];
             
             if (values.length > 0) {
-              // For cash flow statements, we want the AVERAGE monthly value
-              // This represents the typical monthly income/expense for this account
-              const monthlyAverage = values.reduce((sum, val) => sum + val, 0) / values.length;
-              const totalSum = values.reduce((sum, val) => sum + val, 0);
+              // Handle different file types appropriately
+              let accountValue = 0;
               
-              console.log(`  💰 ${accountName} (${category}):`);
-              console.log(`    - ${values.length} months of data`);
-              console.log(`    - Monthly values: [${values.slice(0, 5).join(', ')}${values.length > 5 ? '...' : ''}]`);
-              console.log(`    - Monthly average: $${monthlyAverage.toLocaleString()}`);
-              console.log(`    - Total sum: $${totalSum.toLocaleString()}`);
+              if (csv.fileType === 'balance_sheet') {
+                // For balance sheets, use the most recent value (last month)
+                accountValue = values[values.length - 1];
+                console.log(`  💰 ${accountName} (${category}): Latest value = $${accountValue.toLocaleString()}`);
+              } else if (csv.fileType === 'rent_roll') {
+                // For rent rolls, use the average monthly value
+                accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+                console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
+              } else {
+                // For cash flow and income statements, use monthly average
+                accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+                console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
+              }
               
-              if (category === 'income') {
-                totalIncome += monthlyAverage;
+              // Categorize based on account type
+              if (category === 'income' || category === 'revenue') {
+                totalIncome += accountValue;
               } else if (category === 'expense') {
-                totalExpense += monthlyAverage;
+                totalExpense += accountValue;
+              } else if (category === 'asset') {
+                // For balance sheets, assets don't affect income/expense totals
+                console.log(`  📊 Asset account: ${accountName} = $${accountValue.toLocaleString()}`);
+              } else if (category === 'liability') {
+                // For balance sheets, liabilities don't affect income/expense totals
+                console.log(`  📊 Liability account: ${accountName} = $${accountValue.toLocaleString()}`);
+              } else if (category === 'equity') {
+                // For balance sheets, equity doesn't affect income/expense totals
+                console.log(`  📊 Equity account: ${accountName} = $${accountValue.toLocaleString()}`);
               }
             }
           }

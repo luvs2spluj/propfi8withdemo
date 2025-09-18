@@ -540,11 +540,76 @@ export default function CSVManagement() {
 
                   {/* Preview Data */}
                   {showPreview && (
-                    <div className="mt-4">
-                      <h4 className="text-md font-medium mb-2">Data Preview</h4>
-                      <pre className="text-xs border rounded p-2 max-h-60 overflow-auto bg-gray-50">
-                        {JSON.stringify(selectedCSV.previewData.slice(0, 10), null, 2)}
-                      </pre>
+                    <div className="mt-4 p-4 bg-gray-50 border rounded-lg">
+                      <h4 className="text-md font-semibold mb-3">📋 Data Preview</h4>
+                      <div className="max-h-96 overflow-auto">
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full text-xs border-collapse border border-gray-300">
+                            <thead>
+                              <tr className="bg-gray-100">
+                                <th className="border border-gray-300 px-2 py-1 text-left">Account Name</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Category</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Bucket</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Tags</th>
+                                <th className="border border-gray-300 px-2 py-1 text-left">Time Series Data</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                  <td className="border border-gray-300 px-2 py-1 font-medium">
+                                    {row.account_name || 'N/A'}
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-1">
+                                    <span className={`px-2 py-1 rounded text-xs ${
+                                      editingCategories[row.account_name] === 'income' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : editingCategories[row.account_name] === 'expense'
+                                        ? 'bg-red-100 text-red-800'
+                                        : editingCategories[row.account_name] === 'asset'
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : editingCategories[row.account_name] === 'liability'
+                                        ? 'bg-orange-100 text-orange-800'
+                                        : editingCategories[row.account_name] === 'equity'
+                                        ? 'bg-purple-100 text-purple-800'
+                                        : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {editingCategories[row.account_name] || 'Uncategorized'}
+                                    </span>
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-1">
+                                    {editingBuckets[row.account_name] || 'Unassigned'}
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-1">
+                                    {editingTags[row.account_name]?.join(', ') || 'No tags'}
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-1">
+                                    {row.time_series ? (
+                                      <div className="max-w-xs">
+                                        {Object.entries(row.time_series).slice(0, 3).map(([month, value]: [string, any]) => (
+                                          <div key={month} className="text-xs">
+                                            {month}: ${typeof value === 'number' ? value.toLocaleString() : value}
+                                          </div>
+                                        ))}
+                                        {Object.keys(row.time_series).length > 3 && (
+                                          <div className="text-xs text-gray-500">
+                                            +{Object.keys(row.time_series).length - 3} more...
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : 'No time series data'}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {selectedCSV.previewData.length > 20 && (
+                          <div className="mt-2 text-xs text-gray-500 text-center">
+                            Showing first 20 rows of {selectedCSV.previewData.length} total rows
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

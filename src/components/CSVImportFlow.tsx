@@ -91,18 +91,95 @@ export default function CSVImportFlow() {
   const categorizeAccount = (accountName: string): string => {
     const name = accountName.toLowerCase();
     
-    // Income accounts - be more specific
+    // File type specific categorization
+    switch (fileType) {
+      case 'cash_flow':
+        return categorizeCashFlowAccount(name);
+      case 'balance_sheet':
+        return categorizeBalanceSheetAccount(name);
+      case 'rent_roll':
+        return categorizeRentRollAccount(name);
+      case 'income_statement':
+        return categorizeIncomeStatementAccount(name);
+      default:
+        return categorizeGeneralAccount(name);
+    }
+  };
+
+  const categorizeCashFlowAccount = (name: string): string => {
+    // Income accounts for cash flow
     if (/rent|rental|income|revenue|sales|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit|short term|concessions.*rent|insurance.*income|credit reporting.*income|lock.*key.*sales|resident.*tenant.*rents|concessions.*rent|insurance.*admin.*fee|insurance.*svcs.*income/.test(name)) {
       return "income";
     }
     
-    // Expense accounts - be more specific  
+    // Expense accounts for cash flow
     if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance.*fee|tax|management.*fee|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital|move.*in.*specials|move.*out.*charges|move.*out.*damages|move.*out.*carpet|resident.*charge|garbage|salaries.*wages|payroll.*taxes|workers.*comp|clerical.*postage|move.*out.*charges.*resident|dnu.*move.*out.*damages|dnu.*move.*out.*carpet|water.*service|asset.*management.*fee/.test(name)) {
       return "expense";
     }
     
-    // Default to expense for unknown accounts
-    return "expense";
+    return "expense"; // Default to expense for unknown accounts
+  };
+
+  const categorizeBalanceSheetAccount = (name: string): string => {
+    // Assets
+    if (/asset|cash|bank|receivable|inventory|prepaid|equipment|building|land|furniture|fixtures|improvement|deposit|security|petty cash|accounts receivable|notes receivable|investment|property|plant|equipment/.test(name)) {
+      return "asset";
+    }
+    
+    // Liabilities
+    if (/liability|payable|loan|debt|mortgage|note|accounts payable|notes payable|accrued|wages payable|taxes payable|interest payable|unearned|deposits|security deposits|tenant deposits/.test(name)) {
+      return "liability";
+    }
+    
+    // Equity
+    if (/equity|capital|retained|earnings|owner|partnership|stock|shares|common stock|preferred stock|treasury/.test(name)) {
+      return "equity";
+    }
+    
+    return "asset"; // Default to asset for unknown accounts
+  };
+
+  const categorizeRentRollAccount = (name: string): string => {
+    // Tenant information
+    if (/tenant|resident|lessee|occupant|name|email|phone|contact/.test(name)) {
+      return "tenant_info";
+    }
+    
+    // Unit information
+    if (/unit|apartment|suite|space|room|bedroom|bathroom|square|sqft|sq\.ft/.test(name)) {
+      return "unit_info";
+    }
+    
+    // Financial information
+    if (/rent|amount|income|revenue|deposit|fee|late|pet|application|security/.test(name)) {
+      return "financial";
+    }
+    
+    // Lease information
+    if (/lease|start|end|move.*in|move.*out|term|month|year|date|expir|renew/.test(name)) {
+      return "lease_info";
+    }
+    
+    return "tenant_info"; // Default to tenant info
+  };
+
+  const categorizeIncomeStatementAccount = (name: string): string => {
+    // Revenue accounts
+    if (/revenue|income|sales|rent|rental|lease|tenant|occupancy|parking|storage|amenity|fee|late fee|pet fee|application fee|deposit|short term|concessions.*rent|insurance.*income|credit reporting.*income|lock.*key.*sales|resident.*tenant.*rents|concessions.*rent|insurance.*admin.*fee|insurance.*svcs.*income/.test(name)) {
+      return "revenue";
+    }
+    
+    // Expense accounts
+    if (/expense|cost|maintenance|repair|utility|electric|water|gas|insurance.*fee|tax|management.*fee|legal|accounting|marketing|advertising|cleaning|landscaping|pest control|security|trash|sewer|cable|internet|phone|supplies|equipment|contractor|vendor|service|operating|capex|capital|move.*in.*specials|move.*out.*charges|move.*out.*damages|move.*out.*carpet|resident.*charge|garbage|salaries.*wages|payroll.*taxes|workers.*comp|clerical.*postage|move.*out.*charges.*resident|dnu.*move.*out.*damages|dnu.*move.*out.*carpet|water.*service|asset.*management.*fee/.test(name)) {
+      return "expense";
+    }
+    
+    return "expense"; // Default to expense for unknown accounts
+  };
+
+  const categorizeGeneralAccount = (name: string): string => {
+    // Fallback to cash flow logic for general files
+    return categorizeCashFlowAccount(name);
   };
 
   const updateAccountCategory = (accountName: string, category: string) => {
@@ -343,7 +420,7 @@ export default function CSVImportFlow() {
               }
             </p>
           </div>
-          <HeaderMapper headers={headers} suggestions={map} onChange={onChange} />
+              <HeaderMapper headers={headers} suggestions={map} onChange={onChange} fileType={fileType} />
           
           {/* Debug Info */}
           {process.env.NODE_ENV === 'development' && (
