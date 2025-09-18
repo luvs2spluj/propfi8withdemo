@@ -57,7 +57,7 @@ function isTimeSeriesColumn(header: string): boolean {
 /** learned = { tokenToField: { token: { field: count } }, valueHints: { fingerprint: { field: count } } } */
 export function suggestFieldLearned(header: string, sampleValues: string[] = [], fileType: string = 'general'): { field: string; score: number } {
   // File-type specific suggestions
-  const fileTypeSuggestion = getFileTypeSuggestion(header, fileType);
+  const fileTypeSuggestion = getFileTypeSuggestion(header, fileType, sampleValues);
   if (fileTypeSuggestion.score > 0.8) return fileTypeSuggestion;
   
   const base = synonymScore(header);
@@ -94,14 +94,15 @@ export function suggestFieldLearned(header: string, sampleValues: string[] = [],
   return blended > base.score ? { field: lf, score: blended } : base;
 }
 
-function getFileTypeSuggestion(header: string, fileType: string): { field: string; score: number } {
+function getFileTypeSuggestion(header: string, fileType: string, sampleValues: string[] = []): { field: string; score: number } {
   const h = norm(header);
   
   switch (fileType) {
     case 'cash_flow':
       if (/account|name|description|item/.test(h)) {
-        // Check if it looks like income or expense based on sample values
-        return { field: "income", score: 0.7 }; // Default to income, user can change
+        // Smart detection based on account names
+        const accountType = detectAccountType(sampleValues);
+        return { field: accountType, score: 0.8 };
       }
       if (/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(h)) {
         return { field: "time_series", score: 0.9 };
@@ -134,6 +135,38 @@ function getFileTypeSuggestion(header: string, fileType: string): { field: strin
   }
   
   return { field: "", score: 0 };
+}
+
+function detectAccountType(sampleValues: string[]): string {
+  const incomeKeywords = [
+    'rent', 'rental', 'income', 'revenue', 'sales', 'lease', 'tenant', 'occupancy',
+    'parking', 'storage', 'amenity', 'fee', 'late fee', 'pet fee', 'application fee'
+  ];
+  
+  const expenseKeywords = [
+    'expense', 'cost', 'maintenance', 'repair', 'utility', 'electric', 'water', 'gas',
+    'insurance', 'tax', 'management', 'legal', 'accounting', 'marketing', 'advertising',
+    'cleaning', 'landscaping', 'pest control', 'security', 'trash', 'sewer', 'cable',
+    'internet', 'phone', 'supplies', 'equipment', 'contractor', 'vendor', 'service'
+  ];
+  
+  let incomeScore = 0;
+  let expenseScore = 0;
+  
+  for (const value of sampleValues.slice(0, 10)) {
+    const v = norm(String(value || ''));
+    
+    for (const keyword of incomeKeywords) {
+      if (v.includes(keyword)) incomeScore++;
+    }
+    
+    for (const keyword of expenseKeywords) {
+      if (v.includes(keyword)) expenseScore++;
+    }
+  }
+  
+  // Return the type with higher score, default to income if tied
+  return expenseScore > incomeScore ? 'expense' : 'income';
 }
 
 function fingerprint(v: string): string {
