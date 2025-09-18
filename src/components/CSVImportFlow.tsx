@@ -82,6 +82,7 @@ export default function CSVImportFlow() {
               }
               setAccountCategories(categories);
               console.log("Detected account categories:", Object.keys(categories).length, "items:", categories); // Debug log
+              console.log("🔍 Sample account names from CSV:", Object.keys(categories).slice(0, 5)); // Debug log
             }
           }
         });
@@ -280,6 +281,15 @@ export default function CSVImportFlow() {
         isActive: true,
         previewData: preview
       };
+      
+      console.log("💾 Saving CSV record:", {
+        fileName: csvRecord.fileName,
+        accountCategoriesCount: Object.keys(csvRecord.accountCategories).length,
+        bucketAssignmentsCount: Object.keys(csvRecord.bucketAssignments).length,
+        previewDataCount: csvRecord.previewData.length,
+        sampleAccountNames: Object.keys(csvRecord.accountCategories).slice(0, 3),
+        samplePreviewAccountNames: csvRecord.previewData.slice(0, 3).map((item: any) => item.account_name)
+      });
 
       // Save to Supabase first
       const supabaseResult = await saveCSVData({
