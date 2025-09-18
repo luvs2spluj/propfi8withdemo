@@ -34,7 +34,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "npm start",
-    "dev:log": "npm run start:log"
+    "dev:log": "npm run start:log",
+    "setup-ai-parser": "node setup-ai-parser.js",
+    "dev:ai-parser": "REACT_APP_AI_PARSER_ENABLED=true npm start"
   },
   "eslintConfig": {
     "extends": [

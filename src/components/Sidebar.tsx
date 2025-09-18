@@ -6,18 +6,16 @@ import {
   DollarSign, 
   FileText,
   Upload,
+  Brain,
+  Database,
   // Settings, // Unused import
   Home
   // Table, // Unused import
   // Trash2 // Unused import
 } from 'lucide-react';
+import { Page, NavigationProps } from '../types';
 
-type Page = 'dashboard' | 'financials' | 'analytics' | 'properties' | 'reports' | 'upload' | 'csv-data' | 'csv-management';
-
-interface SidebarProps {
-  currentPage: Page;
-  setCurrentPage: (page: Page) => void;
-}
+interface SidebarProps extends NavigationProps {}
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
@@ -27,7 +25,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
     { id: 'properties' as Page, label: 'Properties', icon: Building2 },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'upload' as Page, label: 'CSV Upload', icon: Upload },
-    // Note: csv-data, csv-management, and property-management tabs removed but logic preserved for future use
+    { id: 'upload-ai' as Page, label: 'AI Parser', icon: Brain },
+    { id: 'csv-management-ai' as Page, label: 'CSV Management', icon: Database },
+    { id: 'property-management-ai' as Page, label: 'Property Management', icon: Building2 },
+    // Note: csv-data, csv-management tabs removed but logic preserved for future use
   ];
 
   return (

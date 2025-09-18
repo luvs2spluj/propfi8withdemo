@@ -31,6 +31,12 @@ class ApiService {
     };
 
     try {
+      // Skip API calls if no backend server is available
+      if (API_BASE_URL.includes('localhost:5000') || API_BASE_URL.includes('localhost:5001')) {
+        console.warn('Backend server not available, skipping API call to:', endpoint);
+        throw new Error('Backend server not available - using Supabase directly');
+      }
+
       // Add timeout for better error handling
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -56,6 +62,8 @@ class ApiService {
         throw new Error('Request timeout - server may be unavailable');
       } else if (error.message.includes('fetch')) {
         throw new Error('Network error - unable to connect to server');
+      } else if (error.message.includes('Backend server not available')) {
+        throw error; // Re-throw our custom error
       }
       
       throw error;
