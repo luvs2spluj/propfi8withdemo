@@ -11,9 +11,11 @@ export default function CSVImportFlow() {
   const [map, setMap] = useState<Record<string, FieldSuggestion>>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFile = (f: File) => {
     setFile(f);
+    setError(null);
     Papa.parse(f, {
       header: true,
       preview: 30,
@@ -31,8 +33,17 @@ export default function CSVImportFlow() {
             samples: sampleRows.map((row: any) => cols.map((c: string) => row[c])) 
           })
         })
-        .then(res => res.json())
-        .then(j => setMap(j.field_map || {}));
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`API Error: ${res.status} ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .then(j => setMap(j.field_map || {}))
+        .catch(err => {
+          console.error('Error fetching suggestions:', err);
+          setError(`Failed to get AI suggestions: ${err.message}. Please check that the API server is running on ${API}`);
+        });
       }
     });
   };
@@ -43,6 +54,7 @@ export default function CSVImportFlow() {
   const submit = async () => {
     if (!file) return;
     setLoading(true);
+    setError(null);
     
     try {
       const fd = new FormData();
@@ -53,10 +65,16 @@ export default function CSVImportFlow() {
         method: "POST", 
         body: fd 
       });
+      
+      if (!res.ok) {
+        throw new Error(`Import failed: ${res.status} ${res.statusText}`);
+      }
+      
       const j = await res.json();
       setPreview(j.imported_preview || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Import error:", error);
+      setError(`Import failed: ${error.message}. Please check that the API server is running on ${API}`);
     } finally {
       setLoading(false);
     }
@@ -92,6 +110,19 @@ export default function CSVImportFlow() {
         </button>
       )}
       
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {!!preview.length && (
         <div>
           <h4 className="text-md font-medium mb-2">Import Preview</h4>
@@ -103,3 +134,4 @@ export default function CSVImportFlow() {
     </div>
   );
 }
+
