@@ -121,6 +121,11 @@ export default function CSVManagement() {
   }, []);
 
   const handleEditCSV = (csv: CSVRecord) => {
+    console.log('🔍 Loading CSV for editing:', csv.fileName);
+    console.log('📊 Account categories:', csv.accountCategories);
+    console.log('🎯 Bucket assignments:', csv.bucketAssignments);
+    console.log('🏷️ Tags:', csv.tags);
+    
     setSelectedCSV(csv);
     setEditingCategories({ ...csv.accountCategories });
     setEditingBuckets({ ...csv.bucketAssignments });

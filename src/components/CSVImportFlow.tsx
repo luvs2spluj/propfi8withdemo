@@ -319,24 +319,63 @@ export default function CSVImportFlow() {
   const generateBucketAssignments = (): Record<string, string> => {
     const assignments: Record<string, string> = {};
     
+    console.log('🔧 Generating bucket assignments for accounts:', Object.keys(accountCategories));
+    
     for (const [accountName, category] of Object.entries(accountCategories)) {
+      const name = accountName.toLowerCase();
+      
       if (category === 'income') {
-        // Assign income accounts to appropriate buckets
-        if (/rent|rental|tenant/.test(accountName.toLowerCase())) {
+        // Income account bucket assignments
+        if (/resident.*tenant.*rent|rental.*income|tenant.*rent|rent.*income|lease.*income/.test(name)) {
           assignments[accountName] = 'gross_rental_income';
+          console.log(`📊 ${accountName} → gross_rental_income (rental income)`);
+        } else if (/short.*term.*rental|concessions.*rent|parking|storage|amenity/.test(name)) {
+          assignments[accountName] = 'gross_rental_income';
+          console.log(`📊 ${accountName} → gross_rental_income (additional rental)`);
+        } else if (/late.*fee|pet.*fee|application.*fee|lock.*key.*sales/.test(name)) {
+          assignments[accountName] = 'total_income';
+          console.log(`📊 ${accountName} → total_income (fees)`);
+        } else if (/insurance.*income|credit.*reporting.*income|insurance.*admin.*fee|insurance.*svcs.*income/.test(name)) {
+          assignments[accountName] = 'total_income';
+          console.log(`📊 ${accountName} → total_income (service income)`);
         } else {
           assignments[accountName] = 'total_income';
+          console.log(`📊 ${accountName} → total_income (default income)`);
         }
       } else if (category === 'expense') {
-        // Assign expense accounts to appropriate buckets
-        if (/management|asset management/.test(accountName.toLowerCase())) {
+        // Expense account bucket assignments
+        if (/management.*fee|asset.*management.*fee/.test(name)) {
           assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (management)`);
+        } else if (/utility|water|garbage|electric|gas|sewer|cable|internet|phone/.test(name)) {
+          assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (utilities)`);
+        } else if (/maintenance|repair|cleaning|landscaping|pest.*control|security/.test(name)) {
+          assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (maintenance)`);
+        } else if (/move.*in.*specials|move.*out.*charges|move.*out.*damages|move.*out.*carpet|resident.*charge/.test(name)) {
+          assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (move-in/out)`);
+        } else if (/salaries.*wages|payroll.*taxes|workers.*comp|clerical.*postage/.test(name)) {
+          assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (payroll)`);
         } else {
           assignments[accountName] = 'operating_expenses';
+          console.log(`📊 ${accountName} → operating_expenses (default expense)`);
         }
+      } else if (category === 'asset') {
+        assignments[accountName] = 'total_income'; // Assets don't have specific buckets, default to income
+        console.log(`📊 ${accountName} → total_income (asset)`);
+      } else if (category === 'liability') {
+        assignments[accountName] = 'total_expense'; // Liabilities don't have specific buckets, default to expense
+        console.log(`📊 ${accountName} → total_expense (liability)`);
+      } else if (category === 'equity') {
+        assignments[accountName] = 'total_income'; // Equity doesn't have specific buckets, default to income
+        console.log(`📊 ${accountName} → total_income (equity)`);
       }
     }
     
+    console.log('🎯 Final bucket assignments:', assignments);
     return assignments;
   };
 
