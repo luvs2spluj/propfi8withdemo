@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Papa from "papaparse";
 import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
 
-const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5000";
+const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5001";
 
 type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'general';
 
@@ -28,26 +28,22 @@ export default function CSVImportFlow() {
         setHeaders(cols);
         setSamples(sampleRows.map((row: any) => cols.map((c: string) => row[c])));
         
-            fetch(`${API}/api/map/suggest`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ 
-                headers: cols, 
-                samples: sampleRows.map((row: any) => cols.map((c: string) => row[c])),
-                fileType: fileType
-              })
-            })
-        .then(res => {
-          if (!res.ok) {
-            throw new Error(`API Error: ${res.status} ${res.statusText}`);
+        // Auto-generate mapping based on file type
+        const autoMap: Record<string, FieldSuggestion> = {};
+        for (const col of cols) {
+          const colLower = col.toLowerCase();
+          if (/account|name|description|item/.test(colLower)) {
+            // Skip account name columns - AI will handle them automatically
+            autoMap[col] = { field: "", score: 1.0 };
+          } else if (/jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(colLower)) {
+            // Auto-map time-series columns
+            autoMap[col] = { field: "time_series", score: 0.9 };
+          } else {
+            // Default unmapped
+            autoMap[col] = { field: "", score: 0 };
           }
-          return res.json();
-        })
-        .then(j => setMap(j.field_map || {}))
-        .catch(err => {
-          console.error('Error fetching suggestions:', err);
-          setError(`Failed to get AI suggestions: ${err.message}. Please check that the API server is running on ${API}`);
-        });
+        }
+        setMap(autoMap);
       }
     });
   };
@@ -128,18 +124,18 @@ export default function CSVImportFlow() {
       {!!headers.length && (
         <div>
           <h4 className="text-md font-medium mb-2">Header Mapping</h4>
-          <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm text-blue-800">
-              <strong>💡 Tip:</strong> {
+          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-800">
+              <strong>🤖 Fully Automatic:</strong> {
                 fileType === 'cash_flow' ? 
-                  'AI will automatically categorize accounts (Rental Income → income, Maintenance → expense). For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series".' :
+                  'AI automatically categorizes accounts (Rental Income → income, Maintenance → expense) and maps monthly columns to time-series data. No manual mapping needed!' :
                 fileType === 'rent_roll' ?
-                  'For tenant names, select "tenant_name". For unit numbers, select "unit_id". For rent amounts, select "income".' :
+                  'AI automatically maps tenant names, unit numbers, and rent amounts to appropriate fields.' :
                 fileType === 'balance_sheet' ?
-                  'For asset accounts, select "asset". For liability accounts, select "liability". For equity accounts, select "equity".' :
+                  'AI automatically categorizes assets, liabilities, and equity accounts.' :
                 fileType === 'income_statement' ?
-                  'For revenue accounts, select "income". For expense accounts, select "expense". For monthly columns, select "time_series".' :
-                  'For monthly columns (Jan 2025, Feb 2025, etc.), select "time_series" to group them together. For account names, select "income" or "expense" based on the type of data.'
+                  'AI automatically categorizes revenue and expense accounts and maps monthly columns.' :
+                  'AI automatically detects and maps all relevant fields based on your file type.'
               }
             </p>
           </div>

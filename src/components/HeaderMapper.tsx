@@ -32,12 +32,27 @@ export default function HeaderMapper({ headers, suggestions, onChange }: HeaderM
         
         if (isAccountName) {
           return (
-            <div key={h} className="flex items-center gap-3 p-2 rounded bg-gray-100">
+            <div key={h} className="flex items-center gap-3 p-2 rounded bg-green-100">
               <div className="w-1/3 font-mono text-xs">{h}</div>
-              <div className="w-2/3 text-sm text-gray-600 italic">
-                AI will auto-categorize accounts (Rental Income → income, Maintenance → expense)
+              <div className="w-2/3 text-sm text-green-700 font-medium">
+                ✅ Auto-categorized by AI
               </div>
-              <span className="text-[10px] opacity-60">auto</span>
+              <span className="text-[10px] opacity-60 text-green-600">auto</span>
+            </div>
+          );
+        }
+        
+        // Check if it's a time-series column
+        const isTimeSeries = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|q1|q2|q3|q4|total/.test(h.toLowerCase());
+        
+        if (isTimeSeries && s.field === "time_series") {
+          return (
+            <div key={h} className="flex items-center gap-3 p-2 rounded bg-orange-100">
+              <div className="w-1/3 font-mono text-xs">{h}</div>
+              <div className="w-2/3 text-sm text-orange-700 font-medium">
+                ✅ Auto-mapped to time-series
+              </div>
+              <span className="text-[10px] opacity-60 text-orange-600">auto</span>
             </div>
           );
         }
