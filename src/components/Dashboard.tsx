@@ -77,107 +77,43 @@ const Dashboard: React.FC = () => {
         console.log('✅ Properties loaded:', unifiedProperties.length);
       }
 
-      // Load financial data from multiple sources
+      // Load financial data from ACTIVE CSV sources only
+      console.log('📊 Loading financial data from active CSVs only...');
       
-      // Try to get data from local backend first
-      try {
-        const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
-        if (localDataResponse.ok) {
-          const localData = await localDataResponse.json();
-          console.log('🏠 Local data loaded:', localData);
-          
-          if (localData.success && localData.data) {
-            // Calculate financial metrics from local data
-            const allData = Object.values(localData.data).flat();
-            const totalRevenue = allData.reduce((sum: number, item: any) => {
-              // Check if we have Chico summary data
-              if (item.data?.sample && Array.isArray(item.data.sample)) {
-                const monthlyRevenue = item.data.sample.reduce((monthSum: number, row: any) => {
-                  return monthSum + (parseFloat(row['Monthly Revenue']) || 0);
-                }, 0);
-                return sum + monthlyRevenue;
-              }
-              // Fallback to aiAnalysis totalAmount
-              const amount = parseFloat(item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0);
-              return sum + amount;
-            }, 0);
-            
-            const totalRecords = allData.reduce((sum: number, item: any) => {
-              return sum + (item.data?.aiAnalysis?.totalRecords || 0);
-            }, 0);
-            
-            // Calculate actual expenses and net income from Chico data
-            const totalExpenses = allData.reduce((sum: number, item: any) => {
-              if (item.data?.sample && Array.isArray(item.data.sample)) {
-                const monthlyExpenses = item.data.sample.reduce((monthSum: number, row: any) => {
-                  const maintenance = parseFloat(row['Maintenance Cost']) || 0;
-                  const utilities = parseFloat(row['Utilities Cost']) || 0;
-                  const insurance = parseFloat(row['Insurance Cost']) || 0;
-                  const taxes = parseFloat(row['Property Tax']) || 0;
-                  const other = parseFloat(row['Other Expenses']) || 0;
-                  return monthSum + maintenance + utilities + insurance + taxes + other;
-                }, 0);
-                return sum + monthlyExpenses;
-              }
-              return sum + (totalRevenue * 0.6); // Fallback estimate
-            }, 0);
-
-            const totalNetIncome = totalRevenue - totalExpenses;
-
-            // Add CSV-based metrics from localStorage
-            const csvMetrics = calculateCSVMetrics();
-            console.log('📊 CSV-based metrics:', csvMetrics);
-            
-            // Use CSV data if available, otherwise use local data
-            // CSV data represents monthly averages, so we need to scale appropriately
-            let finalRevenue, finalExpenses, finalNetIncome;
-            
-            if (csvMetrics.totalIncome > 0) {
-              // CSV data is available - use it as the primary source
-              finalRevenue = csvMetrics.totalIncome;
-              finalExpenses = csvMetrics.totalExpense;
-              finalNetIncome = csvMetrics.netOperatingIncome;
-              console.log('📊 Using CSV data as primary source:', { finalRevenue, finalExpenses, finalNetIncome });
-            } else {
-              // No CSV data - use local backend data
-              finalRevenue = totalRevenue;
-              finalExpenses = totalExpenses;
-              finalNetIncome = totalNetIncome;
-              console.log('📊 Using local backend data as primary source:', { finalRevenue, finalExpenses, finalNetIncome });
-            }
-
-            // Calculate average occupancy from Chico data
-            const avgOccupancyRate = allData.reduce((sum: number, item: any) => {
-              if (item.data?.sample && Array.isArray(item.data.sample)) {
-                const monthlyOccupancy = item.data.sample.reduce((monthSum: number, row: any) => {
-                  return monthSum + (parseFloat(row['Occupancy Rate']) || 0);
-                }, 0);
-                return sum + (monthlyOccupancy / item.data.sample.length);
-              }
-              return sum + 95; // Fallback
-            }, 0) / Math.max(1, allData.length);
-
-            // Calculate total units
-            const totalUnits = allData.reduce((sum: number, item: any) => {
-              if (item.data?.sample && Array.isArray(item.data.sample)) {
-                return sum + (parseFloat(item.data.sample[0]?.['Total Units']) || 0);
-              }
-              return sum + 26; // Fallback for Chico
-            }, 0);
-
-            setFinancialData({
-              totalRevenue: finalRevenue,
-              totalExpenses: finalExpenses,
-              totalNetIncome: finalNetIncome,
-              totalRecords: totalRecords + csvMetrics.recordCount,
-              avgOccupancyRate: avgOccupancyRate,
-              totalUnits: totalUnits,
-              csvMetrics: csvMetrics
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load local data:', error);
+      // Calculate metrics from active CSVs only
+      const csvMetrics = calculateCSVMetrics();
+      console.log('📈 CSV Metrics calculated:', csvMetrics);
+      
+      if (csvMetrics.totalIncome > 0 || csvMetrics.totalExpense > 0) {
+        // Use CSV data for financial metrics
+        const totalRevenue = csvMetrics.totalIncome;
+        const totalExpenses = csvMetrics.totalExpense;
+        const netIncome = totalRevenue - totalExpenses;
+        const totalRecords = csvMetrics.recordCount;
+        
+        console.log('💰 Financial Summary from CSVs:');
+        console.log(`  Total Revenue: $${totalRevenue.toLocaleString()}`);
+        console.log(`  Total Expenses: $${totalExpenses.toLocaleString()}`);
+        console.log(`  Net Income: $${netIncome.toLocaleString()}`);
+        console.log(`  Total Records: ${totalRecords}`);
+        
+        setFinancialData({
+          totalRevenue,
+          totalExpenses,
+          totalNetIncome: netIncome,
+          totalRecords,
+          dataSource: 'csv'
+        });
+      } else {
+        // No active CSV data available
+        console.log('⚠️ No active CSV data found. Dashboard will show empty state.');
+        setFinancialData({
+          totalRevenue: 0,
+          totalExpenses: 0,
+          totalNetIncome: 0,
+          totalRecords: 0,
+          dataSource: 'none'
+        });
       }
 
     } catch (error) {
@@ -196,6 +132,14 @@ const Dashboard: React.FC = () => {
     // Listen for data updates from CSV uploads and deletions
     const handleDataUpdate = (event: any) => {
       console.log('🔄 Dashboard received data update event:', event.detail);
+      
+      // Check if this is a CSV deletion event
+      if (event.detail?.action === 'csv_deleted') {
+        console.log('🗑️ CSV deletion detected, refreshing dashboard data...');
+        console.log('📋 Deleted CSV:', event.detail.fileName);
+      }
+      
+      // Always reload dashboard data when any data update occurs
       loadDashboardData();
     };
 
@@ -258,11 +202,13 @@ const Dashboard: React.FC = () => {
   const calculateCSVMetrics = () => {
     try {
       const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
       let totalIncome = 0;
       let totalExpense = 0;
       let recordCount = 0;
       
-      console.log('📊 Calculating CSV metrics from', savedCSVs.length, 'CSVs');
+      console.log('📊 Calculating CSV metrics from', savedCSVs.length, 'total CSVs,', activeCSVs.length, 'active CSVs');
+      console.log('📋 Active CSVs:', activeCSVs.map((csv: any) => ({ fileName: csv.fileName, isActive: csv.isActive, totalRecords: csv.totalRecords })));
       
       // Check for duplicate CSVs and warn user
       const csvNames = savedCSVs.filter((csv: any) => csv.isActive).map((csv: any) => csv.fileName);
@@ -273,8 +219,7 @@ const Dashboard: React.FC = () => {
         // You could show a warning to the user here
       }
       
-      savedCSVs.forEach((csv: any) => {
-        if (!csv.isActive) return;
+      activeCSVs.forEach((csv: any) => {
         
         console.log(`📁 Processing CSV: ${csv.fileName} (${csv.totalRecords} records)`);
         console.log('📋 CSV Preview Data Sample:', csv.previewData.slice(0, 3));

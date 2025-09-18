@@ -51,6 +51,52 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
   const [selectedProperty, setSelectedProperty] = useState<string>('all');
   const [metricType] = useState<'revenue' | 'occupancy'>('revenue');
 
+  const processCSVDataForChart = (activeCSVs: any[]): PropertyData[] => {
+    const chartData: PropertyData[] = [];
+    
+    activeCSVs.forEach((csv: any) => {
+      console.log(`📊 Processing CSV: ${csv.fileName} for chart data`);
+      
+      // Process each account in the CSV
+      Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
+        const accountData = csv.previewData.find((item: any) => 
+          item.account_name === accountName
+        );
+        
+        if (accountData && accountData.time_series && category === 'income') {
+          // Process time series data for income accounts
+          Object.entries(accountData.time_series).forEach(([month, value]) => {
+            if (typeof value === 'number' && value > 0) {
+              // Find existing data point for this month or create new one
+              let existingData = chartData.find(d => d.date === month);
+              if (!existingData) {
+                existingData = {
+                  id: `${csv.id}-${month}`,
+                  date: month,
+                  month: month,
+                  revenue: '0',
+                  occupancy_rate: '0',
+                  property_name: 'Chico'
+                };
+                chartData.push(existingData);
+              }
+              
+              // Add this account's revenue to the total for this month
+              const currentRevenue = parseFloat(existingData.revenue) || 0;
+              existingData.revenue = (currentRevenue + value).toString();
+            }
+          });
+        }
+      });
+    });
+    
+    // Sort by date
+    chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    console.log('📈 Processed chart data:', chartData);
+    return chartData;
+  };
+
   useEffect(() => {
     if (properties.length > 0) {
       loadChartData();
@@ -60,237 +106,100 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
   const loadChartData = async () => {
     try {
       setIsLoading(true);
-      console.log('Loading chart data for properties:', properties);
+      console.log('Loading chart data from ACTIVE CSVs only:', properties);
       
       if (properties.length > 0) {
         const chicoProperty = properties[0]; // Should be Chico
         console.log('Chico property:', chicoProperty);
         
-        // Try to get data from local backend first
+        // Get data from ACTIVE CSVs only
         let chartData = null;
         
         try {
-          const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
-          if (localDataResponse.ok) {
-            const localData = await localDataResponse.json();
-            console.log('🏠 Local chart data loaded:', localData);
+          // Load data from active CSVs in localStorage
+          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+          const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+          
+          console.log('📊 Active CSVs for chart data:', activeCSVs.length);
+          
+          if (activeCSVs.length > 0) {
+            // Process CSV data to create chart data
+            const csvChartData = processCSVDataForChart(activeCSVs);
+            console.log('📈 CSV chart data processed:', csvChartData);
             
-            if (localData.success && localData.data && localData.data.Chico) {
-              // Get the Chico data entry that has actual data
-              const chicoDataEntries = localData.data.Chico;
-              const latestChicoData = chicoDataEntries.find((entry: any) => 
-                entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
-              ) || chicoDataEntries[chicoDataEntries.length - 1];
-              console.log('📊 Latest Chico data with actual data:', latestChicoData);
-              
-              // Check if this is the Chico summary data format
-              if (latestChicoData.data?.sample && Array.isArray(latestChicoData.data.sample)) {
-                // This is the Chico summary data format with Monthly Revenue column
-                console.log('📊 Processing Chico summary data format for revenue');
-                
-                const sampleData = latestChicoData.data.sample;
-                console.log('📊 Sample data:', sampleData);
-                
-                // Extract months and revenue from the summary data
-                const monthlyData = sampleData.map((row: any, index: number) => {
-                  console.log(`📅 Revenue Row ${index}:`, row);
-                  
-                  // Try different date column names
-                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
-                  console.log(`📅 Revenue Date value for row ${index}:`, dateValue);
-                  
-                  let date: Date;
-                  let month: string;
-                  
-                  if (dateValue) {
-                    date = new Date(dateValue);
-                    if (isNaN(date.getTime())) {
-                      // If date parsing fails, try to create a date from the index
-                      console.log(`⚠️ Invalid date for revenue row ${index}, using index-based date`);
-                      date = new Date(2024, index); // Start from Jan 2024
-                    }
-                    month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  } else {
-                    // Fallback: create month names based on index
-                    console.log(`⚠️ No date found for revenue row ${index}, creating fallback month`);
-                    const fallbackDate = new Date(2024, index);
-                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  }
-                  
-                  const revenue = parseFloat(row['Monthly Revenue'] || row['monthly_revenue'] || row['revenue'] || '0') || 0;
-                  
-                  console.log(`📊 Processed revenue row ${index}:`, { month, revenue });
-                  
-                  return {
-                    month,
-                    revenue: revenue
-                  };
-                });
-                
-                console.log('📊 Monthly revenue data:', monthlyData);
-                setChartData(monthlyData);
-                setIsLoading(false);
-                return;
-              }
-              
-              if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
-                // This is the original Chico data format with individual records
-                console.log('📊 Processing original Chico data format for revenue');
-                
-                // Extract unique months from the data and sort chronologically
-                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
-                  const dateA = new Date(a as string);
-                  const dateB = new Date(b as string);
-                  return dateA.getTime() - dateB.getTime();
-                }) as string[];
-                console.log('📅 Available months from Chico data:', months);
-                
-                // Calculate monthly revenue by summing all income accounts for each month
-                const monthlyData = months.map((month: string) => {
-                  // Find all actual income accounts for this month (not expenses)
-                  const monthlyRecords = latestChicoData.data.data.filter((row: any) => 
-                    row.period === month && 
-                    (row.account_name === 'Application Fees' ||
-                     row.account_name === 'Credit Reporting Services Income' ||
-                     row.account_name === 'Insurance Svcs Income' ||
-                     row.account_name === 'Lock / Key Sales' ||
-                     row.account_name === 'Late Fees' ||
-                     row.account_name === 'Insurance Admin Fee')
-                  );
-                  
-                  // Sum up the revenue for this month
-                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
-                    sum + (parseFloat(record.amount) || 0), 0
-                  );
-                  
-                  return {
-                    id: `monthly-${month}`,
-                    date: month,
-                    revenue: monthlyRevenue.toString(),
-                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                    total_units: chicoProperty.total_units || 26,
-                    occupied_units: Math.round((chicoProperty.total_units || 26) * (0.85 + Math.random() * 0.1)),
-                    expenses: monthlyRevenue * 0.6,
-                    net_income: monthlyRevenue * 0.4
-                  };
-                });
-                
-                chartData = monthlyData;
-                console.log('📊 Monthly revenue data from Chico:', chartData);
-              } else {
-                // Fallback to summary data format
-                const localChartData = localData.data.Chico.map((item: any) => ({
-                  id: item.id || 'local-' + Date.now(),
-                  date: item.timestamp || new Date().toISOString(),
-                  revenue: item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || '0',
-                  occupancy_rate: '85', // Default
-                  total_units: chicoProperty.total_units || 26,
-                  occupied_units: Math.round((chicoProperty.total_units || 26) * 0.85),
-                  expenses: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.6,
-                  net_income: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.4
-                }));
-                
-                chartData = localChartData;
-                console.log('📊 Converted local data to chart format:', chartData);
-              }
+            if (csvChartData && csvChartData.length > 0) {
+              chartData = csvChartData;
             }
           }
-        } catch (error) {
-          console.log('⚠️ Local chart data not available, trying API...');
-        }
-        
-        // Fallback to API if no local data
-        if (!chartData) {
-          const dataResponse = await ApiService.getPropertyData(chicoProperty.id);
-          console.log('Property data response:', dataResponse);
           
-          if (dataResponse.success && dataResponse.data) {
-            chartData = dataResponse.data;
-            console.log('Setting chart data from API:', chartData);
-          } else {
-            console.error('No data received from API:', dataResponse);
+          // If no CSV data, set empty chart
+          if (!chartData || chartData.length === 0) {
+            console.log('📊 No active CSV data found, setting empty chart');
+            setChartData([]);
+            setIsLoading(false);
+            return;
           }
-        }
-        
-        if (chartData) {
+          
+          // Set the chart data from CSVs
           setChartData(chartData);
+          setIsLoading(false);
+          
+        } catch (error) {
+          console.error('Error processing CSV chart data:', error);
+          setChartData([]);
+          setIsLoading(false);
         }
       } else {
-        console.error('No properties available');
+        console.log('📊 No properties available for chart data');
+        setChartData([]);
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Error loading chart data:', error);
-    } finally {
+      setChartData([]);
       setIsLoading(false);
     }
   };
 
-  // Generate monthly data if we don't have individual monthly records
-  const generateMonthlyData = () => {
-    if (chartData.length === 0) return { labels: [], values: [] };
-    
-    // Get the total amount from the first data point (assuming it's summary data)
-    const totalAmount = chartData.length > 0 ? parseFloat(chartData[0].revenue) : 0;
-    
-    // Generate 12 months of data (Aug 2024 to Jul 2025)
-    const months = [
-      'Aug 24', 'Sep 24', 'Oct 24', 'Nov 24', 'Dec 24', 'Jan 25',
-      'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25', 'Jul 25'
-    ];
-    
-    // Distribute the total amount across months with some variation
-    const monthlyAmount = totalAmount / 12;
-    const values = months.map((_, index) => {
-      // Add some realistic variation (±10%)
-      const variation = (Math.random() - 0.5) * 0.2; // -10% to +10%
-      return monthlyAmount * (1 + variation);
-    });
-    
-    return { labels: months, values };
-  };
+  // Listen for data updates to refresh chart
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      console.log('🔄 RevenueChart received data update event');
+      loadChartData();
+    };
 
-  // Use actual monthly data if available, otherwise generate synthetic data
-  const { labels, values } = (() => {
-    if (chartData.length === 0) return { labels: [], values: [] };
-    
-    // Check if we have monthly data (month contains month/year format like "Jan 2025")
-    const hasMonthlyData = chartData.some(item => 
-      item.month && (item.month.includes('2025') || item.month.includes('2024'))
-    );
-    
-    if (hasMonthlyData) {
-      // Use actual monthly data
-      const labels = chartData.map(item => item.month);
-      const values = chartData.map(item => {
-        if (metricType === 'revenue') {
-          return parseFloat(item.revenue);
-        } else {
-          return parseFloat(item.occupancy_rate);
-        }
-      });
-      return { labels, values };
-    } else {
-      // Generate synthetic monthly data for summary data
-      return generateMonthlyData();
-    }
-  })();
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
+  }, [properties]);
 
+  // Filter data based on selected property
+  const filteredData = selectedProperty === 'all' 
+    ? chartData 
+    : chartData.filter(item => item.property_name === selectedProperty);
+
+  // Prepare chart data
   const data = {
-    labels: labels,
+    labels: filteredData.map(item => item.month || item.date),
     datasets: [
       {
         label: metricType === 'revenue' ? 'Revenue' : 'Occupancy Rate',
-        data: values,
-        borderColor: metricType === 'revenue' ? 'rgb(14, 165, 233)' : 'rgb(34, 197, 94)',
-        backgroundColor: metricType === 'revenue' ? 'rgba(14, 165, 233, 0.1)' : 'rgba(34, 197, 94, 0.1)',
-        borderWidth: 3,
+        data: filteredData.map(item => 
+          metricType === 'revenue' 
+            ? parseFloat(item.revenue) 
+            : parseFloat(item.occupancy_rate)
+        ),
+        borderColor: metricType === 'revenue' ? '#0EA5E9' : '#10B981',
+        backgroundColor: metricType === 'revenue' 
+          ? 'rgba(14, 165, 233, 0.1)' 
+          : 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 2,
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: metricType === 'revenue' ? 'rgb(14, 165, 233)' : 'rgb(34, 197, 94)',
+        pointBackgroundColor: metricType === 'revenue' ? '#0EA5E9' : '#10B981',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
   };
@@ -306,7 +215,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: '#fff',
         bodyColor: '#fff',
-        borderColor: 'rgba(14, 165, 233, 0.5)',
+        borderColor: metricType === 'revenue' 
+          ? 'rgba(14, 165, 233, 0.5)' 
+          : 'rgba(16, 185, 129, 0.5)',
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: false,
@@ -360,48 +271,32 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
 
   if (isLoading) {
     return (
-      <div className="h-64 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-          <p className="text-gray-600 text-sm">Loading chart data...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (chartData.length === 0) {
-    return (
-      <div className="h-64 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-500 text-sm">No chart data available</p>
-          <p className="text-gray-400 text-xs mt-1">Check console for errors</p>
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-4">
-        {/* Property Selection */}
-        <div className="flex-1">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Property
-          </label>
-          <select
-            value={selectedProperty}
-            onChange={(e) => setSelectedProperty(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="all">All Properties</option>
-            {properties.map((property) => (
-              <option key={property.id} value={property.name}>
-                {property.name}
-              </option>
-            ))}
-          </select>
-        </div>
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
+          {metricType === 'revenue' ? 'Revenue Trend' : 'Occupancy Rate'}
+        </h3>
+        <select
+          value={selectedProperty}
+          onChange={(e) => setSelectedProperty(e.target.value)}
+          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Properties</option>
+          {properties.map((property) => (
+            <option key={property.id} value={property.name}>
+              {property.name}
+            </option>
+          ))}
+        </select>
       </div>
       
       {/* Chart */}

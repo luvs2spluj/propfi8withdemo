@@ -10,7 +10,6 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import ApiService from '../../services/api';
 
 ChartJS.register(
   CategoryScale,
@@ -54,6 +53,90 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
   const [chartData, setChartData] = useState<PropertyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const processCSVDataForPerformanceChart = (activeCSVs: any[]): PropertyData[] => {
+    const chartData: PropertyData[] = [];
+    
+    activeCSVs.forEach((csv: any) => {
+      console.log(`📊 Processing CSV: ${csv.fileName} for performance chart data`);
+      
+      // Process each account in the CSV
+      Object.entries(csv.accountCategories).forEach(([accountName, category]) => {
+        const accountData = csv.previewData.find((item: any) => 
+          item.account_name === accountName
+        );
+        
+        if (accountData && accountData.time_series) {
+          // Process time series data for all accounts
+          Object.entries(accountData.time_series).forEach(([month, value]) => {
+            if (typeof value === 'number' && value > 0) {
+              // Find existing data point for this month or create new one
+              let existingData = chartData.find(d => d.date === month);
+              if (!existingData) {
+                existingData = {
+                  id: `${csv.id}-${month}`,
+                  date: month,
+                  month: month,
+                  revenue: '0',
+                  occupancy_rate: '95',
+                  maintenance_cost: '0',
+                  utilities_cost: '0',
+                  insurance_cost: '0',
+                  property_tax: '0',
+                  other_expenses: '0',
+                  expenses: '0',
+                  netIncome: '0',
+                  property_name: 'Chico'
+                };
+                chartData.push(existingData);
+              }
+              
+              // Add this account's value to the appropriate category
+              if (category === 'income') {
+                const currentRevenue = parseFloat(existingData.revenue) || 0;
+                existingData.revenue = (currentRevenue + value).toString();
+              } else if (category === 'expense') {
+                const currentExpenses = parseFloat(existingData.expenses) || 0;
+                existingData.expenses = (currentExpenses + value).toString();
+                
+                // Categorize expenses into specific types
+                const accountLower = accountName.toLowerCase();
+                if (/maintenance|repair/.test(accountLower)) {
+                  const currentMaintenance = parseFloat(existingData.maintenance_cost) || 0;
+                  existingData.maintenance_cost = (currentMaintenance + value).toString();
+                } else if (/utility|water|garbage|electric/.test(accountLower)) {
+                  const currentUtilities = parseFloat(existingData.utilities_cost) || 0;
+                  existingData.utilities_cost = (currentUtilities + value).toString();
+                } else if (/insurance/.test(accountLower)) {
+                  const currentInsurance = parseFloat(existingData.insurance_cost) || 0;
+                  existingData.insurance_cost = (currentInsurance + value).toString();
+                } else if (/tax/.test(accountLower)) {
+                  const currentTax = parseFloat(existingData.property_tax) || 0;
+                  existingData.property_tax = (currentTax + value).toString();
+                } else {
+                  const currentOther = parseFloat(existingData.other_expenses) || 0;
+                  existingData.other_expenses = (currentOther + value).toString();
+                }
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    // Calculate net income for each month
+    chartData.forEach(data => {
+      const revenue = parseFloat(data.revenue) || 0;
+      const expenses = parseFloat(data.expenses) || 0;
+      data.netIncome = (revenue - expenses).toString();
+    });
+    
+    // Sort by date
+    chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    
+    console.log('📈 Processed performance chart data:', chartData);
+    return chartData;
+  };
+
   useEffect(() => {
     if (properties.length > 0) {
       loadChartData();
@@ -63,272 +146,114 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
   const loadChartData = async () => {
     try {
       setIsLoading(true);
-      console.log('Loading property performance chart data for properties:', properties);
+      console.log('Loading performance chart data from ACTIVE CSVs only:', properties);
       
       if (properties.length > 0) {
-        const chicoProperty = properties[0]; // Should be Chico
-        console.log('Chico property:', chicoProperty);
-        
-        // Try to get data from local backend first
+        // Get data from ACTIVE CSVs only
         let chartData = null;
         
         try {
-          const localDataResponse = await fetch('http://localhost:5001/api/processed-data');
-          if (localDataResponse.ok) {
-            const localData = await localDataResponse.json();
-            console.log('🏠 Local performance chart data loaded:', localData);
+          // Load data from active CSVs in localStorage
+          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+          const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+          
+          console.log('📊 Active CSVs for performance chart data:', activeCSVs.length);
+          
+          if (activeCSVs.length > 0) {
+            // Process CSV data to create chart data
+            const csvChartData = processCSVDataForPerformanceChart(activeCSVs);
+            console.log('📈 CSV performance chart data processed:', csvChartData);
             
-            if (localData.success && localData.data && localData.data.Chico) {
-              // Get the Chico data entry that has actual data
-              const chicoDataEntries = localData.data.Chico;
-              const latestChicoData = chicoDataEntries.find((entry: any) => 
-                entry.data?.data && Array.isArray(entry.data.data) && entry.data.data.length > 0
-              ) || chicoDataEntries[chicoDataEntries.length - 1];
-              console.log('📊 Latest Chico data with actual data for performance:', latestChicoData);
-              
-              // Check if this is the Chico summary data format
-              if (latestChicoData.data?.sample && Array.isArray(latestChicoData.data.sample)) {
-                // This is the Chico summary data format with Monthly Revenue column
-                console.log('📊 Processing Chico summary data format for performance');
-                
-                const sampleData = latestChicoData.data.sample;
-                console.log('📊 Sample data:', sampleData);
-                
-                // Extract months and performance data from the summary data
-                const monthlyData = sampleData.map((row: any, index: number) => {
-                  console.log(`📅 Performance Row ${index}:`, row);
-                  
-                  // Try different date column names
-                  let dateValue = row['Date'] || row['date'] || row['period'] || row['month'];
-                  console.log(`📅 Performance Date value for row ${index}:`, dateValue);
-                  
-                  let date: Date;
-                  let month: string;
-                  
-                  if (dateValue) {
-                    date = new Date(dateValue);
-                    if (isNaN(date.getTime())) {
-                      // If date parsing fails, try to create a date from the index
-                      console.log(`⚠️ Invalid date for performance row ${index}, using index-based date`);
-                      date = new Date(2024, index); // Start from Jan 2024
-                    }
-                    month = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  } else {
-                    // Fallback: create month names based on index
-                    console.log(`⚠️ No date found for performance row ${index}, creating fallback month`);
-                    const fallbackDate = new Date(2024, index);
-                    month = fallbackDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                  }
-                  
-                  const revenue = parseFloat(row['Monthly Revenue'] || row['monthly_revenue'] || row['revenue'] || '0') || 0;
-                  const maintenanceCost = parseFloat(row['Maintenance Cost'] || row['maintenance_cost'] || '0') || 0;
-                  const utilitiesCost = parseFloat(row['Utilities Cost'] || row['utilities_cost'] || '0') || 0;
-                  const insuranceCost = parseFloat(row['Insurance Cost'] || row['insurance_cost'] || '0') || 0;
-                  const propertyTax = parseFloat(row['Property Tax'] || row['property_tax'] || '0') || 0;
-                  const otherExpenses = parseFloat(row['Other Expenses'] || row['other_expenses'] || '0') || 0;
-                  const netIncome = parseFloat(row['Net Income'] || row['net_income'] || '0') || 0;
-                  
-                  console.log(`📊 Processed performance row ${index}:`, { month, revenue, expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses, netIncome });
-                  
-                  return {
-                    month,
-                    revenue: revenue,
-                    expenses: maintenanceCost + utilitiesCost + insuranceCost + propertyTax + otherExpenses,
-                    netIncome: netIncome
-                  };
-                });
-                
-                console.log('📊 Monthly performance data:', monthlyData);
-                setChartData(monthlyData);
-                setIsLoading(false);
-                return;
-              }
-              
-              if (latestChicoData.data?.data && Array.isArray(latestChicoData.data.data)) {
-                // This is the original Chico data format with individual records
-                console.log('📊 Processing original Chico data format for performance');
-                
-                // Extract unique months from the data and sort chronologically (oldest first for chart display)
-                const months = Array.from(new Set(latestChicoData.data.data.map((row: any) => row.period))).sort((a, b) => {
-                  const dateA = new Date(a as string);
-                  const dateB = new Date(b as string);
-                  return dateA.getTime() - dateB.getTime(); // Oldest first for chart display
-                }) as string[];
-                console.log('📅 Available months from Chico data:', months);
-                
-                // Calculate monthly revenue and expenses for each month
-                const monthlyData = months.map((month: string) => {
-                  // Find all actual income accounts for this month (not expenses)
-                  const monthlyRecords = latestChicoData.data.data.filter((row: any) => 
-                    row.period === month && 
-                    (row.account_name === 'Application Fees' ||
-                     row.account_name === 'Credit Reporting Services Income' ||
-                     row.account_name === 'Insurance Svcs Income' ||
-                     row.account_name === 'Lock / Key Sales' ||
-                     row.account_name === 'Late Fees' ||
-                     row.account_name === 'Insurance Admin Fee')
-                  );
-                  
-                  // Sum up the revenue for this month
-                  const monthlyRevenue = monthlyRecords.reduce((sum: number, record: any) => 
-                    sum + (parseFloat(record.amount) || 0), 0
-                  );
-                  
-                  return {
-                    id: `performance-${month}`,
-                    date: month,
-                    revenue: monthlyRevenue.toString(),
-                    occupancy_rate: (85 + Math.random() * 10).toFixed(1), // 85-95% range
-                    maintenance_cost: (monthlyRevenue * 0.2).toString(),
-                    utilities_cost: (monthlyRevenue * 0.15).toString(),
-                    insurance_cost: (monthlyRevenue * 0.1).toString(),
-                    property_tax: (monthlyRevenue * 0.05).toString(),
-                    other_expenses: (monthlyRevenue * 0.1).toString(),
-                    property_name: 'Chico'
-                  };
-                });
-                
-                chartData = monthlyData;
-                console.log('📊 Monthly performance data from Chico:', chartData);
-              } else {
-                // Fallback to summary data format
-                const localChartData = localData.data.Chico.map((item: any) => ({
-                  id: item.id || 'local-' + Date.now(),
-                  date: item.timestamp || new Date().toISOString(),
-                  revenue: item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || '0',
-                  occupancy_rate: '85', // Default
-                  maintenance_cost: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.2,
-                  utilities_cost: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.15,
-                  insurance_cost: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.1,
-                  property_tax: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.05,
-                  other_expenses: (item.data?.aiAnalysis?.totalAmount || item.data?.totalAmount || 0) * 0.1,
-                  property_name: 'Chico'
-                }));
-                
-                chartData = localChartData;
-                console.log('📊 Converted local data to performance chart format:', chartData);
-              }
+            if (csvChartData && csvChartData.length > 0) {
+              chartData = csvChartData;
             }
           }
-        } catch (error) {
-          console.log('⚠️ Local performance chart data not available, trying API...');
-        }
-        
-        // Fallback to API if no local data
-        if (!chartData) {
-          const dataResponse = await ApiService.getPropertyData(chicoProperty.id);
-          console.log('Property performance data response:', dataResponse);
           
-          if (dataResponse.success && dataResponse.data) {
-            chartData = dataResponse.data;
-            console.log('Setting performance chart data from API:', chartData);
-          } else {
-            console.error('No performance data received from API:', dataResponse);
+          // If no CSV data, set empty chart
+          if (!chartData || chartData.length === 0) {
+            console.log('📊 No active CSV data found, setting empty performance chart');
+            setChartData([]);
+            setIsLoading(false);
+            return;
           }
-        }
-        
-        if (chartData) {
+          
+          // Set the chart data from CSVs
           setChartData(chartData);
+          setIsLoading(false);
+          
+        } catch (error) {
+          console.error('Error processing CSV performance chart data:', error);
+          setChartData([]);
+          setIsLoading(false);
         }
       } else {
-        console.error('No properties available');
+        console.log('📊 No properties available for performance chart data');
+        setChartData([]);
+        setIsLoading(false);
       }
     } catch (error) {
-      console.error('Error loading chart data:', error);
-    } finally {
+      console.error('Error loading performance chart data:', error);
+      setChartData([]);
       setIsLoading(false);
     }
   };
 
-  // Generate monthly data if we don't have individual monthly records
-  const generateMonthlyPerformanceData = () => {
-    if (chartData.length === 0) return { labels: [], revenueData: [], expensesData: [], netIncomeData: [] };
-    
-    // Get the total amount from the first data point
-    const totalRevenue = chartData.length > 0 ? parseFloat(chartData[0].revenue) : 0;
-    
-    // Generate 12 months of data (Aug 2024 to Jul 2025)
-    const months = [
-      'Aug 24', 'Sep 24', 'Oct 24', 'Nov 24', 'Dec 24', 'Jan 25',
-      'Feb 25', 'Mar 25', 'Apr 25', 'May 25', 'Jun 25', 'Jul 25'
-    ];
-    
-    // Distribute the total revenue across months with some variation
-    const monthlyRevenue = totalRevenue / 12;
-    const revenueData = months.map((_, index) => {
-      const variation = (Math.random() - 0.5) * 0.2; // -10% to +10%
-      return monthlyRevenue * (1 + variation);
-    });
-    
-    // Calculate expenses (60% of revenue) and net income (40% of revenue)
-    const expensesData = revenueData.map(revenue => revenue * 0.6);
-    const netIncomeData = revenueData.map(revenue => revenue * 0.4);
-    
-    return { labels: months, revenueData, expensesData, netIncomeData };
-  };
+  // Listen for data updates to refresh chart
+  useEffect(() => {
+    const handleDataUpdate = () => {
+      console.log('🔄 PropertyPerformanceChart received data update event');
+      loadChartData();
+    };
 
-  // Use actual monthly data if available, otherwise generate synthetic data
-  const { labels, revenueData, expensesData, netIncomeData } = (() => {
-    if (chartData.length === 0) return { labels: [], revenueData: [], expensesData: [], netIncomeData: [] };
-    
-    // Check if we have monthly data (month contains month/year format like "Jan 2025")
-    const hasMonthlyData = chartData.some(item => 
-      item.month && (item.month.includes('2025') || item.month.includes('2024'))
-    );
-    
-    if (hasMonthlyData) {
-      // Sort monthly data chronologically (oldest first for chart display)
-      const sortedData = chartData.sort((a, b) => {
-        // Parse the full date string to get proper chronological order
-        const aDate = new Date(a.month || '');
-        const bDate = new Date(b.month || '');
-        return aDate.getTime() - bDate.getTime(); // Oldest first for chart display
-      });
-      
-      const labels = sortedData.map(item => item.month || '');
-      const revenueData = sortedData.map(item => parseFloat(item.revenue));
-      const expensesData = sortedData.map(item => parseFloat(item.expenses || '0'));
-      const netIncomeData = sortedData.map(item => parseFloat(item.netIncome || '0'));
-      
-      return { labels, revenueData, expensesData, netIncomeData };
-    } else {
-      // Generate synthetic monthly data for summary data
-      return generateMonthlyPerformanceData();
-    }
-  })();
+    window.addEventListener('dataUpdated', handleDataUpdate);
+    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
+  }, [properties]);
 
+  // Prepare chart data
   const data = {
-    labels: labels,
+    labels: chartData.map(item => item.month || item.date),
     datasets: [
       {
         label: 'Revenue',
-        data: revenueData,
-        borderColor: 'rgb(14, 165, 233)',
+        data: chartData.map(item => parseFloat(item.revenue)),
+        borderColor: '#0EA5E9',
         backgroundColor: 'rgba(14, 165, 233, 0.1)',
         borderWidth: 2,
+        fill: false,
         tension: 0.4,
+        pointBackgroundColor: '#0EA5E9',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
         pointRadius: 4,
-        yAxisID: 'y',
+        pointHoverRadius: 6,
       },
       {
         label: 'Expenses',
-        data: expensesData,
-        borderColor: 'rgb(239, 68, 68)',
+        data: chartData.map(item => parseFloat(item.expenses || '0')),
+        borderColor: '#EF4444',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         borderWidth: 2,
+        fill: false,
         tension: 0.4,
+        pointBackgroundColor: '#EF4444',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
         pointRadius: 4,
-        yAxisID: 'y',
+        pointHoverRadius: 6,
       },
       {
         label: 'Net Income',
-        data: netIncomeData,
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        borderWidth: 3,
+        data: chartData.map(item => parseFloat(item.netIncome || '0')),
+        borderColor: '#10B981',
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderWidth: 2,
+        fill: false,
         tension: 0.4,
-        pointRadius: 5,
-        yAxisID: 'y',
+        pointBackgroundColor: '#10B981',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
   };
@@ -336,12 +261,9 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'index' as const,
-      intersect: false,
-    },
     plugins: {
       legend: {
+        display: true,
         position: 'top' as const,
         labels: {
           usePointStyle: true,
@@ -355,13 +277,15 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         titleColor: '#fff',
         bodyColor: '#fff',
-        borderColor: 'rgba(14, 165, 233, 0.5)',
+        borderColor: 'rgba(107, 114, 128, 0.5)',
         borderWidth: 1,
         cornerRadius: 8,
         displayColors: true,
         callbacks: {
           label: function(context: any) {
-            return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+            return `${label}: $${value.toLocaleString()}`;
           }
         }
       },
@@ -379,9 +303,6 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
         },
       },
       y: {
-        type: 'linear' as const,
-        display: true,
-        position: 'left' as const,
         grid: {
           color: 'rgba(107, 114, 128, 0.1)',
         },
@@ -396,22 +317,32 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
         },
       },
     },
+    interaction: {
+      intersect: false,
+      mode: 'index' as const,
+    },
   };
 
   if (isLoading) {
     return (
-      <div className="h-80 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-          <p className="text-gray-600 text-sm">Loading chart data...</p>
+      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-80">
-      <Line data={data} options={options} />
+    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Property Performance</h3>
+      </div>
+      
+      {/* Chart */}
+      <div className="h-64">
+        <Line data={data} options={options} />
+      </div>
     </div>
   );
 };
