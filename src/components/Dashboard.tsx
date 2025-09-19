@@ -591,16 +591,16 @@ const Dashboard: React.FC = () => {
         </div>
       ) : (
         // Show regular charts when no cash flow data
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
-            <RevenueChart properties={properties} />
-          </div>
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
-            <OccupancyChart properties={properties} />
-          </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+          <RevenueChart properties={properties} />
         </div>
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
+          <OccupancyChart properties={properties} />
+        </div>
+      </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

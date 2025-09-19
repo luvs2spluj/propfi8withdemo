@@ -21,43 +21,142 @@ interface DashboardBucket {
   description: string;
   calculation: string;
   color: string;
+  category: 'income' | 'expense' | 'net_income' | 'cash' | 'exclude';
+  icon: string;
+  label: string;
 }
 
 const DASHBOARD_BUCKETS: DashboardBucket[] = [
+  // Income Buckets
   {
     id: 'total_income',
     name: 'Total Income',
     description: 'Sum of all income accounts',
     calculation: 'Sum of Income accounts',
-    color: 'bg-green-100 text-green-800'
-  },
-  {
-    id: 'total_expense',
-    name: 'Total Expense', 
-    description: 'Sum of all expense accounts',
-    calculation: 'Sum of Expense accounts',
-    color: 'bg-red-100 text-red-800'
-  },
-  {
-    id: 'net_operating_income',
-    name: 'Net Operating Income (NOI)',
-    description: 'Income minus Expenses',
-    calculation: 'Total Income - Total Expense',
-    color: 'bg-blue-100 text-blue-800'
+    color: 'bg-green-100 text-green-800',
+    category: 'income',
+    icon: '💰',
+    label: 'Total Income'
   },
   {
     id: 'gross_rental_income',
     name: 'Gross Rental Income',
     description: 'Rental income from tenants',
     calculation: 'Sum of Rental Income accounts',
-    color: 'bg-green-100 text-green-800'
+    color: 'bg-green-100 text-green-800',
+    category: 'income',
+    icon: '🏠',
+    label: 'Rental Income'
+  },
+  {
+    id: 'other_income',
+    name: 'Other Income',
+    description: 'Fees, charges, and other income',
+    calculation: 'Sum of Other Income accounts',
+    color: 'bg-green-100 text-green-800',
+    category: 'income',
+    icon: '💵',
+    label: 'Other Income'
+  },
+  
+  // Revenue Buckets
+  {
+    id: 'total_operating_income',
+    name: 'Total Operating Income',
+    description: 'Total operating revenue',
+    calculation: 'Sum of Operating Income accounts',
+    color: 'bg-emerald-100 text-emerald-800',
+    category: 'income',
+    icon: '📈',
+    label: 'Operating Income'
+  },
+  
+  // Expense Buckets
+  {
+    id: 'total_expense',
+    name: 'Total Expense', 
+    description: 'Sum of all expense accounts',
+    calculation: 'Sum of Expense accounts',
+    color: 'bg-red-100 text-red-800',
+    category: 'expense',
+    icon: '💸',
+    label: 'Total Expense'
   },
   {
     id: 'operating_expenses',
     name: 'Operating Expenses',
     description: 'Property operating costs',
     calculation: 'Sum of Operating Expense accounts',
-    color: 'bg-orange-100 text-orange-800'
+    color: 'bg-orange-100 text-orange-800',
+    category: 'expense',
+    icon: '🔧',
+    label: 'Operating Expenses'
+  },
+  {
+    id: 'maintenance_expenses',
+    name: 'Maintenance Expenses',
+    description: 'Repair and maintenance costs',
+    calculation: 'Sum of Maintenance accounts',
+    color: 'bg-orange-100 text-orange-800',
+    category: 'expense',
+    icon: '🛠️',
+    label: 'Maintenance'
+  },
+  {
+    id: 'management_expenses',
+    name: 'Management Expenses',
+    description: 'Property management costs',
+    calculation: 'Sum of Management accounts',
+    color: 'bg-orange-100 text-orange-800',
+    category: 'expense',
+    icon: '👥',
+    label: 'Management'
+  },
+  
+  // Net Income Buckets
+  {
+    id: 'net_operating_income',
+    name: 'Net Operating Income (NOI)',
+    description: 'Income minus Expenses',
+    calculation: 'Total Income - Total Expense',
+    color: 'bg-blue-100 text-blue-800',
+    category: 'net_income',
+    icon: '📊',
+    label: 'Net Income'
+  },
+  
+  // Cash Buckets
+  {
+    id: 'cash_amount',
+    name: 'Cash Amount',
+    description: 'Cash and cash equivalents',
+    calculation: 'Sum of Cash accounts',
+    color: 'bg-purple-100 text-purple-800',
+    category: 'cash',
+    icon: '💳',
+    label: 'Cash Amount'
+  },
+  {
+    id: 'cash_change',
+    name: 'Cash Change',
+    description: 'Changes in cash position',
+    calculation: 'Cash Flow changes',
+    color: 'bg-purple-100 text-purple-800',
+    category: 'cash',
+    icon: '💱',
+    label: 'Cash Change'
+  },
+  
+  // Exclude Bucket
+  {
+    id: 'exclude',
+    name: 'Do Not Include',
+    description: 'Exclude from dashboard calculations',
+    calculation: 'Not included in totals',
+    color: 'bg-gray-100 text-gray-800',
+    category: 'exclude',
+    icon: '❌',
+    label: 'Exclude'
   }
 ];
 
@@ -67,6 +166,7 @@ export default function CSVManagement() {
   const [editingCategories, setEditingCategories] = useState<Record<string, string>>({});
   const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({});
   const [editingTags, setEditingTags] = useState<Record<string, string[]>>({});
+  const [includedItems, setIncludedItems] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -138,6 +238,14 @@ export default function CSVManagement() {
     setEditingCategories({ ...csv.accountCategories });
     setEditingBuckets({ ...csv.bucketAssignments });
     setEditingTags({ ...csv.tags });
+    
+    // Initialize included items - all items selected by default
+    const initialIncludedItems: Record<string, boolean> = {};
+    Object.keys(csv.accountCategories).forEach(accountName => {
+      initialIncludedItems[accountName] = true;
+    });
+    setIncludedItems(initialIncludedItems);
+    
     setShowPreview(true); // Automatically show preview
     setPreviewMode(false);
   };
@@ -180,6 +288,66 @@ export default function CSVManagement() {
       ...prev,
       [accountName]: bucket
     }));
+  };
+
+  const updateIncludedItem = (accountName: string, included: boolean) => {
+    setIncludedItems(prev => ({
+      ...prev,
+      [accountName]: included
+    }));
+  };
+
+  const selectAllItems = () => {
+    const allSelected: Record<string, boolean> = {};
+    Object.keys(editingCategories).forEach(accountName => {
+      allSelected[accountName] = true;
+    });
+    setIncludedItems(allSelected);
+  };
+
+  const deselectAllItems = () => {
+    const noneSelected: Record<string, boolean> = {};
+    Object.keys(editingCategories).forEach(accountName => {
+      noneSelected[accountName] = false;
+    });
+    setIncludedItems(noneSelected);
+  };
+
+  const selectByCategory = (category: string) => {
+    setIncludedItems(prev => {
+      const updated = { ...prev };
+      Object.entries(editingCategories).forEach(([accountName, cat]) => {
+        if (cat === category) {
+          updated[accountName] = true;
+        }
+      });
+      return updated;
+    });
+  };
+
+  const getSuggestedBucket = (accountName: string, category: string): string => {
+    const name = accountName.toLowerCase();
+    
+    // Priority 1: Key metrics for dashboard
+    if (name.includes('total operating income')) return 'total_operating_income';
+    if (name.includes('noi') && name.includes('net operating income')) return 'net_operating_income';
+    if (name.includes('total operating expense')) return 'total_operating_expense';
+    
+    // Priority 2: Income categories
+    if (category === 'income') {
+      if (name.includes('rent') || name.includes('tenant')) return 'rental_income';
+      if (name.includes('fee') || name.includes('charge')) return 'other_income';
+      return 'total_income';
+    }
+    
+    // Priority 3: Expense categories
+    if (category === 'expense') {
+      if (name.includes('maintenance') || name.includes('repair')) return 'maintenance_expenses';
+      if (name.includes('management') || name.includes('admin')) return 'management_expenses';
+      return 'operating_expenses';
+    }
+    
+    return 'unassigned';
   };
 
   const updateTags = (accountName: string, tags: string[]) => {
@@ -654,86 +822,196 @@ export default function CSVManagement() {
                     </div>
         </div>
 
-                  {/* Account Line Items Editor - Same as CSV Import Flow */}
+                  {/* Enhanced CSV Editing Interface - Same as Upload Preview */}
                   {!previewMode && (
-                    <div className="space-y-4 max-h-96 overflow-y-auto">
-                      <h4 className="text-md font-medium mb-3">Account Line Items Categorization</h4>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Review and adjust how each account line item is categorized. Values will be normalized (negative values → positive).
-                      </p>
-                    <div className="space-y-2 max-h-80 overflow-y-auto border rounded-lg p-4 bg-white">
-                      <div className="text-xs text-gray-500 mb-2">
-                        Found {Object.keys(editingCategories).length} account line items
-          </div>
-                      {Object.entries(editingCategories).map(([accountName, category]) => (
-                        <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
-                          <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
-                            {accountName}
-                          </div>
-                          <select 
-                            className="w-1/3 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                            value={category}
-                            onChange={e => updateCategory(accountName, e.target.value)}
+                    <div className="space-y-6">
+                      {/* Bulk Selection Controls */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <h4 className="text-lg font-semibold mb-3">📋 Bulk Selection Controls</h4>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={selectAllItems}
+                            className="px-3 py-1 bg-green-100 text-green-800 rounded-md text-sm hover:bg-green-200"
                           >
-                            <option value="income">💰 Income</option>
-                            <option value="expense">💸 Expense</option>
-                          </select>
-                          <div className={`w-1/6 text-xs px-2 py-1 rounded text-center font-semibold ${
-                            category === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
-                            {category === 'income' ? '📈' : '📉'}
-                          </div>
+                            ✅ Select All Items
+                          </button>
+                          <button
+                            onClick={deselectAllItems}
+                            className="px-3 py-1 bg-red-100 text-red-800 rounded-md text-sm hover:bg-red-200"
+                          >
+                            ❌ Deselect All Items
+                          </button>
+                          <button
+                            onClick={() => selectByCategory('income')}
+                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-md text-sm hover:bg-blue-200"
+                          >
+                            💰 Select All Income
+                          </button>
+                          <button
+                            onClick={() => selectByCategory('expense')}
+                            className="px-3 py-1 bg-orange-100 text-orange-800 rounded-md text-sm hover:bg-orange-200"
+                          >
+                            💸 Select All Expenses
+                          </button>
                         </div>
-                      ))}
-                    </div>
-                    
-                    {/* Bucket Assignment */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-medium">Dashboard Bucket Assignment</h5>
-                      <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
-                        {Object.entries(editingCategories).map(([accountName, category]) => (
-                          <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
-                            <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
-                              {accountName}
-                            </div>
-                            <select 
-                              className="w-1/2 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                              value={editingBuckets[accountName] || ''}
-                              onChange={e => updateBucket(accountName, e.target.value)}
-                            >
-                              <option value="">Select bucket...</option>
-                              {DASHBOARD_BUCKETS.map(bucket => (
-                                <option key={bucket.id} value={bucket.id}>
-                                  {bucket.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ))}
                       </div>
-                    </div>
 
-                    {/* Tags */}
-                    <div className="space-y-2">
-                      <h5 className="text-sm font-medium">Tags</h5>
-                      <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-3 bg-white">
-                        {Object.entries(editingCategories).map(([accountName, category]) => (
-                          <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
-                            <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
-                              {accountName}
-                            </div>
-                            <input
-                              type="text"
-                              value={editingTags[accountName]?.join(', ') || ''}
-                              onChange={e => updateTags(accountName, e.target.value.split(',').map(t => t.trim()).filter(Boolean))}
-                              placeholder="Enter tags separated by commas"
-                              className="w-1/2 p-2 border rounded text-xs"
-                            />
-                          </div>
-                        ))}
+                      {/* Time Series Data Table with Sticky Headers */}
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+                          <h4 className="text-lg font-semibold">📊 CSV Data Preview</h4>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Review and categorize your CSV data. Check/uncheck items to include/exclude from dashboard.
+                          </p>
+                        </div>
+                        
+                        <div className="overflow-x-auto max-h-96">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50 sticky top-0 z-10">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Include</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Category</th>
+                                <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Dashboard Bucket</th>
+                                {selectedCSV?.previewData?.[0]?.time_series && 
+                                  Object.keys(selectedCSV.previewData[0].time_series)
+                                    .filter(key => key.toLowerCase() !== 'total')
+                                    .map(month => (
+                                      <th key={month} className="px-3 py-2 text-right font-medium text-gray-700 border-b min-w-20">
+                                        {month}
+                                      </th>
+                                    ))
+                                }
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {selectedCSV?.previewData?.map((item: any, index: number) => (
+                                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={includedItems[item.account_name] || false}
+                                      onChange={(e) => updateIncludedItem(item.account_name, e.target.checked)}
+                                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2 font-medium text-gray-900">
+                                    {item.account_name}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <select
+                                      value={editingCategories[item.account_name] || 'income'}
+                                      onChange={(e) => updateCategory(item.account_name, e.target.value)}
+                                      className="border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                      <option value="income">💰 Income</option>
+                                      <option value="expense">💸 Expense</option>
+                                    </select>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <div className="space-y-2">
+                                      {/* Income Buckets */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        {DASHBOARD_BUCKETS.filter(bucket => bucket.category === 'income').map(bucket => (
+                                          <button
+                                            key={bucket.id}
+                                            onClick={() => updateBucket(item.account_name, bucket.id)}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                              editingBuckets[item.account_name] === bucket.id
+                                                ? bucket.color + ' ring-2 ring-blue-500'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            {bucket.icon} {bucket.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Expense Buckets */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        {DASHBOARD_BUCKETS.filter(bucket => bucket.category === 'expense').map(bucket => (
+                                          <button
+                                            key={bucket.id}
+                                            onClick={() => updateBucket(item.account_name, bucket.id)}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                              editingBuckets[item.account_name] === bucket.id
+                                                ? bucket.color + ' ring-2 ring-blue-500'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            {bucket.icon} {bucket.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Cash Buckets */}
+                                      <div className="grid grid-cols-2 gap-1">
+                                        {DASHBOARD_BUCKETS.filter(bucket => bucket.category === 'cash').map(bucket => (
+                                          <button
+                                            key={bucket.id}
+                                            onClick={() => updateBucket(item.account_name, bucket.id)}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                              editingBuckets[item.account_name] === bucket.id
+                                                ? bucket.color + ' ring-2 ring-blue-500'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            {bucket.icon} {bucket.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Net Income Buckets */}
+                                      <div className="grid grid-cols-1 gap-1">
+                                        {DASHBOARD_BUCKETS.filter(bucket => bucket.category === 'net_income').map(bucket => (
+                                          <button
+                                            key={bucket.id}
+                                            onClick={() => updateBucket(item.account_name, bucket.id)}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                              editingBuckets[item.account_name] === bucket.id
+                                                ? bucket.color + ' ring-2 ring-blue-500'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            {bucket.icon} {bucket.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* Exclude Bucket */}
+                                      <div className="grid grid-cols-1 gap-1">
+                                        {DASHBOARD_BUCKETS.filter(bucket => bucket.category === 'exclude').map(bucket => (
+                                          <button
+                                            key={bucket.id}
+                                            onClick={() => updateBucket(item.account_name, bucket.id)}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                              editingBuckets[item.account_name] === bucket.id
+                                                ? bucket.color + ' ring-2 ring-blue-500'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            {bucket.icon} {bucket.label}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  {item.time_series && 
+                                    Object.entries(item.time_series)
+                                      .filter(([key]) => key.toLowerCase() !== 'total')
+                                      .map(([month, value]) => (
+                                        <td key={month} className="px-3 py-2 text-right text-gray-600">
+                                          {typeof value === 'number' ? `$${value.toLocaleString()}` : String(value)}
+                                        </td>
+                                      ))
+                                  }
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
-                  </div>
                   )}
 
                   {/* Preview Mode Message */}

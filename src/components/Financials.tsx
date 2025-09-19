@@ -57,12 +57,6 @@ const Financials: React.FC = () => {
     loadProperties();
   }, []);
 
-  useEffect(() => {
-    if (selectedProperty) {
-      loadPropertyData();
-    }
-  }, [selectedProperty]);
-
   const loadProperties = async () => {
     try {
       // Try to get properties from local backend first
@@ -178,11 +172,11 @@ const Financials: React.FC = () => {
                     month: month,
                     revenue: '0',
                     occupancy_rate: '95',
-                    maintenance_cost: '0',
-                    utilities_cost: '0',
-                    insurance_cost: '0',
-                    property_tax: '0',
-                    other_expenses: '0',
+                  maintenance_cost: '0',
+                  utilities_cost: '0',
+                  insurance_cost: '0',
+                  property_tax: '0',
+                  other_expenses: '0',
                     expenses: '0',
                     netIncome: '0',
                     notes: '',
@@ -234,7 +228,7 @@ const Financials: React.FC = () => {
         propertyDataArray.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
         console.log('📊 Processed financial data:', propertyDataArray.length, 'months');
-      } else {
+        } else {
         console.log('📊 No active CSV data found for financials');
       }
       
@@ -244,14 +238,26 @@ const Financials: React.FC = () => {
       setError('Failed to load property data');
       setPropertyData([]);
     } finally {
-                setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Calculate financial summary from real data
-  const calculateFinancialSummary = () => {
-    if (!propertyData || propertyData.length === 0) {
-                  return {
+  // Load property data when selected property changes
+  useEffect(() => {
+    if (selectedProperty) {
+      loadPropertyData();
+    }
+  }, [selectedProperty]);
+
+  // Calculate financial summary from CSV data (same as Dashboard)
+  const calculateFinancialSummary = async () => {
+    try {
+      // Get CSV data from Supabase (same source as Dashboard)
+      const { getCSVData } = await import('../lib/supabase');
+      const csvData = await getCSVData();
+      
+      if (!csvData || csvData.length === 0) {
+      return {
         totalRevenue: 0,
         totalExpenses: 0,
         netIncome: 0,
@@ -260,55 +266,153 @@ const Financials: React.FC = () => {
       };
     }
 
-    // If we have monthly data (multiple records with month names), calculate from that
-    if (propertyData.length > 1 && propertyData.some((record: any) => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
-      const totalRevenue = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.revenue), 0);
-      const totalExpenses = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.expenses || '0'), 0);
+      // Filter active CSVs
+      const activeCSVs = csvData.filter((csv: any) => csv.is_active !== false);
       
-      const netIncome = totalRevenue - totalExpenses;
-      const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
-      const monthlyAverage = propertyData.length > 0 ? totalRevenue / propertyData.length : 0;
+      let totalIncome = 0;
+      let totalExpense = 0;
+      let recordCount = 0;
 
-      return {
-        totalRevenue,
-        totalExpenses,
-        netIncome,
-        profitMargin,
-        monthlyAverage
-      };
-    }
+      // Process CSV data using the same logic as Dashboard
+      activeCSVs.forEach((csv: any) => {
+        const fileName = csv.file_name || csv.fileName;
+        const totalRecords = csv.total_records || csv.totalRecords;
+        const accountCategories = csv.account_categories || csv.accountCategories;
+        const previewData = csv.preview_data || csv.previewData;
+        const fileType = csv.file_type || csv.fileType;
+        
+        console.log(`📁 Financials processing CSV: ${fileName} (${totalRecords} records)`);
+        
+        // For cash flow CSVs, prioritize the THREE KEY METRICS
+        if (fileType === 'cash_flow') {
+          console.log('💰 Financials processing CASH FLOW CSV - Looking for KEY METRICS...');
+          
+          // PRIORITY 1: Look for the three most important metrics first
+          const primaryMetrics = [
+            { name: 'Total Operating Income', type: 'income' },
+            { name: 'NOI - Net Operating Income', type: 'net_income' },
+            { name: 'Total Operating Expense', type: 'expense' }
+          ];
+          
+          let foundKeyMetrics = false;
+          
+          primaryMetrics.forEach(metric => {
+            const accountData = previewData.find((item: any) => {
+              const accountName = item.account_name?.trim().toLowerCase() || '';
+              return accountName.includes(metric.name.toLowerCase());
+            });
+            
+            if (accountData && accountData.time_series) {
+              foundKeyMetrics = true;
+              console.log(`🎯 Financials FOUND KEY METRIC: ${accountData.account_name} (${metric.type})`);
+              
+              // Get monthly values (exclude totals)
+              const monthlyValues = Object.entries(accountData.time_series)
+                .filter(([month, value]) => 
+                  month.toLowerCase() !== 'total' && 
+                  month.toLowerCase() !== 'sum' && 
+                  month.toLowerCase() !== 'grand total' &&
+                  typeof value === 'number'
+                )
+                .map(([, value]) => value as number);
+              
+              if (monthlyValues.length > 0) {
+                // For key metrics, use the sum of all months (total for the period)
+                const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+                
+                if (metric.type === 'income') {
+                  totalIncome += totalValue;
+                  console.log(`  💰 Financials ${accountData.account_name}: Total Income = $${totalValue.toLocaleString()}`);
+                } else if (metric.type === 'expense') {
+                  totalExpense += totalValue;
+                  console.log(`  💸 Financials ${accountData.account_name}: Total Expense = $${totalValue.toLocaleString()}`);
+                }
+              }
+            }
+          });
+          
+          // PRIORITY 2: If we found key metrics, skip individual categorization
+          if (foundKeyMetrics) {
+            console.log('✅ Financials using KEY METRICS for calculation');
+          } else {
+            // If we didn't find key metrics, fall back to individual account categorization
+            console.log('⚠️ Financials key metrics not found, falling back to individual account categorization...');
+            
+            Object.entries(accountCategories).forEach(([accountName, category]) => {
+              const accountData = previewData.find((item: any) => 
+                item.account_name?.trim() === accountName
+              );
+              
+              if (accountData && accountData.time_series) {
+                // Get monthly values (exclude totals)
+                const monthlyValues = Object.entries(accountData.time_series)
+                  .filter(([month, value]) => 
+                    month.toLowerCase() !== 'total' && 
+                    month.toLowerCase() !== 'sum' && 
+                    month.toLowerCase() !== 'grand total' &&
+                    typeof value === 'number'
+                  )
+                  .map(([, value]) => value as number);
+                
+                if (monthlyValues.length > 0) {
+                  // For cash flow, use sum of all months
+                  const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+                  
+                  if (category === 'income') {
+                    totalIncome += totalValue;
+                  } else if (category === 'expense') {
+                    totalExpense += totalValue;
+                  }
+                }
+              }
+            });
+          }
+        } else {
+          // For other file types, use the original logic
+          Object.entries(accountCategories).forEach(([accountName, category]) => {
+            const accountData = previewData.find((item: any) => 
+              item.account_name?.trim() === accountName
+            );
+            
+            if (accountData && accountData.time_series) {
+              // Get monthly values (exclude totals)
+              const monthlyValues = Object.entries(accountData.time_series)
+                .filter(([month, value]) => 
+                  month.toLowerCase() !== 'total' && 
+                  month.toLowerCase() !== 'sum' && 
+                  month.toLowerCase() !== 'grand total' &&
+                  typeof value === 'number'
+                )
+                .map(([, value]) => value as number);
+              
+              if (monthlyValues.length > 0) {
+                const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+                
+                if (category === 'income') {
+                  totalIncome += totalValue;
+                } else if (category === 'expense') {
+                  totalExpense += totalValue;
+                }
+              }
+            }
+          });
+        }
+        
+        recordCount += totalRecords;
+      });
 
-    // If we have summary data (single record with total amount), calculate from that
-    if (propertyData.length === 1 && propertyData[0].revenue.includes('479482')) {
-      const totalRevenue = parseFloat(propertyData[0].revenue);
-      const totalExpenses = totalRevenue * 0.6; // 60% expenses
-      const netIncome = totalRevenue - totalExpenses;
-      const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
-      const monthlyAverage = totalRevenue / 12; // 12 months
-
-      return {
-        totalRevenue,
-        totalExpenses,
-        netIncome,
-        profitMargin,
-        monthlyAverage
-      };
-    }
-
-    // Otherwise, calculate from individual records
-    const totalRevenue = propertyData.reduce((sum: number, record: any) => sum + parseFloat(record.revenue), 0);
-    const totalExpenses = propertyData.reduce((sum: number, record: any) => {
-      const maintenance = parseFloat(record.maintenance_cost) || 0;
-      const utilities = parseFloat(record.utilities_cost) || 0;
-      const insurance = parseFloat(record.insurance_cost) || 0;
-      const propertyTax = parseFloat(record.property_tax) || 0;
-      const other = parseFloat(record.other_expenses) || 0;
-      return sum + maintenance + utilities + insurance + propertyTax + other;
-    }, 0);
-    
-    const netIncome = totalRevenue - totalExpenses;
+      // Calculate final metrics
+      const totalRevenue = totalIncome; // Revenue = Total Operating Income
+      const totalExpenses = totalExpense; // Expenses = Total Operating Expense  
+      const netIncome = totalIncome - totalExpense; // Net Income = Net Operating Income
     const profitMargin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
-    const monthlyAverage = propertyData.length > 0 ? totalRevenue / propertyData.length : 0;
+      const monthlyAverage = recordCount > 0 ? totalRevenue / recordCount : 0;
+
+      console.log('📊 Financials calculated metrics:');
+      console.log(`  💰 Total Revenue (Total Operating Income): $${totalRevenue.toLocaleString()}`);
+      console.log(`  💸 Total Expenses (Total Operating Expense): $${totalExpenses.toLocaleString()}`);
+      console.log(`  📊 Net Income (Net Operating Income): $${netIncome.toLocaleString()}`);
+      console.log(`  📈 Profit Margin: ${profitMargin.toFixed(2)}%`);
 
     return {
       totalRevenue,
@@ -317,80 +421,196 @@ const Financials: React.FC = () => {
       profitMargin,
       monthlyAverage
     };
+    } catch (error) {
+      console.error('Error calculating financial summary from CSV data:', error);
+      return {
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netIncome: 0,
+        profitMargin: 0,
+        monthlyAverage: 0
+      };
+    }
   };
 
-  // Generate monthly data from real CSV data or create synthetic monthly data
-  const generateMonthlyData = () => {
-    if (!propertyData || propertyData.length === 0) {
+  // Generate monthly data from CSV data (same source as Dashboard)
+  const generateMonthlyData = async () => {
+    try {
+      console.log('🔄 Generating monthly data from CSV...');
+      
+      // Get CSV data from Supabase (same source as Dashboard)
+      const { getCSVData } = await import('../lib/supabase');
+      const csvData = await getCSVData();
+      
+      console.log('📊 CSV data retrieved:', csvData.length, 'files');
+      
+      if (!csvData || csvData.length === 0) {
+        console.log('⚠️ No CSV data found');
       return [];
     }
 
-    // If we have monthly data (multiple records with month names), use actual data
-    if (propertyData.length > 1 && propertyData.some((record: any) => record.month && (record.month.includes('2025') || record.month.includes('2024')))) {
-      return propertyData.map((record: any) => {
-        const revenue = parseFloat(record.revenue);
-        const expenses = parseFloat(record.expenses || '0');
-        const netIncome = parseFloat(record.netIncome || '0');
-        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
+      // Filter active CSVs
+      const activeCSVs = csvData.filter((csv: any) => csv.is_active !== false);
+      console.log('📊 Active CSVs:', activeCSVs.length);
+      
+      // Collect monthly data from all CSVs
+      const monthlyDataMap = new Map<string, { revenue: number; expenses: number; netIncome: number; margin: number }>();
+      
+      activeCSVs.forEach((csv: any) => {
+        const fileName = csv.file_name || csv.fileName;
+        const previewData = csv.preview_data || csv.previewData;
+        const fileType = csv.file_type || csv.fileType;
+        
+        console.log(`📁 Processing CSV: ${fileName} (${fileType})`);
+        console.log('📋 Preview data sample:', previewData?.slice(0, 2));
+        
+        // For cash flow CSVs, prioritize the THREE KEY METRICS
+        if (fileType === 'cash_flow') {
+          console.log('💰 Processing CASH FLOW CSV for monthly data...');
+          
+          const primaryMetrics = [
+            { name: 'Total Operating Income', type: 'income' },
+            { name: 'NOI - Net Operating Income', type: 'net_income' },
+            { name: 'Total Operating Expense', type: 'expense' }
+          ];
+          
+          let foundKeyMetrics = false;
+          
+          primaryMetrics.forEach(metric => {
+            const accountData = previewData.find((item: any) => {
+              const accountName = item.account_name?.trim().toLowerCase() || '';
+              const metricName = metric.name.toLowerCase();
+              console.log(`🔍 Checking "${accountName}" against "${metricName}"`);
+              return accountName.includes(metricName);
+            });
+            
+            if (accountData && accountData.time_series) {
+              foundKeyMetrics = true;
+              console.log(`🎯 FOUND KEY METRIC: ${accountData.account_name} (${metric.type})`);
+              console.log('📊 Time Series Data:', accountData.time_series);
+              
+              // Process each month's data
+              Object.entries(accountData.time_series).forEach(([month, value]) => {
+                if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+                  return; // Skip totals
+                }
+                
+                if (typeof value === 'number') {
+                  if (!monthlyDataMap.has(month)) {
+                    monthlyDataMap.set(month, { revenue: 0, expenses: 0, netIncome: 0, margin: 0 });
+                  }
+                  
+                  const monthData = monthlyDataMap.get(month)!;
+                  
+                  if (metric.type === 'income') {
+                    monthData.revenue += value;
+                    console.log(`  💰 ${month}: Revenue += ${value}`);
+                  } else if (metric.type === 'expense') {
+                    monthData.expenses += value;
+                    console.log(`  💸 ${month}: Expenses += ${value}`);
+                  }
+                }
+              });
+            } else {
+              console.log(`❌ Key metric "${metric.name}" not found`);
+            }
+          });
+          
+          // If we didn't find key metrics, fall back to individual account categorization
+          if (!foundKeyMetrics) {
+            console.log('⚠️ Key metrics not found, falling back to individual categorization...');
+            const accountCategories = csv.account_categories || csv.accountCategories;
+            
+            Object.entries(accountCategories).forEach(([accountName, category]) => {
+              const accountData = previewData.find((item: any) => 
+                item.account_name?.trim() === accountName
+              );
+              
+              if (accountData && accountData.time_series) {
+                Object.entries(accountData.time_series).forEach(([month, value]) => {
+                  if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+                    return; // Skip totals
+                  }
+                  
+                  if (typeof value === 'number') {
+                    if (!monthlyDataMap.has(month)) {
+                      monthlyDataMap.set(month, { revenue: 0, expenses: 0, netIncome: 0, margin: 0 });
+                    }
+                    
+                    const monthData = monthlyDataMap.get(month)!;
+                    
+                    if (category === 'income') {
+                      monthData.revenue += value;
+                    } else if (category === 'expense') {
+                      monthData.expenses += value;
+                    }
+                  }
+                });
+              }
+            });
+          }
+        } else {
+          // For other file types, use the original logic
+          const accountCategories = csv.account_categories || csv.accountCategories;
+          
+          Object.entries(accountCategories).forEach(([accountName, category]) => {
+            const accountData = previewData.find((item: any) => 
+              item.account_name?.trim() === accountName
+            );
+            
+            if (accountData && accountData.time_series) {
+              Object.entries(accountData.time_series).forEach(([month, value]) => {
+                if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+                  return; // Skip totals
+                }
+                
+                if (typeof value === 'number') {
+                  if (!monthlyDataMap.has(month)) {
+                    monthlyDataMap.set(month, { revenue: 0, expenses: 0, netIncome: 0, margin: 0 });
+                  }
+                  
+                  const monthData = monthlyDataMap.get(month)!;
+                  
+                  if (category === 'income') {
+                    monthData.revenue += value;
+                  } else if (category === 'expense') {
+                    monthData.expenses += value;
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+
+      // Convert map to array and calculate net income and margin
+      const monthlyData = Array.from(monthlyDataMap.entries()).map(([month, data]) => {
+        const netIncome = data.revenue - data.expenses;
+        const margin = data.revenue > 0 ? (netIncome / data.revenue) * 100 : 0;
 
         return {
-          month: record.month || record.date, // Use the month string directly (e.g., "Jan 2025")
-          revenue,
-          expenses,
+          month,
+          revenue: data.revenue,
+          expenses: data.expenses,
           netIncome,
-          margin,
-                  };
-                });
-    }
-
-    // If we have summary data (single record with total amount), generate monthly breakdown
-    if (propertyData.length === 1 && propertyData[0].revenue.includes('479482') && !propertyData[0].month) {
-      const totalRevenue = parseFloat(propertyData[0].revenue);
-      const monthlyRevenue = totalRevenue / 12;
-      
-      // Generate 12 months of data (Aug 2024 to Jul 2025)
-      const months = [
-        'Aug 2024', 'Sep 2024', 'Oct 2024', 'Nov 2024', 'Dec 2024',
-        'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025', 'Jun 2025', 'Jul 2025'
-      ];
-      
-      return months.map((month, index) => {
-        const baseRevenue = monthlyRevenue;
-        const variance = (Math.random() - 0.5) * 0.1; // ±5% variance
-        const revenue = baseRevenue * (1 + variance);
-        const expenses = revenue * 0.6; // 60% expenses
-        const netIncome = revenue - expenses;
-        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
-                    
-                    return {
-                      month,
-          revenue: Math.round(revenue),
-          expenses: Math.round(expenses),
-          netIncome: Math.round(netIncome),
-          margin: Math.round(margin * 10) / 10, // Round to 1 decimal place
+          margin
         };
       });
+
+      // Sort by month (assuming month format like "Jan 2025", "Feb 2025", etc.)
+      monthlyData.sort((a, b) => {
+        const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const aMonth = a.month.split(' ')[0];
+        const bMonth = b.month.split(' ')[0];
+        return monthOrder.indexOf(aMonth) - monthOrder.indexOf(bMonth);
+      });
+
+      console.log('📊 Financials generated monthly data:', monthlyData);
+      return monthlyData;
+    } catch (error) {
+      console.error('Error generating monthly data from CSV:', error);
+      return [];
     }
-
-    // Otherwise, use actual monthly data
-    return propertyData
-      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) // Reverse order: newest first
-      .map((record: any) => {
-        const date = new Date(record.date);
-        const month = date.toLocaleDateString('en-US', { month: 'short' });
-        const revenue = parseFloat(record.revenue);
-        const expenses = parseFloat(record.expenses || '0');
-        const netIncome = parseFloat(record.netIncome || '0');
-        const margin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
-
-        return {
-          month: `${month} ${date.getFullYear()}`,
-          revenue,
-          expenses,
-          netIncome,
-          margin,
-                  };
-                });
   };
 
   // Calculate expense categories from real data or generate from monthly data
@@ -469,10 +689,43 @@ const Financials: React.FC = () => {
     ];
   };
 
-  const financialSummary = calculateFinancialSummary();
-  const monthlyData = generateMonthlyData();
-  const expenseCategories = calculateExpenseCategories();
-  const revenueSources = calculateRevenueSources();
+  // State for async data
+  const [financialSummary, setFinancialSummary] = useState({
+    totalRevenue: 0,
+    totalExpenses: 0,
+    netIncome: 0,
+    profitMargin: 0,
+    monthlyAverage: 0
+  });
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [expenseCategories, setExpenseCategories] = useState<any[]>([]);
+  const [revenueSources, setRevenueSources] = useState<any[]>([]);
+
+  // Function to load financial data
+  const loadFinancialData = async () => {
+    try {
+      console.log('🔄 Loading financial data from CSV...');
+      const summary = await calculateFinancialSummary();
+      const monthly = await generateMonthlyData();
+      const expenses = calculateExpenseCategories();
+      const revenue = calculateRevenueSources();
+      
+      console.log('📊 Financial summary loaded:', summary);
+      console.log('📅 Monthly data loaded:', monthly);
+      
+      setFinancialSummary(summary);
+      setMonthlyData(monthly);
+      setExpenseCategories(expenses);
+      setRevenueSources(revenue);
+    } catch (error) {
+      console.error('Error loading financial data:', error);
+    }
+  };
+
+  // Load financial data when component mounts or when CSV data changes
+  useEffect(() => {
+    loadFinancialData();
+  }, [calculateExpenseCategories, calculateRevenueSources]); // Include dependencies
 
   // Helper function for color classes
   const getColorClass = (color: string) => {
@@ -532,8 +785,8 @@ const Financials: React.FC = () => {
             </select>
           </div>
           <button 
-            onClick={loadPropertyData}
-            disabled={isLoading || !selectedProperty}
+            onClick={loadFinancialData}
+            disabled={isLoading}
             className="btn-secondary flex items-center space-x-2"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -578,148 +831,148 @@ const Financials: React.FC = () => {
       {!isLoading && !error && propertyData.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <div className="metric-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ${financialSummary.totalRevenue.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">+12.5% vs last year</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                ${financialSummary.totalRevenue.toLocaleString()}
+              </p>
+              <p className="text-sm text-green-600 mt-1">+12.5% vs last year</p>
             </div>
-
-            <div className="metric-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ${financialSummary.totalExpenses.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-red-600 mt-1">+3.2% vs last year</p>
-                </div>
-                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                  <TrendingDown className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Net Income</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ${financialSummary.netIncome.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">+18.7% vs last year</p>
-                </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Profit Margin</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {financialSummary.profitMargin}%
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">+2.1% vs last year</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Percent className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Monthly Average</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    ${financialSummary.monthlyAverage.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">Revenue per month</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
+            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-green-600" />
             </div>
           </div>
+        </div>
 
-          {/* Monthly Breakdown */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Financial Breakdown</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-900">Month</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-900">Revenue</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-900">Expenses</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-900">Net Income</th>
-                    <th className="text-right py-3 px-4 font-medium text-gray-900">Margin</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {monthlyData.map((data, index) => (
-                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Expenses</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                ${financialSummary.totalExpenses.toLocaleString()}
+              </p>
+              <p className="text-sm text-red-600 mt-1">+3.2% vs last year</p>
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+              <TrendingDown className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Net Income</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                ${financialSummary.netIncome.toLocaleString()}
+              </p>
+              <p className="text-sm text-green-600 mt-1">+18.7% vs last year</p>
+            </div>
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Profit Margin</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {financialSummary.profitMargin}%
+              </p>
+              <p className="text-sm text-green-600 mt-1">+2.1% vs last year</p>
+            </div>
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Percent className="w-6 h-6 text-blue-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="metric-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Monthly Average</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                ${financialSummary.monthlyAverage.toLocaleString()}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">Revenue per month</p>
+            </div>
+                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Breakdown */}
+      <div className="card">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Financial Breakdown</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-900">Month</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-900">Revenue</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-900">Expenses</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-900">Net Income</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-900">Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthlyData.map((data, index) => (
+                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium text-gray-900">{data.month}</td>
                       <td className="text-right py-3 px-4 text-gray-900">${data.revenue.toLocaleString()}</td>
                       <td className="text-right py-3 px-4 text-gray-900">${data.expenses.toLocaleString()}</td>
                       <td className="text-right py-3 px-4 text-gray-900">${data.netIncome.toLocaleString()}</td>
                       <td className="text-right py-3 px-4 text-gray-900">{data.margin}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Expense Breakdown */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
-            <div className="space-y-4">
-              {expenseCategories.map((expense, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-4 h-4 rounded-full ${getColorClass(expense.color)}`}></div>
-                    <span className="text-sm font-medium text-gray-900">{expense.category}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">${expense.amount.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">{expense.percentage}%</p>
-                  </div>
-                </div>
+                </tr>
               ))}
-            </div>
-          </div>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          {/* Revenue Sources */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Sources</h3>
-            <div className="space-y-4">
-              {revenueSources.map((source, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-900">{source.source}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">${source.amount.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">{source.percentage}%</p>
-                  </div>
+        {/* Expense Breakdown */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Expense Breakdown</h3>
+          <div className="space-y-4">
+            {expenseCategories.map((expense, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-4 h-4 rounded-full ${getColorClass(expense.color)}`}></div>
+                  <span className="text-sm font-medium text-gray-900">{expense.category}</span>
                 </div>
-              ))}
-            </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">${expense.amount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">{expense.percentage}%</p>
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
+
+        {/* Revenue Sources */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Sources</h3>
+          <div className="space-y-4">
+            {revenueSources.map((source, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-900">{source.source}</span>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">${source.amount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">{source.percentage}%</p>
+                </div>
+              </div>
+            ))}
+        </div>
+      </div>
         </>
       )}
     </div>

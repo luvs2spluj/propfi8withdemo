@@ -92,6 +92,22 @@ const DASHBOARD_BUCKETS = {
     category: 'net_income'
   },
   
+  // Cash Buckets
+  'cash_amount': {
+    label: 'Cash Amount',
+    description: 'Cash and cash equivalents',
+    color: 'bg-purple-100 text-purple-800',
+    icon: '💳',
+    category: 'cash'
+  },
+  'cash_change': {
+    label: 'Cash Change',
+    description: 'Changes in cash position',
+    color: 'bg-purple-100 text-purple-800',
+    icon: '💱',
+    category: 'cash'
+  },
+  
   // Exclude Bucket
   'exclude': {
     label: 'Exclude from Dashboard',
@@ -921,26 +937,131 @@ export default function CSVImportFlow() {
                           </div>
                         </td>
                         <td className="px-3 py-2 border-b">
-                          <div className="flex flex-wrap gap-1">
-                            {Object.entries(DASHBOARD_BUCKETS).map(([bucketKey, bucket]) => {
-                              const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                              const isSelected = currentBucket === bucketKey;
-                              
-                              return (
-                                <button
-                                  key={bucketKey}
-                                  onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                  className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                    isSelected 
-                                      ? `${bucket.color} border-current font-semibold` 
-                                      : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                  }`}
-                                  title={bucket.description}
-                                >
-                                  {bucket.icon} {bucket.label}
-                                </button>
-                              );
-                            })}
+                          <div className="space-y-2">
+                            {/* Income Buckets */}
+                            <div className="grid grid-cols-2 gap-1">
+                              {Object.entries(DASHBOARD_BUCKETS)
+                                .filter(([_, bucket]) => bucket.category === 'income')
+                                .map(([bucketKey, bucket]) => {
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const isSelected = currentBucket === bucketKey;
+                                  
+                                  return (
+                                    <button
+                                      key={bucketKey}
+                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        isSelected 
+                                          ? `${bucket.color} border-current font-semibold` 
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                      }`}
+                                      title={bucket.description}
+                                    >
+                                      {bucket.icon} {bucket.label}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                            
+                            {/* Expense Buckets */}
+                            <div className="grid grid-cols-2 gap-1">
+                              {Object.entries(DASHBOARD_BUCKETS)
+                                .filter(([_, bucket]) => bucket.category === 'expense')
+                                .map(([bucketKey, bucket]) => {
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const isSelected = currentBucket === bucketKey;
+                                  
+                                  return (
+                                    <button
+                                      key={bucketKey}
+                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        isSelected 
+                                          ? `${bucket.color} border-current font-semibold` 
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                      }`}
+                                      title={bucket.description}
+                                    >
+                                      {bucket.icon} {bucket.label}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                            
+                            {/* Net Income Buckets */}
+                            <div className="grid grid-cols-1 gap-1">
+                              {Object.entries(DASHBOARD_BUCKETS)
+                                .filter(([_, bucket]) => bucket.category === 'net_income')
+                                .map(([bucketKey, bucket]) => {
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const isSelected = currentBucket === bucketKey;
+                                  
+                                  return (
+                                    <button
+                                      key={bucketKey}
+                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        isSelected 
+                                          ? `${bucket.color} border-current font-semibold` 
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                      }`}
+                                      title={bucket.description}
+                                    >
+                                      {bucket.icon} {bucket.label}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                            
+                            {/* Cash Buckets */}
+                            <div className="grid grid-cols-2 gap-1">
+                              {Object.entries(DASHBOARD_BUCKETS)
+                                .filter(([_, bucket]) => bucket.category === 'cash')
+                                .map(([bucketKey, bucket]) => {
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const isSelected = currentBucket === bucketKey;
+                                  
+                                  return (
+                                    <button
+                                      key={bucketKey}
+                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        isSelected 
+                                          ? `${bucket.color} border-current font-semibold` 
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                      }`}
+                                      title={bucket.description}
+                                    >
+                                      {bucket.icon} {bucket.label}
+                                    </button>
+                                  );
+                                })}
+                            </div>
+                            
+                            {/* Exclude Bucket */}
+                            <div className="grid grid-cols-1 gap-1">
+                              {Object.entries(DASHBOARD_BUCKETS)
+                                .filter(([_, bucket]) => bucket.category === 'exclude')
+                                .map(([bucketKey, bucket]) => {
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const isSelected = currentBucket === bucketKey;
+                                  
+                                  return (
+                                    <button
+                                      key={bucketKey}
+                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
+                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
+                                        isSelected 
+                                          ? `${bucket.color} border-current font-semibold` 
+                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                      }`}
+                                      title={bucket.description}
+                                    >
+                                      {bucket.icon} {bucket.label}
+                                    </button>
+                                  );
+                                })}
+                            </div>
                           </div>
                         </td>
                         {(() => {
