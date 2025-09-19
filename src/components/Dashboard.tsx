@@ -11,6 +11,7 @@ import {
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
+import CashFlowChart from './charts/CashFlowChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { getCSVData } from '../lib/supabase';
 
@@ -19,6 +20,8 @@ const Dashboard: React.FC = () => {
   const [financialData, setFinancialData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasCashFlowData, setHasCashFlowData] = useState(false);
+  const [activeCSVsCount, setActiveCSVsCount] = useState(0);
 
   const checkForDuplicateCSVs = useCallback(() => {
     try {
@@ -244,65 +247,175 @@ const Dashboard: React.FC = () => {
         console.log(`📁 Processing CSV: ${fileName} (${totalRecords} records)`);
         console.log('📋 CSV Preview Data Sample:', previewData.slice(0, 3));
         
-        Object.entries(accountCategories).forEach(([accountName, category]) => {
-          const accountData = previewData.find((item: any) => 
-            item.account_name?.trim() === accountName
-          );
+        // For cash flow CSVs, prioritize the THREE KEY METRICS for dashboard population
+        if (fileType === 'cash_flow') {
+          console.log('💰 Processing CASH FLOW CSV - Looking for KEY METRICS for dashboard...');
           
-          if (accountData && accountData.time_series) {
-            console.log(`🔍 Account: ${accountName} (${category})`);
-            console.log('📊 Time Series Data:', accountData.time_series);
+          // PRIORITY 1: Look for the three most important metrics first
+          const primaryMetrics = [
+            { name: 'Total Operating Income', type: 'income' },
+            { name: 'NOI - Net Operating Income', type: 'net_income' },
+            { name: 'Total Operating Expense', type: 'expense' }
+          ];
+          
+          let foundKeyMetrics = false;
+          
+          primaryMetrics.forEach(metric => {
+            const accountData = previewData.find((item: any) => {
+              const accountName = item.account_name?.trim().toLowerCase() || '';
+              return accountName.includes(metric.name.toLowerCase());
+            });
             
-            // Filter out non-monthly entries and get only numeric values
-            const values = Object.entries(accountData.time_series)
-              .filter(([month, value]) => 
-                month.toLowerCase() !== 'total' && 
-                month.toLowerCase() !== 'sum' && 
-                month.toLowerCase() !== 'grand total' &&
-                typeof value === 'number' && 
-                value !== 0
-              )
-              .map(([, value]) => value as number);
-            
-            if (values.length > 0) {
-              // Handle different file types appropriately
-              let accountValue = 0;
+            if (accountData && accountData.time_series) {
+              foundKeyMetrics = true;
+              console.log(`🎯 FOUND KEY METRIC: ${accountData.account_name} (${metric.type})`);
+              console.log('📊 Time Series Data:', accountData.time_series);
               
-              if (csv.fileType === 'balance_sheet') {
-                // For balance sheets, use the most recent value (last month)
-                accountValue = values[values.length - 1];
-                console.log(`  💰 ${accountName} (${category}): Latest value = $${accountValue.toLocaleString()}`);
-              } else if (csv.fileType === 'rent_roll') {
-                // For rent rolls, use the average monthly value
-                accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
-                console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
-              } else {
-                // For cash flow and income statements, use monthly average
-                accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
-                console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
-              }
+              // Get monthly values (exclude totals)
+              const monthlyValues = Object.entries(accountData.time_series)
+                .filter(([month, value]) => 
+                  month.toLowerCase() !== 'total' && 
+                  month.toLowerCase() !== 'sum' && 
+                  month.toLowerCase() !== 'grand total' &&
+                  typeof value === 'number'
+                )
+                .map(([, value]) => value as number);
               
-              // Categorize based on account type
-              if (category === 'income' || category === 'revenue') {
-                totalIncome += accountValue;
-              } else if (category === 'expense') {
-                totalExpense += accountValue;
-              } else if (category === 'asset') {
-                // For balance sheets, assets don't affect income/expense totals
-                console.log(`  📊 Asset account: ${accountName} = $${accountValue.toLocaleString()}`);
-              } else if (category === 'liability') {
-                // For balance sheets, liabilities don't affect income/expense totals
-                console.log(`  📊 Liability account: ${accountName} = $${accountValue.toLocaleString()}`);
-              } else if (category === 'equity') {
-                // For balance sheets, equity doesn't affect income/expense totals
-                console.log(`  📊 Equity account: ${accountName} = $${accountValue.toLocaleString()}`);
+              if (monthlyValues.length > 0) {
+                // For key metrics, use the sum of all months (total for the period)
+                const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+                
+                if (metric.type === 'income') {
+                  totalIncome += totalValue;
+                  console.log(`  💰 ${accountData.account_name}: Total Income = $${totalValue.toLocaleString()}`);
+                } else if (metric.type === 'expense') {
+                  totalExpense += totalValue;
+                  console.log(`  💸 ${accountData.account_name}: Total Expense = $${totalValue.toLocaleString()}`);
+                } else if (metric.type === 'net_income') {
+                  // Net Operating Income is already calculated, so we can use it directly
+                  console.log(`  📊 ${accountData.account_name}: Net Operating Income = $${totalValue.toLocaleString()}`);
+                  // For dashboard purposes, we'll calculate net income as totalIncome - totalExpense
+                }
               }
             }
+          });
+          
+          // PRIORITY 2: If we found key metrics, skip individual categorization
+          if (foundKeyMetrics) {
+            console.log('✅ Using KEY METRICS for dashboard population');
+            console.log(`💰 Total Income: $${totalIncome.toLocaleString()}`);
+            console.log(`💸 Total Expense: $${totalExpense.toLocaleString()}`);
+            console.log(`📊 Net Operating Income: $${(totalIncome - totalExpense).toLocaleString()}`);
+          } else {
+            // If we didn't find key metrics, fall back to individual account categorization
+            console.log('⚠️ Key metrics not found, falling back to individual account categorization...');
+            
+            Object.entries(accountCategories).forEach(([accountName, category]) => {
+              const accountData = previewData.find((item: any) => 
+                item.account_name?.trim() === accountName
+              );
+              
+              if (accountData && accountData.time_series) {
+                console.log(`🔍 Account: ${accountName} (${category})`);
+                
+                // Get monthly values (exclude totals)
+                const monthlyValues = Object.entries(accountData.time_series)
+                  .filter(([month, value]) => 
+                    month.toLowerCase() !== 'total' && 
+                    month.toLowerCase() !== 'sum' && 
+                    month.toLowerCase() !== 'grand total' &&
+                    typeof value === 'number'
+                  )
+                  .map(([, value]) => value as number);
+                
+                if (monthlyValues.length > 0) {
+                  // For cash flow, use sum of all months
+                  const totalValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+                  
+                  if (category === 'income') {
+                    totalIncome += totalValue;
+                    console.log(`  💰 ${accountName}: Income = $${totalValue.toLocaleString()}`);
+                  } else if (category === 'expense') {
+                    totalExpense += totalValue;
+                    console.log(`  💸 ${accountName}: Expense = $${totalValue.toLocaleString()}`);
+                  }
+                }
+              }
+            });
           }
-        });
+        } else {
+          // For other file types, use the original logic
+          Object.entries(accountCategories).forEach(([accountName, category]) => {
+            const accountData = previewData.find((item: any) => 
+              item.account_name?.trim() === accountName
+            );
+            
+            if (accountData && accountData.time_series) {
+              console.log(`🔍 Account: ${accountName} (${category})`);
+              console.log('📊 Time Series Data:', accountData.time_series);
+              
+              // Filter out non-monthly entries and get only numeric values
+              const values = Object.entries(accountData.time_series)
+                .filter(([month, value]) => 
+                  month.toLowerCase() !== 'total' && 
+                  month.toLowerCase() !== 'sum' && 
+                  month.toLowerCase() !== 'grand total' &&
+                  typeof value === 'number' && 
+                  value !== 0
+                )
+                .map(([, value]) => value as number);
+              
+              if (values.length > 0) {
+                // Handle different file types appropriately
+                let accountValue = 0;
+                
+                if (fileType === 'balance_sheet') {
+                  // For balance sheets, use the most recent value (last month)
+                  accountValue = values[values.length - 1];
+                  console.log(`  💰 ${accountName} (${category}): Latest value = $${accountValue.toLocaleString()}`);
+                } else if (fileType === 'rent_roll') {
+                  // For rent rolls, use the average monthly value
+                  accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+                  console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
+                } else {
+                  // For income statements, use monthly average
+                  accountValue = values.reduce((sum, val) => sum + val, 0) / values.length;
+                  console.log(`  💰 ${accountName} (${category}): Monthly average = $${accountValue.toLocaleString()}`);
+                }
+                
+                // Categorize based on account type
+                if (category === 'income' || category === 'revenue') {
+                  totalIncome += accountValue;
+                } else if (category === 'expense') {
+                  totalExpense += accountValue;
+                } else if (category === 'asset') {
+                  // For balance sheets, assets don't affect income/expense totals
+                  console.log(`  📊 Asset account: ${accountName} = $${accountValue.toLocaleString()}`);
+                } else if (category === 'liability') {
+                  // For balance sheets, liabilities don't affect income/expense totals
+                  console.log(`  📊 Liability account: ${accountName} = $${accountValue.toLocaleString()}`);
+                } else if (category === 'equity') {
+                  // For balance sheets, equity doesn't affect income/expense totals
+                  console.log(`  📊 Equity account: ${accountName} = $${accountValue.toLocaleString()}`);
+                }
+              }
+            }
+          });
+        }
         
         recordCount += csv.totalRecords;
       });
+      
+      // Check if we have cash flow data
+      const hasCashFlow = activeCSVs.some((csv: any) => 
+        (csv.file_type || csv.fileType) === 'cash_flow'
+      );
+      console.log('🔍 Cash Flow Detection Debug:');
+      console.log('  Active CSVs:', activeCSVs.length);
+      console.log('  CSV file types:', activeCSVs.map((csv: any) => csv.file_type || csv.fileType));
+      console.log('  Has cash flow:', hasCashFlow);
+      setHasCashFlowData(hasCashFlow);
+      setActiveCSVsCount(activeCSVs.length);
       
       const metrics = {
         totalIncome,
@@ -312,6 +425,7 @@ const Dashboard: React.FC = () => {
       };
       
       console.log('📊 Final CSV metrics:', metrics);
+      console.log('💰 Has cash flow data:', hasCashFlow);
       return metrics;
     } catch (error) {
       console.error('Error calculating CSV metrics:', error);
@@ -467,16 +581,27 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
-          <RevenueChart properties={properties} />
+      {(hasCashFlowData || activeCSVsCount > 0) ? (
+        // Show Cash Flow Chart when cash flow data is available OR when we have any CSV data
+        <div className="grid grid-cols-1 gap-6">
+          <div className="bg-blue-50 p-2 rounded mb-2 text-sm">
+            💡 Showing CashFlowChart (hasCashFlowData: {hasCashFlowData.toString()}, CSVs: {activeCSVsCount})
+          </div>
+          <CashFlowChart properties={properties} />
         </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
-          <OccupancyChart properties={properties} />
+      ) : (
+        // Show regular charts when no cash flow data
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+            <RevenueChart properties={properties} />
+          </div>
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
+            <OccupancyChart properties={properties} />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card">

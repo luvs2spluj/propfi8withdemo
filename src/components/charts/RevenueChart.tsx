@@ -56,47 +56,104 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
     
     activeCSVs.forEach((csv: any) => {
       const fileName = csv.file_name || csv.fileName;
+      const fileType = csv.file_type || csv.fileType;
       const accountCategories = csv.account_categories || csv.accountCategories;
       const previewData = csv.preview_data || csv.previewData;
       
-      console.log(`📊 Processing CSV: ${fileName} for chart data`);
+      console.log(`📊 Processing CSV: ${fileName} (${fileType}) for chart data`);
       
-      // Process each account in the CSV
-      Object.entries(accountCategories).forEach(([accountName, category]) => {
-        const accountData = previewData.find((item: any) => 
-          item.account_name?.trim() === accountName
-        );
+      // For cash flow CSVs, prioritize the three key metrics
+      if (fileType === 'cash_flow') {
+        console.log('💰 Processing CASH FLOW CSV for key metrics chart...');
         
-        if (accountData && accountData.time_series && category === 'income') {
-          // Process time series data for income accounts
-          Object.entries(accountData.time_series).forEach(([month, value]) => {
-            // Skip non-monthly entries like "Total"
-            if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
-              return;
-            }
+        const keyMetrics = [
+          { name: 'Total Income', type: 'income' },
+          { name: 'Total Expense', type: 'expense' },
+          { name: 'Net Operating Income', type: 'net_income' }
+        ];
+        
+        keyMetrics.forEach(metric => {
+          const accountData = previewData.find((item: any) => {
+            const accountName = item.account_name?.trim().toLowerCase() || '';
+            return accountName.includes(metric.name.toLowerCase());
+          });
+          
+          if (accountData && accountData.time_series) {
+            console.log(`🎯 Found key metric for chart: ${accountData.account_name}`);
             
-            if (typeof value === 'number' && value > 0) {
-              // Find existing data point for this month or create new one
-              let existingData = chartData.find(d => d.date === month);
-              if (!existingData) {
-                existingData = {
-                  id: `${csv.id}-${month}`,
-                  date: month,
-                  month: month,
-                  revenue: '0',
-                  occupancy_rate: '0',
-                  property_name: 'Chico'
-                };
-                chartData.push(existingData);
+            // Process time series data for this key metric
+            Object.entries(accountData.time_series).forEach(([month, value]) => {
+              // Skip non-monthly entries like "Total"
+              if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+                return;
               }
               
-              // Add this account's revenue to the total for this month
-              const currentRevenue = parseFloat(existingData.revenue) || 0;
-              existingData.revenue = (currentRevenue + value).toString();
-            }
-          });
-        }
-      });
+              if (typeof value === 'number') {
+                // Find existing data point for this month or create new one
+                let existingData = chartData.find(d => d.date === month);
+                if (!existingData) {
+                  existingData = {
+                    id: `${csv.id}-${month}`,
+                    date: month,
+                    month: month,
+                    revenue: '0',
+                    occupancy_rate: '0',
+                    property_name: 'Chico'
+                  };
+                  chartData.push(existingData);
+                }
+                
+                // Set the appropriate value based on metric type
+                if (metric.type === 'income') {
+                  existingData.revenue = value.toString();
+                } else if (metric.type === 'expense') {
+                  // Store expense as negative revenue for now (we'll handle this in chart display)
+                  existingData.revenue = (-value).toString();
+                } else if (metric.type === 'net_income') {
+                  existingData.revenue = value.toString();
+                }
+              }
+            });
+          }
+        });
+      } else {
+        // For other file types, use the original logic
+        Object.entries(accountCategories).forEach(([accountName, category]) => {
+          const accountData = previewData.find((item: any) => 
+            item.account_name?.trim() === accountName
+          );
+          
+          if (accountData && accountData.time_series && category === 'income') {
+            // Process time series data for income accounts
+            Object.entries(accountData.time_series).forEach(([month, value]) => {
+              // Skip non-monthly entries like "Total"
+              if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
+                return;
+              }
+              
+              if (typeof value === 'number' && value > 0) {
+                // Find existing data point for this month or create new one
+                let existingData = chartData.find(d => d.date === month);
+                if (!existingData) {
+                  existingData = {
+                    id: `${csv.id}-${month}`,
+                    date: month,
+                    month: month,
+                    revenue: '0',
+                    occupancy_rate: '0',
+                    property_name: 'Chico'
+                  };
+                  chartData.push(existingData);
+                }
+                
+                // Add this account's revenue to the total for this month
+                const currentRevenue = parseFloat(existingData.revenue) || 0;
+                existingData.revenue = (currentRevenue + value).toString();
+              }
+            });
+          }
+        });
+      }
     });
     
     // Sort by date
