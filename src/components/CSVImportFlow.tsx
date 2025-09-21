@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
-import { saveCSVData, getAILearning, saveAILearning } from "../lib/supabase";
+import { saveCSVData, getAILearning, saveAILearning, getCSVData, deleteCSVData } from "../lib/supabase";
+import { Database, Edit3, Trash2, Save, RefreshCw, Eye } from 'lucide-react';
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5002";
 
@@ -9,7 +10,48 @@ type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement'
 
 // Dashboard Bucket Definitions
 const DASHBOARD_BUCKETS = {
-  // Revenue/Income Buckets
+  // Primary Cash Flow Buckets (Green - Income Items)
+  'income_item': {
+    label: 'Income Item',
+    description: 'Individual income line items (rent, fees, etc.)',
+    color: 'bg-green-100 text-green-800',
+    icon: '💰',
+    category: 'income'
+  },
+  'income_total': {
+    label: 'Income Total',
+    description: 'Total income calculations and summaries',
+    color: 'bg-green-100 text-green-800',
+    icon: '📈',
+    category: 'income'
+  },
+  
+  // Primary Cash Flow Buckets (Red - Expense Items)
+  'expense_item': {
+    label: 'Expense Item',
+    description: 'Individual expense line items (maintenance, utilities, etc.)',
+    color: 'bg-red-100 text-red-800',
+    icon: '💸',
+    category: 'expense'
+  },
+  'expense_total': {
+    label: 'Expense Total',
+    description: 'Total expense calculations and summaries',
+    color: 'bg-red-100 text-red-800',
+    icon: '📉',
+    category: 'expense'
+  },
+  
+  // Primary Cash Flow Buckets (Purple - Cash)
+  'cash_amount': {
+    label: 'Cash Amount',
+    description: 'Cash and cash equivalents',
+    color: 'bg-purple-100 text-purple-800',
+    icon: '💳',
+    category: 'cash'
+  },
+  
+  // Legacy Buckets (for backward compatibility)
   'rental_income': {
     label: 'Rental Income',
     description: 'Primary rental revenue from tenants',
@@ -20,14 +62,14 @@ const DASHBOARD_BUCKETS = {
   'other_income': {
     label: 'Other Income',
     description: 'Additional income sources (fees, late charges, etc.)',
-    color: 'bg-blue-100 text-blue-800',
+    color: 'bg-green-100 text-green-800',
     icon: '💰',
     category: 'income'
   },
   'total_income': {
     label: 'Total Income',
     description: 'Sum of all income sources',
-    color: 'bg-emerald-100 text-emerald-800',
+    color: 'bg-green-100 text-green-800',
     icon: '📈',
     category: 'income'
   },
@@ -38,12 +80,10 @@ const DASHBOARD_BUCKETS = {
     icon: '💰',
     category: 'income'
   },
-  
-  // Expense Buckets
   'operating_expenses': {
     label: 'Operating Expenses',
     description: 'Day-to-day property operations',
-    color: 'bg-orange-100 text-orange-800',
+    color: 'bg-red-100 text-red-800',
     icon: '⚙️',
     category: 'expense'
   },
@@ -57,7 +97,7 @@ const DASHBOARD_BUCKETS = {
   'management_expenses': {
     label: 'Management Expenses',
     description: 'Property management and administrative costs',
-    color: 'bg-purple-100 text-purple-800',
+    color: 'bg-red-100 text-red-800',
     icon: '👥',
     category: 'expense'
   },
@@ -75,30 +115,19 @@ const DASHBOARD_BUCKETS = {
     icon: '💸',
     category: 'expense'
   },
-  
-  // Net Income Buckets
   'net_operating_income': {
     label: 'Net Operating Income',
     description: 'Income minus operating expenses',
-    color: 'bg-indigo-100 text-indigo-800',
+    color: 'bg-blue-100 text-blue-800',
     icon: '📊',
     category: 'net_income'
   },
   'net_income': {
     label: 'Net Income',
     description: 'Final profit after all expenses',
-    color: 'bg-teal-100 text-teal-800',
+    color: 'bg-blue-100 text-blue-800',
     icon: '💎',
     category: 'net_income'
-  },
-  
-  // Cash Buckets
-  'cash_amount': {
-    label: 'Cash Amount',
-    description: 'Cash and cash equivalents',
-    color: 'bg-purple-100 text-purple-800',
-    icon: '💳',
-    category: 'cash'
   },
   'cash_change': {
     label: 'Cash Change',
@@ -107,8 +136,6 @@ const DASHBOARD_BUCKETS = {
     icon: '💱',
     category: 'cash'
   },
-  
-  // Exclude Bucket
   'exclude': {
     label: 'Exclude from Dashboard',
     description: 'Do not include in dashboard calculations',
@@ -134,6 +161,31 @@ export default function CSVImportFlow() {
   const [bucketAssignments, setBucketAssignments] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [hasPreviewed, setHasPreviewed] = useState(false);
+  
+  // CSV Management state
+  const [savedCSVs, setSavedCSVs] = useState<any[]>([]);
+  const [selectedCSV, setSelectedCSV] = useState<any | null>(null);
+  const [editingCategories, setEditingCategories] = useState<Record<string, string>>({});
+  const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({});
+  const [editingTags, setEditingTags] = useState<Record<string, string[]>>({});
+  const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({});
+  const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({});
+  const [managementLoading, setManagementLoading] = useState(false);
+  const [managementSaving, setManagementSaving] = useState(false);
+  const [showManagementPreview, setShowManagementPreview] = useState(false);
+  const [managementPreviewMode, setManagementPreviewMode] = useState(false);
+  
+  // Bucket Management state
+  const [bucketTerms, setBucketTerms] = useState<Record<string, string[]>>({});
+  const [editingBucket, setEditingBucket] = useState<string | null>(null);
+  const [newTerm, setNewTerm] = useState<string>('');
+  const [showBucketManagement, setShowBucketManagement] = useState(false);
+  const [customBuckets, setCustomBuckets] = useState<Record<string, any>>({});
+  const [showAddBucket, setShowAddBucket] = useState(false);
+  const [newBucketName, setNewBucketName] = useState<string>('');
+  const [newBucketDescription, setNewBucketDescription] = useState<string>('');
+  const [newBucketCategory, setNewBucketCategory] = useState<string>('income');
+  const [bucketCategories, setBucketCategories] = useState<Record<string, string>>({});
 
   // Load AI learning data when file type changes
   useEffect(() => {
@@ -147,6 +199,86 @@ export default function CSVImportFlow() {
     };
     loadAILearning();
   }, [fileType]);
+
+  // Load saved CSVs for management
+  const loadCSVs = async () => {
+    try {
+      const supabaseCSVs = await getCSVData();
+      let activeCSVs = supabaseCSVs;
+      
+      if (supabaseCSVs.length === 0) {
+        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+      }
+      
+      setSavedCSVs(activeCSVs);
+      console.log('📁 Loaded CSVs:', activeCSVs.length, 'files');
+    } catch (error) {
+      console.error('Error loading CSVs:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadCSVs();
+  }, []);
+
+  // Initialize bucket terms with default values
+  useEffect(() => {
+    const defaultBucketTerms: Record<string, string[]> = {
+      // Primary Cash Flow Buckets
+      'income_item': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income', 'fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee', 'income', 'revenue'],
+      'income_total': ['total income', 'total operating income', 'gross income', 'total revenue', 'income total'],
+      'expense_item': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation', 'utilities', 'electric', 'water', 'gas', 'trash', 'insurance', 'tax', 'management', 'admin', 'administrative', 'office', 'management fee', 'expense', 'cost'],
+      'expense_total': ['total expense', 'total operating expense', 'total costs', 'expense total'],
+      'cash_amount': ['cash', 'cash equivalent', 'bank', 'checking', 'savings', 'money market'],
+      
+      // Legacy Buckets (for backward compatibility)
+      'total_operating_income': ['total operating income', 'total income', 'operating income', 'gross income'],
+      'total_operating_expense': ['total operating expense', 'total expense', 'operating expense', 'total costs'],
+      'net_operating_income': ['noi', 'net operating income', 'net income', 'operating profit'],
+      'rental_income': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income'],
+      'other_income': ['fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee'],
+      'operating_expenses': ['operating', 'general', 'administrative', 'office', 'utilities'],
+      'maintenance_expenses': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation'],
+      'management_expenses': ['management', 'admin', 'administrative', 'office', 'management fee'],
+      'exclude': ['total', 'sum', 'grand total', 'subtotal', 'balance', 'equity']
+    };
+    
+    // Load saved bucket terms from localStorage or use defaults
+    const savedBucketTerms = localStorage.getItem('bucketTerms');
+    if (savedBucketTerms) {
+      try {
+        const parsed = JSON.parse(savedBucketTerms);
+        setBucketTerms({ ...defaultBucketTerms, ...parsed });
+      } catch (error) {
+        setBucketTerms(defaultBucketTerms);
+      }
+    } else {
+      setBucketTerms(defaultBucketTerms);
+    }
+
+    // Load custom buckets from localStorage
+    const savedCustomBuckets = localStorage.getItem('customBuckets');
+    if (savedCustomBuckets) {
+      try {
+        const parsed = JSON.parse(savedCustomBuckets);
+        setCustomBuckets(parsed);
+      } catch (error) {
+        setCustomBuckets({});
+      }
+    }
+
+    // Load bucket categories from localStorage
+    const savedBucketCategories = localStorage.getItem('bucketCategories');
+    if (savedBucketCategories) {
+      try {
+        const parsed = JSON.parse(savedBucketCategories);
+        setBucketCategories(parsed);
+      } catch (error) {
+        setBucketCategories({});
+      }
+    }
+  }, []);
 
   const handleFile = (f: File) => {
     setFile(f);
@@ -184,7 +316,7 @@ export default function CSVImportFlow() {
         // Now parse the entire file to get all account line items
         Papa.parse(f, {
           header: true,
-          complete: (fullR: any) => {
+          complete: async (fullR: any) => {
             const allRows = (fullR.data as any[]).filter(row => row && Object.keys(row).length > 0);
             console.log("Processing", allRows.length, "total rows from CSV");
             
@@ -192,6 +324,111 @@ export default function CSVImportFlow() {
             const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
             // Initialize empty categories - user will categorize manually in preview
             setAccountCategories({});
+            
+            // Process the data immediately and set preview state
+            try {
+              setLoading(true);
+              
+              // Process the data to create time series structure for dashboard
+              const processedData = allRows.map((row: any, index: number) => {
+                const processedRow: any = {};
+                
+                // Apply field mapping
+                Object.entries(autoMap).forEach(([originalField, suggestion]) => {
+                  if (row[originalField] !== undefined) {
+                    processedRow[suggestion.field] = row[originalField];
+                  }
+                });
+                
+                // Find account name column
+                const accountNameKey = Object.keys(row).find(key => 
+                  key.toLowerCase().includes('account') || 
+                  key.toLowerCase().includes('name') ||
+                  key.toLowerCase().includes('description') ||
+                  key.toLowerCase().includes('item')
+                ) || Object.keys(row)[0];
+                
+                const accountName = row[accountNameKey];
+                
+                // Create time series data from month columns
+                const timeSeries: Record<string, number> = {};
+                Object.keys(row).forEach(key => {
+                  if (key !== accountNameKey) {
+                    // Handle various number formats: commas, parentheses for negatives, etc.
+                    let rawValue = String(row[key] || '').trim();
+                    
+                    // Remove commas and handle parentheses for negatives
+                    rawValue = rawValue.replace(/,/g, '');
+                    if (rawValue.startsWith('(') && rawValue.endsWith(')')) {
+                      rawValue = '-' + rawValue.slice(1, -1);
+                    }
+                    
+                    const numValue = parseFloat(rawValue);
+                    if (!isNaN(numValue)) {
+                      timeSeries[key] = numValue;
+                    }
+                  }
+                });
+                
+                processedRow.account_name = accountName;
+                processedRow.time_series = timeSeries;
+                processedRow.ai_category = 'unknown'; // Will be set by AI or user
+                
+                return processedRow;
+              });
+              
+              // Set preview data immediately
+              setPreview(processedData);
+              setHasPreviewed(true);
+              
+              // Set all items as included by default
+              const included: Record<string, boolean> = {};
+              processedData.forEach((row: any) => {
+                if (row.account_name) {
+                  included[row.account_name] = true;
+                }
+              });
+              setIncludedItems(included);
+              
+              setLoading(false);
+              
+              // Try to get AI categorization in the background
+              try {
+                const response = await fetch(`${API}/categorize`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    data: processedData,
+                    file_type: fileType
+                  })
+                });
+                
+                if (response.ok) {
+                  const aiResult = await response.json();
+                  console.log("🤖 AI categorization complete:", aiResult.summary);
+                  
+                  // Update with AI-categorized data
+                  setPreview(aiResult.categorized_data);
+                  setCategorizationSummary(aiResult.summary);
+                  
+                  // Update account categories from AI results
+                  const categories: Record<string, string> = {};
+                  aiResult.categorized_data.forEach((row: any) => {
+                    if (row.account_name) {
+                      categories[row.account_name] = row.ai_category;
+                    }
+                  });
+                  setAccountCategories(categories);
+                }
+              } catch (aiError) {
+                console.warn("AI backend error, using manual categorization:", aiError);
+              }
+              
+            } catch (error) {
+              console.error("Data processing error:", error);
+              setError(`Data processing failed: ${error}`);
+              setLoading(false);
+            }
           }
         });
       }
@@ -241,38 +478,78 @@ export default function CSVImportFlow() {
   const getSuggestedBucket = (accountName: string, aiCategory: string): string => {
     const name = accountName.toLowerCase();
     
-    // Direct matches for key dashboard metrics
-    if (name.includes('total operating income')) return 'total_operating_income';
-    if (name.includes('noi') && name.includes('net operating income')) return 'net_operating_income';
-    if (name.includes('total operating expense')) return 'total_operating_expense';
-    
-    // Fallback matches for similar terms
-    if (name.includes('total income')) return 'total_operating_income';
-    if (name.includes('total expense')) return 'total_operating_expense';
-    if (name.includes('net operating income')) return 'net_operating_income';
-    if (name.includes('net income')) return 'net_operating_income';
-    
-    // Income buckets
-    if (aiCategory === 'income') {
-      if (name.includes('rent') || name.includes('tenant') || name.includes('lease')) {
-        return 'rental_income';
+    // Use customizable bucket terms for matching
+    for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
+      for (const term of terms) {
+        if (name.includes(term.toLowerCase())) {
+          return bucketKey;
+        }
       }
-      return 'other_income';
     }
     
-    // Expense buckets
-    if (aiCategory === 'expense') {
-      if (name.includes('maintenance') || name.includes('repair') || name.includes('fix')) {
-        return 'maintenance_expenses';
+    // For cash flow sheets, prioritize primary buckets
+    if (fileType === 'cash_flow') {
+      if (aiCategory === 'income') {
+        return 'income_item';
+      } else if (aiCategory === 'expense') {
+        return 'expense_item';
+      } else if (aiCategory === 'cash') {
+        return 'cash_amount';
       }
-      if (name.includes('management') || name.includes('admin') || name.includes('office')) {
-        return 'management_expenses';
-      }
+    }
+    
+    // Fallback to category-based assignment if no term matches
+    if (aiCategory === 'income') {
+      return 'other_income';
+    } else if (aiCategory === 'expense') {
       return 'operating_expenses';
     }
     
     // Default to exclude if uncertain
     return 'exclude';
+  };
+
+  const getBucketSuggestions = (accountName: string, aiCategory: string): string[] => {
+    const name = accountName.toLowerCase();
+    const suggestions: string[] = [];
+    
+    // Find all buckets that match this account name
+    for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
+      for (const term of terms) {
+        if (name.includes(term.toLowerCase())) {
+          suggestions.push(bucketKey);
+          break; // Only add each bucket once
+        }
+      }
+    }
+    
+    // Add category-based suggestions if no term matches
+    if (suggestions.length === 0) {
+      if (fileType === 'cash_flow') {
+        // For cash flow sheets, prioritize primary buckets
+        if (aiCategory === 'income') {
+          suggestions.push('income_item', 'income_total', 'rental_income', 'other_income');
+        } else if (aiCategory === 'expense') {
+          suggestions.push('expense_item', 'expense_total', 'operating_expenses', 'maintenance_expenses');
+        } else if (aiCategory === 'cash') {
+          suggestions.push('cash_amount', 'cash_change');
+        }
+      } else {
+        // For other sheet types, use legacy buckets
+        if (aiCategory === 'income') {
+          suggestions.push('other_income', 'rental_income');
+        } else if (aiCategory === 'expense') {
+          suggestions.push('operating_expenses', 'maintenance_expenses', 'management_expenses');
+        }
+      }
+    }
+    
+    // Always include exclude as an option
+    if (!suggestions.includes('exclude')) {
+      suggestions.push('exclude');
+    }
+    
+    return suggestions;
   };
 
   const onChange = (orig: string, field: string) => 
@@ -615,6 +892,605 @@ export default function CSVImportFlow() {
     }
   };
 
+  // CSV Management Functions
+  const getFileTypeColor = (fileType: string) => {
+    const colors: Record<string, string> = {
+      'cash_flow': 'bg-blue-100 text-blue-800',
+      'balance_sheet': 'bg-green-100 text-green-800',
+      'rent_roll': 'bg-purple-100 text-purple-800',
+      'income_statement': 'bg-orange-100 text-orange-800',
+      'general': 'bg-gray-100 text-gray-800'
+    };
+    return colors[fileType] || colors['general'];
+  };
+
+  const handleEditCSV = (csv: any) => {
+    setSelectedCSV(csv);
+    setEditingCategories(csv.accountCategories || {});
+    setEditingBuckets(csv.bucketAssignments || {});
+    setManagementBucketAssignments(csv.bucketAssignments || {});
+    setEditingTags(csv.tags || {});
+    setManagementIncludedItems(csv.includedItems || {});
+    setManagementPreviewMode(false);
+    setShowManagementPreview(false);
+  };
+
+  const handlePreviewCSV = (csv: any) => {
+    setSelectedCSV(csv);
+    setEditingCategories(csv.accountCategories || {});
+    setEditingBuckets(csv.bucketAssignments || {});
+    setManagementBucketAssignments(csv.bucketAssignments || {});
+    setEditingTags(csv.tags || {});
+    setManagementIncludedItems(csv.includedItems || {});
+    setManagementPreviewMode(true);
+    setShowManagementPreview(true);
+  };
+
+  const toggleCSVActive = async (csvId: string) => {
+    setManagementLoading(true);
+    try {
+      const updatedCSVs = savedCSVs.map(csv => 
+        csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
+      );
+      setSavedCSVs(updatedCSVs);
+      
+      // Update in localStorage
+      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
+        csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
+      );
+      localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
+      
+      // Trigger dashboard update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { action: 'csv_toggled', csvId } 
+      }));
+    } catch (error) {
+      console.error('Error toggling CSV:', error);
+    } finally {
+      setManagementLoading(false);
+    }
+  };
+
+  const deleteCSV = async (csvId: string) => {
+    const csvToDelete = savedCSVs.find(csv => csv.id === csvId);
+    if (!csvToDelete) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${csvToDelete.fileName}"?\n\n` +
+      `This will permanently remove:\n` +
+      `• ${csvToDelete.totalRecords} records\n` +
+      `• All categorizations and bucket assignments\n` +
+      `• Dashboard data from this CSV\n\n` +
+      `This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    setManagementLoading(true);
+    try {
+      // Delete from Supabase first
+      const supabaseResult = await deleteCSVData(csvId);
+      if (supabaseResult) {
+        console.log('✅ CSV deleted from Supabase');
+      }
+      
+      // Remove from localStorage
+      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const updatedCSVs = localSavedCSVs.filter((csv: any) => csv.id !== csvId);
+      localStorage.setItem('savedCSVs', JSON.stringify(updatedCSVs));
+      
+      // Refresh CSV data from database to ensure consistency
+      await loadCSVs();
+      
+      // Clear selection if deleted CSV was selected
+      if (selectedCSV?.id === csvId) {
+        setSelectedCSV(null);
+        setManagementBucketAssignments({});
+        setManagementIncludedItems({});
+      }
+      
+      // Trigger dashboard update to recalculate totals
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          action: 'csv_deleted',
+          csvId: csvId,
+          fileName: csvToDelete.fileName
+        } 
+      }));
+      
+      console.log(`✅ CSV "${csvToDelete.fileName}" deleted successfully`);
+      
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Failed to delete CSV. Please try again.');
+    } finally {
+      setManagementLoading(false);
+    }
+  };
+
+  const saveManagementChanges = async () => {
+    if (!selectedCSV) return;
+    
+    setManagementSaving(true);
+    try {
+      const updatedCSV = {
+        ...selectedCSV,
+        accountCategories: editingCategories,
+        bucketAssignments: managementBucketAssignments,
+        tags: editingTags,
+        includedItems: managementIncludedItems
+      };
+      
+      // Update in Supabase
+      await saveCSVData({
+        id: updatedCSV.id,
+        file_name: updatedCSV.fileName,
+        file_type: updatedCSV.fileType,
+        uploaded_at: updatedCSV.uploadedAt,
+        total_records: updatedCSV.totalRecords,
+        account_categories: updatedCSV.accountCategories,
+        bucket_assignments: updatedCSV.bucketAssignments,
+        tags: updatedCSV.tags,
+        is_active: updatedCSV.isActive,
+        preview_data: updatedCSV.previewData
+      });
+      
+      // Update localStorage
+      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
+        csv.id === updatedCSV.id ? updatedCSV : csv
+      );
+      localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
+      
+      // Update state
+      setSavedCSVs(prev => prev.map(csv => csv.id === updatedCSV.id ? updatedCSV : csv));
+      setSelectedCSV(updatedCSV);
+      
+      // Trigger dashboard update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { action: 'csv_updated', csvId: updatedCSV.id } 
+      }));
+      
+    } catch (error) {
+      console.error('Error saving changes:', error);
+    } finally {
+      setManagementSaving(false);
+    }
+  };
+
+  const calculateCurrentSessionTotals = () => {
+    const bucketTotals: Record<string, number> = {};
+    
+    if (!preview || preview.length === 0) return bucketTotals;
+    
+    console.log('🔍 Calculating current session totals for', preview.length, 'items');
+    
+    preview.forEach((item: any) => {
+      const accountName = item.account_name;
+      const category = accountCategories[accountName];
+      const bucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, category);
+      const isIncluded = includedItems[accountName] !== false;
+      
+      if (!isIncluded || !item.time_series) return;
+      
+      // Calculate total for this account
+      const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
+        return sum + (typeof value === 'number' ? value : 0);
+      }, 0);
+      
+      console.log(`📊 ${accountName}: bucket=${bucket}, total=${total}, included=${isIncluded}`);
+      
+      // Add to appropriate bucket
+      if (bucket && bucket !== 'exclude') {
+        bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
+      }
+    });
+    
+    console.log('💰 Current session bucket totals:', bucketTotals);
+    return bucketTotals;
+  };
+
+  const calculateCombinedBucketTotals = () => {
+    const bucketTotals: Record<string, number> = {};
+    
+    // Add totals from saved CSVs
+    savedCSVs.forEach(csv => {
+      if (!csv.isActive) return;
+      
+      const previewData = csv.previewData || [];
+      const accountCategories = csv.accountCategories || {};
+      const bucketAssignments = csv.bucketAssignments || {};
+      const includedItems = csv.includedItems || {};
+      
+      previewData.forEach((item: any) => {
+        const accountName = item.account_name;
+        const category = accountCategories[accountName];
+        const bucket = bucketAssignments[accountName];
+        const isIncluded = includedItems[accountName] !== false;
+        
+        if (!isIncluded || !item.time_series) return;
+        
+        // Calculate total for this account
+        const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
+          return sum + (typeof value === 'number' ? value : 0);
+        }, 0);
+        
+        // Add to appropriate bucket
+        if (bucket && bucket !== 'exclude') {
+          bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
+        }
+      });
+    });
+    
+    // Add totals from current session (if preview exists)
+    if (preview && preview.length > 0) {
+      const currentSessionTotals = calculateCurrentSessionTotals();
+      Object.entries(currentSessionTotals).forEach(([bucket, total]) => {
+        bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
+      });
+    }
+    
+    return bucketTotals;
+  };
+
+  const calculateAllBucketedTotals = () => {
+    const bucketTotals: Record<string, number> = {};
+    
+    savedCSVs.forEach(csv => {
+      if (!csv.isActive) return;
+      
+      const previewData = csv.previewData || [];
+      const accountCategories = csv.accountCategories || {};
+      const bucketAssignments = csv.bucketAssignments || {};
+      const includedItems = csv.includedItems || {};
+      
+      previewData.forEach((item: any) => {
+        const accountName = item.account_name;
+        const category = accountCategories[accountName];
+        const bucket = bucketAssignments[accountName];
+        const isIncluded = includedItems[accountName] !== false;
+        
+        if (!isIncluded || !item.time_series) return;
+        
+        // Calculate total for this account
+        const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
+          return sum + (typeof value === 'number' ? value : 0);
+        }, 0);
+        
+        // Add to appropriate bucket
+        if (bucket && bucketTotals[bucket] !== undefined) {
+          bucketTotals[bucket] += total;
+        } else if (category === 'income') {
+          bucketTotals['total_income'] = (bucketTotals['total_income'] || 0) + total;
+        } else if (category === 'expense') {
+          bucketTotals['total_expense'] = (bucketTotals['total_expense'] || 0) + total;
+        }
+      });
+    });
+    
+    // Calculate NOI
+    bucketTotals['net_operating_income'] = (bucketTotals['total_income'] || 0) - (bucketTotals['total_expense'] || 0);
+    
+    return bucketTotals;
+  };
+
+  const allBucketTotals = calculateCombinedBucketTotals();
+
+  // Bucket Management Functions
+  const addTermToBucket = (bucketKey: string, term: string) => {
+    if (!term.trim()) return;
+    
+    const trimmedTerm = term.trim().toLowerCase();
+    setBucketTerms(prev => {
+      const updated = { ...prev };
+      if (!updated[bucketKey]) {
+        updated[bucketKey] = [];
+      }
+      if (!updated[bucketKey].includes(trimmedTerm)) {
+        updated[bucketKey] = [...updated[bucketKey], trimmedTerm];
+      }
+      return updated;
+    });
+    setNewTerm('');
+  };
+
+  const removeTermFromBucket = (bucketKey: string, term: string) => {
+    setBucketTerms(prev => {
+      const updated = { ...prev };
+      if (updated[bucketKey]) {
+        updated[bucketKey] = updated[bucketKey].filter(t => t !== term);
+      }
+      return updated;
+    });
+  };
+
+  const saveBucketTerms = () => {
+    localStorage.setItem('bucketTerms', JSON.stringify(bucketTerms));
+    localStorage.setItem('customBuckets', JSON.stringify(customBuckets));
+    console.log('💾 Bucket terms and custom buckets saved:', { bucketTerms, customBuckets });
+  };
+
+  const resetBucketTerms = () => {
+    const defaultBucketTerms: Record<string, string[]> = {
+      'total_operating_income': ['total operating income', 'total income', 'operating income', 'gross income'],
+      'total_operating_expense': ['total operating expense', 'total expense', 'operating expense', 'total costs'],
+      'net_operating_income': ['noi', 'net operating income', 'net income', 'operating profit'],
+      'rental_income': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income'],
+      'other_income': ['fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee'],
+      'operating_expenses': ['operating', 'general', 'administrative', 'office', 'utilities'],
+      'maintenance_expenses': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation'],
+      'management_expenses': ['management', 'admin', 'administrative', 'office', 'management fee'],
+      'exclude': ['total', 'sum', 'grand total', 'subtotal', 'balance', 'equity']
+    };
+    setBucketTerms(defaultBucketTerms);
+    localStorage.setItem('bucketTerms', JSON.stringify(defaultBucketTerms));
+  };
+
+  // Custom Bucket Management Functions
+  const addCustomBucket = () => {
+    if (!newBucketName.trim() || !newBucketDescription.trim()) return;
+    
+    const bucketKey = newBucketName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const bucketConfig = {
+      label: newBucketName.trim(),
+      description: newBucketDescription.trim(),
+      color: getCategoryColor(newBucketCategory),
+      icon: getCategoryIcon(newBucketCategory),
+      category: newBucketCategory
+    };
+    
+    setCustomBuckets(prev => ({
+      ...prev,
+      [bucketKey]: bucketConfig
+    }));
+    
+    // Initialize empty terms for the new bucket
+    setBucketTerms(prev => ({
+      ...prev,
+      [bucketKey]: []
+    }));
+    
+    // Reset form
+    setNewBucketName('');
+    setNewBucketDescription('');
+    setNewBucketCategory('income');
+    setShowAddBucket(false);
+  };
+
+  const removeCustomBucket = (bucketKey: string) => {
+    if (!window.confirm(`Are you sure you want to delete the "${customBuckets[bucketKey]?.label}" bucket? This will also remove all associated terms.`)) {
+      return;
+    }
+    
+    setCustomBuckets(prev => {
+      const updated = { ...prev };
+      delete updated[bucketKey];
+      return updated;
+    });
+    
+    setBucketTerms(prev => {
+      const updated = { ...prev };
+      delete updated[bucketKey];
+      return updated;
+    });
+  };
+
+  const deleteBucket = (bucketKey: string) => {
+    const allBuckets = getAllBuckets();
+    const bucketLabel = (allBuckets as any)[bucketKey]?.label || bucketKey;
+    
+    if (!window.confirm(`Are you sure you want to delete the "${bucketLabel}" bucket? This will also remove all associated terms.`)) {
+      return;
+    }
+    
+    // Remove from custom buckets if it's a custom bucket
+    if (customBuckets[bucketKey]) {
+      setCustomBuckets(prev => {
+        const updated = { ...prev };
+        delete updated[bucketKey];
+        return updated;
+      });
+    }
+    
+    // Remove bucket terms
+    setBucketTerms(prev => {
+      const updated = { ...prev };
+      delete updated[bucketKey];
+      return updated;
+    });
+    
+    // Remove bucket category override
+    setBucketCategories(prev => {
+      const updated = { ...prev };
+      delete updated[bucketKey];
+      return updated;
+    });
+    
+    // Save changes to localStorage
+    const updatedBucketTerms = { ...bucketTerms };
+    delete updatedBucketTerms[bucketKey];
+    localStorage.setItem('bucketTerms', JSON.stringify(updatedBucketTerms));
+    
+    const updatedCustomBuckets = { ...customBuckets };
+    delete updatedCustomBuckets[bucketKey];
+    localStorage.setItem('customBuckets', JSON.stringify(updatedCustomBuckets));
+    
+    const updatedBucketCategories = { ...bucketCategories };
+    delete updatedBucketCategories[bucketKey];
+    localStorage.setItem('bucketCategories', JSON.stringify(updatedBucketCategories));
+  };
+
+  const getAllBuckets = () => {
+    const allBuckets = { ...DASHBOARD_BUCKETS, ...customBuckets };
+    
+    // Apply dynamic category overrides if they exist
+    Object.keys(allBuckets).forEach(bucketKey => {
+      if (bucketCategories[bucketKey]) {
+        (allBuckets as any)[bucketKey] = {
+          ...(allBuckets as any)[bucketKey],
+          category: bucketCategories[bucketKey],
+          color: getCategoryColor(bucketCategories[bucketKey])
+        };
+      }
+    });
+    
+    return allBuckets;
+  };
+
+  const updateBucketCategory = (bucketKey: string, newCategory: string) => {
+    setBucketCategories(prev => ({
+      ...prev,
+      [bucketKey]: newCategory
+    }));
+    
+    // Save to localStorage
+    localStorage.setItem('bucketCategories', JSON.stringify({
+      ...bucketCategories,
+      [bucketKey]: newCategory
+    }));
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'income':
+        return 'bg-green-100 text-green-800';
+      case 'expense':
+        return 'bg-red-100 text-red-800';
+      case 'cash':
+        return 'bg-purple-100 text-purple-800';
+      case 'net_income':
+        return 'bg-blue-100 text-blue-800';
+      case 'exclude':
+        return 'bg-gray-100 text-gray-600';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'income':
+        return '💰';
+      case 'expense':
+        return '💸';
+      case 'cash':
+        return '💳';
+      case 'net_income':
+        return '📊';
+      case 'exclude':
+        return '🚫';
+      default:
+        return '📋';
+    }
+  };
+
+  const getDropdownOptionStyle = (category: string) => {
+    switch (category) {
+      case 'income':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'expense':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'cash':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'net_income':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'exclude':
+        return 'bg-gray-100 text-gray-600 border-gray-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const ColorCodedDropdown = ({ value, onChange, options, suggestions, className }: {
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ key: string; bucket: any }>;
+    suggestions: string[];
+    className?: string;
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsOpen(false);
+          setSearchTerm('');
+        }
+      };
+
+      if (isOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+      }
+
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, [isOpen]);
+
+    const filteredOptions = options.filter(({ bucket }) =>
+      bucket.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const selectedOption = options.find(opt => opt.key === value);
+
+    return (
+      <div className={`relative ${className}`} ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={`w-full text-left px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between ${
+            selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white'
+          }`}
+        >
+          <span>
+            {selectedOption ? `${selectedOption.bucket.icon} ${selectedOption.bucket.label}` : 'Select bucket...'}
+          </span>
+          <span className="text-gray-400">⌄</span>
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+            <div className="p-2">
+              <input
+                type="text"
+                placeholder="Search buckets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            {filteredOptions.map(({ key, bucket }) => {
+              const isSuggested = suggestions.includes(key);
+              const bucketCategory = bucket.category || 'other';
+              
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    onChange(key);
+                    setIsOpen(false);
+                    setSearchTerm('');
+                  }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${getDropdownOptionStyle(bucketCategory)}`}
+                >
+                  <span>
+                    {bucket.icon} {bucket.label}
+                  </span>
+                  {isSuggested && <span className="text-yellow-500">✨</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const generateBucketAssignments = (): Record<string, string> => {
     const assignments: Record<string, string> = {};
     
@@ -663,8 +1539,12 @@ export default function CSVImportFlow() {
   };
 
   return (
-    <div className="space-y-4 p-4 border rounded-lg">
-      <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
+    <div className="space-y-6">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* CSV Import with AI Parser */}
+        <div className="space-y-4 p-4 border rounded-lg">
+          <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
       
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -716,90 +1596,13 @@ export default function CSVImportFlow() {
       </div>
       
       {!!headers.length && (
-        <div>
-          <h4 className="text-md font-medium mb-2">Header Mapping</h4>
-          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-800">
-              <strong>🤖 Fully Automatic:</strong> {
-                fileType === 'cash_flow' ? 
-                  'AI automatically categorizes accounts (Rental Income → income, Maintenance → expense) and maps monthly columns to time-series data. No manual mapping needed!' :
-                fileType === 'rent_roll' ?
-                  'AI automatically maps tenant names, unit numbers, and rent amounts to appropriate fields.' :
-                fileType === 'balance_sheet' ?
-                  'AI automatically categorizes assets, liabilities, and equity accounts.' :
-                fileType === 'income_statement' ?
-                  'AI automatically categorizes revenue and expense accounts and maps monthly columns.' :
-                  'AI automatically detects and maps all relevant fields based on your file type.'
-              }
-            </p>
-          </div>
-              <HeaderMapper headers={headers} suggestions={map} onChange={onChange} fileType={fileType} />
-          
-          {/* Debug Info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-3 bg-gray-100 border rounded text-xs">
-              <strong>Debug Info:</strong> Found {Object.keys(accountCategories).length} account line items
-              <br />
-              Headers: {headers.join(', ')}
-              <br />
-              Account Categories: {JSON.stringify(accountCategories, null, 2)}
-              <br />
-              <strong>Sample Data:</strong> {JSON.stringify(samples.slice(0, 3), null, 2)}
-            </div>
-          )}
-          
-          {/* Account Line Items Editor */}
-          {Object.keys(accountCategories).length > 0 && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="text-lg font-semibold mb-3 text-blue-900">📊 Account Line Items Categorization</h4>
-              <p className="text-sm text-blue-800 mb-4">
-                <strong>Manual Override:</strong> Review and adjust how each account line item is categorized. 
-                The AI has made initial suggestions, but you can change any account from Income to Expense (or vice versa).
-              </p>
-              <div className="space-y-2 max-h-96 overflow-y-auto border rounded-lg p-4 bg-white">
-                <div className="text-xs text-gray-500 mb-2">
-                  Found {Object.keys(accountCategories).length} account line items
-                </div>
-                {Object.entries(accountCategories).map(([accountName, category]) => (
-                  <div key={accountName} className="flex items-center gap-3 p-2 bg-gray-50 rounded border">
-                    <div className="w-1/2 font-medium text-xs text-gray-800 truncate" title={accountName}>
-                      {accountName}
-                    </div>
-                    <select 
-                      className="w-1/3 border border-gray-300 rounded p-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                      value={category}
-                      onChange={e => updateAccountCategory(accountName, e.target.value)}
-                    >
-                      <option value="income">💰 Income</option>
-                      <option value="expense">💸 Expense</option>
-                    </select>
-                    <div className={`w-1/6 text-xs px-2 py-1 rounded text-center font-semibold ${
-                      category === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {category === 'income' ? '📈' : '📉'}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <p className="text-sm text-yellow-800">
-                  <strong>💡 Pro Tip:</strong> Values will be automatically normalized (negative values become positive) based on the category you select.
-                  For example, if "Move In Specials" should be an expense, select "Expense" and the system will treat it as a cost.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {!!headers.length && (
         <div className="flex gap-3">
           <button 
             className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" 
             onClick={previewImport}
             disabled={loading}
           >
-            {loading ? "Processing..." : "🔍 Preview Import"}
+            {loading ? "Processing..." : "🔄 Refresh Preview"}
           </button>
           
           {hasPreviewed && (
@@ -821,8 +1624,8 @@ export default function CSVImportFlow() {
           <h4 className="text-md font-medium mb-2">CSV Data Preview</h4>
           <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-800">
-              <strong>✅ Preview Complete:</strong> {preview.length} records loaded successfully. 
-              Review the data below and click "Save to Database" when ready.
+              <strong>✅ Auto-Processed:</strong> {preview.length} records loaded and analyzed automatically. 
+              Review the AI categorization below and click "Save to Database" when ready.
             </p>
           </div>
           
@@ -869,7 +1672,7 @@ export default function CSVImportFlow() {
                   <tr>
                     <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Include</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Category</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">🤖 AI Categorization</th>
                     <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Dashboard Bucket</th>
                     {(() => {
                       // Find the first row with time_series data to generate headers
@@ -915,153 +1718,37 @@ export default function CSVImportFlow() {
                         </td>
                         <td className="px-3 py-2 border-b">
                           <div className="flex flex-col gap-1">
-                            <select 
-                              className="w-full border border-gray-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                              value={accountCategories[accountName] || row.ai_category || 'uncategorized'}
-                              onChange={(e) => updateAccountCategory(accountName, e.target.value)}
-                            >
-                              <option value="uncategorized">❓ Choose...</option>
-                              <option value="income">💰 Income</option>
-                              <option value="expense">💸 Expense</option>
-                              <option value="net_income">📊 Net Income</option>
-                            </select>
-                            {row.confidence_score && (
-                              <div className={`text-xs px-1 py-0.5 rounded text-center ${
-                                row.confidence_score > 0.8 ? 'bg-green-100 text-green-700' :
-                                row.confidence_score > 0.6 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {Math.round(row.confidence_score * 100)}% confidence
-                              </div>
-                            )}
+                            <div className="text-xs text-gray-600">
+                              🤖 AI: {(() => {
+                                const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
+                                const allBuckets = getAllBuckets();
+                                return suggestions.slice(0, 2).map(key => allBuckets[key as keyof typeof allBuckets]?.label).join(', ');
+                              })()}
+                            </div>
                           </div>
                         </td>
                         <td className="px-3 py-2 border-b">
-                          <div className="space-y-2">
-                            {/* Income Buckets */}
-                            <div className="grid grid-cols-2 gap-1">
-                              {Object.entries(DASHBOARD_BUCKETS)
-                                .filter(([_, bucket]) => bucket.category === 'income')
-                                .map(([bucketKey, bucket]) => {
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                                  const isSelected = currentBucket === bucketKey;
-                                  
-                                  return (
-                                    <button
-                                      key={bucketKey}
-                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                        isSelected 
-                                          ? `${bucket.color} border-current font-semibold` 
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                      }`}
-                                      title={bucket.description}
-                                    >
-                                      {bucket.icon} {bucket.label}
-                                    </button>
-                                  );
-                                })}
-                            </div>
-                            
-                            {/* Expense Buckets */}
-                            <div className="grid grid-cols-2 gap-1">
-                              {Object.entries(DASHBOARD_BUCKETS)
-                                .filter(([_, bucket]) => bucket.category === 'expense')
-                                .map(([bucketKey, bucket]) => {
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                                  const isSelected = currentBucket === bucketKey;
-                                  
-                                  return (
-                                    <button
-                                      key={bucketKey}
-                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                        isSelected 
-                                          ? `${bucket.color} border-current font-semibold` 
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                      }`}
-                                      title={bucket.description}
-                                    >
-                                      {bucket.icon} {bucket.label}
-                                    </button>
-                                  );
-                                })}
-                            </div>
-                            
-                            {/* Net Income Buckets */}
-                            <div className="grid grid-cols-1 gap-1">
-                              {Object.entries(DASHBOARD_BUCKETS)
-                                .filter(([_, bucket]) => bucket.category === 'net_income')
-                                .map(([bucketKey, bucket]) => {
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                                  const isSelected = currentBucket === bucketKey;
-                                  
-                                  return (
-                                    <button
-                                      key={bucketKey}
-                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                        isSelected 
-                                          ? `${bucket.color} border-current font-semibold` 
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                      }`}
-                                      title={bucket.description}
-                                    >
-                                      {bucket.icon} {bucket.label}
-                                    </button>
-                                  );
-                                })}
-                            </div>
-                            
-                            {/* Cash Buckets */}
-                            <div className="grid grid-cols-2 gap-1">
-                              {Object.entries(DASHBOARD_BUCKETS)
-                                .filter(([_, bucket]) => bucket.category === 'cash')
-                                .map(([bucketKey, bucket]) => {
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                                  const isSelected = currentBucket === bucketKey;
-                                  
-                                  return (
-                                    <button
-                                      key={bucketKey}
-                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                        isSelected 
-                                          ? `${bucket.color} border-current font-semibold` 
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                      }`}
-                                      title={bucket.description}
-                                    >
-                                      {bucket.icon} {bucket.label}
-                                    </button>
-                                  );
-                                })}
-                            </div>
-                            
-                            {/* Exclude Bucket */}
-                            <div className="grid grid-cols-1 gap-1">
-                              {Object.entries(DASHBOARD_BUCKETS)
-                                .filter(([_, bucket]) => bucket.category === 'exclude')
-                                .map(([bucketKey, bucket]) => {
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
-                                  const isSelected = currentBucket === bucketKey;
-                                  
-                                  return (
-                                    <button
-                                      key={bucketKey}
-                                      onClick={() => updateBucketAssignment(accountName, bucketKey)}
-                                      className={`px-2 py-1 text-xs rounded-full border transition-all ${
-                                        isSelected 
-                                          ? `${bucket.color} border-current font-semibold` 
-                                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                                      }`}
-                                      title={bucket.description}
-                                    >
-                                      {bucket.icon} {bucket.label}
-                                    </button>
-                                  );
-                                })}
-                            </div>
+                          <div className="space-y-1">
+                            {/* Bucket Selection Dropdown */}
+                            {(() => {
+                              const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
+                              const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                              const allBuckets = getAllBuckets();
+                              const options = Object.entries(allBuckets).map(([bucketKey, bucket]) => ({
+                                key: bucketKey,
+                                bucket
+                              }));
+                              
+                              return (
+                                <ColorCodedDropdown
+                                  value={currentBucket}
+                                  onChange={(value) => updateBucketAssignment(accountName, value)}
+                                  options={options}
+                                  suggestions={suggestions}
+                                  className="w-full"
+                                />
+                              );
+                            })()}
                           </div>
                         </td>
                         {(() => {
@@ -1093,6 +1780,61 @@ export default function CSVImportFlow() {
               Showing all {preview.length} records
             </div>
           </div>
+          
+          {/* Real-Time Dashboard Impact Preview */}
+          {preview && preview.length > 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
+              <div className="px-6 py-4 border-b border-green-200">
+                <h3 className="text-lg font-semibold text-green-900">🔄 Real-Time Dashboard Impact</h3>
+                <p className="text-green-700 mt-1">Live preview of how your current CSV will affect dashboard totals</p>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => {
+                    const currentSessionValue = calculateCurrentSessionTotals()[bucketKey] || 0;
+                    const savedValue = calculateAllBucketedTotals()[bucketKey] || 0;
+                    const combinedValue = allBucketTotals[bucketKey] || 0;
+                    const hasChange = currentSessionValue !== 0;
+                    
+                    console.log(`🔄 Dashboard Impact - ${bucketKey}: current=${currentSessionValue}, saved=${savedValue}, combined=${combinedValue}`);
+                    
+                    return (
+                      <div key={bucketKey} className={`p-4 border rounded-lg ${hasChange ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
+                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
+                          {bucket.icon} {bucket.label}
+                        </div>
+                        <div className="space-y-1">
+                          {hasChange && (
+                            <div className="text-sm text-green-600">
+                              +${currentSessionValue.toLocaleString()} (this CSV)
+                            </div>
+                          )}
+                          <div className="text-lg font-bold text-gray-900">
+                            ${combinedValue.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Total (all CSVs)
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">{bucket.description}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-800">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">Live Updates</span>
+                  </div>
+                  <p className="text-sm text-blue-700 mt-1">
+                    These totals update automatically as you change bucket assignments or include/exclude items.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Data Selection Summary */}
           <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -1168,6 +1910,620 @@ export default function CSVImportFlow() {
           </details>
         </div>
       )}
+
+      {/* Compact Header Mapping */}
+      {!!headers.length && (
+        <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h5 className="text-sm font-medium text-gray-700">🔗 Header Mapping</h5>
+            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">auto</span>
+          </div>
+          <div className="text-xs text-gray-600 mb-2">
+            🤖 AI automatically mapped {headers.length} headers
+          </div>
+          <div className="max-h-32 overflow-y-auto">
+            <div className="space-y-1">
+              {headers.map((header, index) => (
+                <div key={index} className="flex items-center justify-between text-xs py-1 px-2 bg-white rounded border">
+                  <span className="font-medium text-gray-800 truncate max-w-xs" title={header}>
+                    {header}
+                  </span>
+                  <span className="text-green-600 flex items-center gap-1">
+                    <span className="text-green-500">✔</span>
+                    {header.toLowerCase().includes('account') || header.toLowerCase().includes('name') ? 
+                      'Auto-categorized by AI' : 'Auto-mapped to time-series'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+        </div>
+
+        {/* CSV Files Management */}
+        <div className="space-y-4 p-4 border rounded-lg">
+          <h3 className="text-lg font-semibold">CSV Files Management</h3>
+          <p className="text-gray-600 text-sm">Edit categorizations and manage individual CSV files</p>
+          
+          {/* CSV List */}
+          <div className="space-y-3">
+            <h4 className="text-md font-medium">Saved CSVs</h4>
+            <div className="space-y-3">
+              {savedCSVs.map((csv) => (
+                <div key={csv.id} className={`p-3 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Database className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <h5 className="font-medium text-gray-900 text-sm">{csv.fileName}</h5>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
+                            {csv.fileType.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
+                          <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handlePreviewCSV(csv)}
+                        className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                        title="Preview CSV structure"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleCSVActive(csv.id)}
+                        className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                        disabled={managementLoading}
+                        title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCSV(csv)}
+                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        title="Edit CSV categorizations"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteCSV(csv.id)}
+                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                        disabled={managementLoading}
+                        title="Delete CSV"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Full-width sections below */}
+      <div className="space-y-6">
+        {/* AI Bucket Management */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">🤖 AI Bucket Management</h2>
+                <p className="text-gray-600 mt-1">Customize how the AI parses CSV files and assigns buckets</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setShowBucketManagement(!showBucketManagement)}
+                  className={`px-3 py-1.5 rounded text-xs font-medium ${
+                    showBucketManagement 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  {showBucketManagement ? 'Hide' : 'Show'}
+                </button>
+                <button
+                  onClick={saveBucketTerms}
+                  className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setShowAddBucket(!showAddBucket)}
+                  className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
+                >
+                  {showAddBucket ? 'Cancel' : 'Add Bucket'}
+                </button>
+                <button
+                  onClick={resetBucketTerms}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {showBucketManagement && (
+            <div className="p-6">
+              {/* Add New Bucket Form */}
+              {showAddBucket && (
+                <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-4">➕ Add New Bucket</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Bucket Name</label>
+                      <input
+                        type="text"
+                        value={newBucketName}
+                        onChange={(e) => setNewBucketName(e.target.value)}
+                        placeholder="e.g., Marketing Expenses"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <select
+                        value={newBucketCategory}
+                        onChange={(e) => setNewBucketCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                        <option value="net_income">Net Income</option>
+                        <option value="cash">Cash</option>
+                        <option value="exclude">Exclude</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={newBucketDescription}
+                      onChange={(e) => setNewBucketDescription(e.target.value)}
+                      placeholder="Brief description of what this bucket represents"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addCustomBucket}
+                      className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
+                    >
+                      Add Bucket
+                    </button>
+                    <button
+                      onClick={() => setShowAddBucket(false)}
+                      className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Usage Instructions */}
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">💡 How It Works</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>Add terms:</strong> Type a term and click "Add" to include it in the bucket</li>
+                  <li>• <strong>Remove terms:</strong> Click "Remove" to delete unwanted terms</li>
+                  <li>• <strong>Delete buckets:</strong> Click the 🗑️ trash icon to remove entire buckets</li>
+                  <li>• <strong>Adjust categories:</strong> Change bucket category to control color coding (Income=Green, Expense=Red, Cash=Purple)</li>
+                  <li>• <strong>Case insensitive:</strong> Terms are automatically converted to lowercase</li>
+                  <li>• <strong>Partial matching:</strong> AI looks for terms anywhere in account names</li>
+                  <li>• <strong>Priority order:</strong> First matching bucket wins (order matters)</li>
+                  <li>• <strong>Save changes:</strong> Click "Save Changes" to persist your settings</li>
+                </ul>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Bucket Term Definitions</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Add or remove terms for each bucket. The AI will use these terms to automatically categorize CSV account names.
+                </p>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => (
+                    <div key={bucketKey} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${bucket.color}`}>
+                          {bucket.icon} {bucket.label}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            {bucketTerms[bucketKey]?.length || 0} terms
+                          </span>
+                          <button
+                            onClick={() => deleteBucket(bucketKey)}
+                            className="text-red-600 hover:text-red-800 text-xs font-medium"
+                            title="Delete bucket"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Category Selector */}
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                        <select
+                          value={bucketCategories[bucketKey] || bucket.category}
+                          onChange={(e) => updateBucketCategory(bucketKey, e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        >
+                          <option value="income">💰 Income (Green)</option>
+                          <option value="expense">💸 Expense (Red)</option>
+                          <option value="cash">💳 Cash (Purple)</option>
+                          <option value="net_income">📊 Net Income (Blue)</option>
+                          <option value="exclude">🚫 Exclude (Gray)</option>
+                        </select>
+                      </div>
+                      
+                      <p className="text-sm text-gray-600 mb-3">{bucket.description}</p>
+                      
+                      {/* Add new term */}
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={editingBucket === bucketKey ? newTerm : ''}
+                          onChange={(e) => {
+                            setEditingBucket(bucketKey);
+                            setNewTerm(e.target.value);
+                          }}
+                          placeholder="Add new term..."
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              addTermToBucket(bucketKey, newTerm);
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => addTermToBucket(bucketKey, newTerm)}
+                          className="px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                        >
+                          Add
+                        </button>
+                      </div>
+                      
+                      {/* Existing terms */}
+                      <div className="space-y-2">
+                        {bucketTerms[bucketKey]?.map((term, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                            <span className="text-sm text-gray-700">{term}</span>
+                            <button
+                              onClick={() => removeTermFromBucket(bucketKey, term)}
+                              className="text-red-600 hover:text-red-800 text-xs font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )) || (
+                          <div className="text-sm text-gray-500 italic">No terms defined</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dashboard Bucket Totals Summary */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">📊 Dashboard Bucket Totals Summary</h3>
+            <p className="text-gray-600 mt-1">Combined totals from all saved CSVs and current session</p>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => {
+                const value = allBucketTotals[bucketKey] || 0;
+                return (
+                  <div key={bucketKey} className="p-4 border rounded-lg">
+                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
+                      {bucket.icon} {bucket.label}
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 mb-1">
+                      ${value.toLocaleString()}
+                    </div>
+                    <p className="text-sm text-gray-600">{bucket.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <Database className="w-5 h-5 text-gray-500" />
+                        <div>
+                          <h4 className="font-medium text-gray-900">{csv.fileName}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
+                              {csv.fileType.replace('_', ' ')}
+                            </span>
+                            <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
+                            <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePreviewCSV(csv)}
+                          className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                          title="Preview CSV structure"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => toggleCSVActive(csv.id)}
+                          className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
+                          disabled={managementLoading}
+                          title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEditCSV(csv)}
+                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                          title="Edit CSV categorizations"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteCSV(csv.id)}
+                          className="p-1 text-red-600 hover:bg-red-100 rounded"
+                          disabled={managementLoading}
+                          title="Delete CSV"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* CSV Editor */}
+            {selectedCSV && (
+              <div className="w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-lg font-semibold">
+                      {managementPreviewMode ? 'Preview: ' : 'Edit: '}{selectedCSV.fileName}
+                    </h3>
+                    {managementPreviewMode && (
+                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                        👁️ Preview Mode
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    {managementPreviewMode ? (
+                      <>
+                        <button
+                          onClick={() => setShowManagementPreview(!showManagementPreview)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                            showManagementPreview 
+                              ? 'bg-purple-600 text-white hover:bg-purple-700' 
+                              : 'bg-gray-600 text-white hover:bg-gray-700'
+                          }`}
+                        >
+                          <Eye className="w-4 h-4" />
+                          {showManagementPreview ? 'Hide Data Preview' : 'Show Data Preview'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setManagementPreviewMode(false);
+                            setShowManagementPreview(false);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Switch to Edit Mode
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => setShowManagementPreview(!showManagementPreview)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
+                            showManagementPreview 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                              : 'bg-gray-600 text-white hover:bg-gray-700'
+                          }`}
+                        >
+                          <Eye className="w-4 h-4" />
+                          {showManagementPreview ? 'Hide Data Preview' : 'Show Data Preview'}
+                        </button>
+                        <button
+                          onClick={saveManagementChanges}
+                          disabled={managementSaving}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                        >
+                          <Save className="w-4 h-4" />
+                          {managementSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* CSV Data Overview */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-semibold text-blue-900">📊 CSV Data Overview</h4>
+                    <div className="text-sm text-blue-700">
+                      {selectedCSV.totalRecords} records • {selectedCSV.fileType.replace('_', ' ')} • Uploaded {new Date(selectedCSV.uploadedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-lg font-bold text-green-600">
+                        {Object.values(editingCategories).filter(cat => cat === 'income').length}
+                      </div>
+                      <div className="text-xs text-gray-600">Income Accounts</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-lg font-bold text-red-600">
+                        {Object.values(editingCategories).filter(cat => cat === 'expense').length}
+                      </div>
+                      <div className="text-xs text-gray-600">Expense Accounts</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-lg font-bold text-blue-600">
+                        {Object.values(editingCategories).filter(cat => ['asset', 'liability', 'equity'].includes(cat)).length}
+                      </div>
+                      <div className="text-xs text-gray-600">Balance Sheet</div>
+                    </div>
+                    <div className="text-center p-3 bg-white rounded-lg border">
+                      <div className="text-lg font-bold text-purple-600">
+                        {Object.values(managementIncludedItems).filter(included => included !== false).length}
+                      </div>
+                      <div className="text-xs text-gray-600">Included</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Data Preview */}
+                {showManagementPreview && selectedCSV.previewData && (
+                  <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h5 className="font-medium text-gray-900 mb-2">📋 Data Preview</h5>
+                    <div className="max-h-64 overflow-auto">
+                      <pre className="text-xs text-gray-700">
+                        {JSON.stringify(selectedCSV.previewData.slice(0, 5), null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bucket Assignment Editor */}
+                {!managementPreviewMode && selectedCSV.previewData && (
+                  <div className="mt-6">
+                    <h4 className="text-lg font-semibold text-gray-900 mb-4">🎯 Edit Bucket Assignments</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Include
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Account Name
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                🤖 AI Categorization
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Bucket Assignment
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {selectedCSV.previewData.map((row: any, index: number) => {
+                              const accountName = row.account_name;
+                              const isIncluded = managementIncludedItems[accountName] !== false;
+                              
+                              return (
+                                <tr key={index} className={`hover:bg-gray-50 ${!isIncluded ? 'opacity-50 bg-gray-100' : ''}`}>
+                                  <td className="px-3 py-2 text-center border-b">
+                                    <input
+                                      type="checkbox"
+                                      checked={isIncluded}
+                                      onChange={(e) => {
+                                        setManagementIncludedItems(prev => ({
+                                          ...prev,
+                                          [accountName]: e.target.checked
+                                        }));
+                                      }}
+                                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-900 border-b">
+                                    <div className="max-w-xs truncate font-medium" title={String(accountName)}>
+                                      {accountName || '-'}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 border-b">
+                                    <div className="flex flex-col gap-1">
+                                      <div className="text-xs text-gray-600">
+                                        🤖 AI: {(() => {
+                                          const suggestions = getBucketSuggestions(accountName, editingCategories[accountName] || row.ai_category);
+                                          const allBuckets = getAllBuckets();
+                                          return suggestions.slice(0, 2).map(key => allBuckets[key as keyof typeof allBuckets]?.label).join(', ');
+                                        })()}
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 border-b">
+                                    <div className="space-y-1">
+                                      {/* Bucket Selection Dropdown */}
+                                      {(() => {
+                                        const suggestions = getBucketSuggestions(accountName, editingCategories[accountName] || row.ai_category);
+                                        const currentBucket = managementBucketAssignments[accountName] || getSuggestedBucket(accountName, editingCategories[accountName] || row.ai_category);
+                                        const allBuckets = getAllBuckets();
+                                        const options = Object.entries(allBuckets).map(([bucketKey, bucket]) => ({
+                                          key: bucketKey,
+                                          bucket
+                                        }));
+                                        
+                                        return (
+                                          <ColorCodedDropdown
+                                            value={currentBucket}
+                                            onChange={(value) => {
+                                              setManagementBucketAssignments(prev => ({
+                                                ...prev,
+                                                [accountName]: value
+                                              }));
+                                            }}
+                                            options={options}
+                                            suggestions={suggestions}
+                                            className="w-full"
+                                          />
+                                        );
+                                      })()}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

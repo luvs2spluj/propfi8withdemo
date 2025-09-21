@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
-import PropertyPerformanceChart from './charts/PropertyPerformanceChart';
 import CashFlowChart from './charts/CashFlowChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { getCSVData } from '../lib/supabase';
@@ -587,7 +586,9 @@ const Dashboard: React.FC = () => {
           <div className="bg-blue-50 p-2 rounded mb-2 text-sm">
             💡 Showing CashFlowChart (hasCashFlowData: {hasCashFlowData.toString()}, CSVs: {activeCSVsCount})
           </div>
-          <CashFlowChart properties={properties} />
+          <div className="card">
+            <CashFlowChart properties={properties} />
+          </div>
         </div>
       ) : (
         // Show regular charts when no cash flow data
@@ -603,11 +604,7 @@ const Dashboard: React.FC = () => {
       </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Performance</h3>
-          <PropertyPerformanceChart properties={properties} />
-        </div>
+      <div className="grid grid-cols-1 gap-6">
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
           <div className="space-y-4">

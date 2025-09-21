@@ -155,10 +155,10 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
 
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="bg-white p-8 rounded-lg shadow-sm border">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-96 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
@@ -166,9 +166,9 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">💰 Cash Flow Trends</h3>
-        <div className="text-center text-gray-500 py-8">
+      <div className="bg-white p-8 rounded-lg shadow-sm border">
+        <h3 className="text-2xl font-semibold text-gray-900 mb-6">Property Performance</h3>
+        <div className="text-center text-gray-500 py-12">
           No cash flow data available. Upload a cash flow CSV to see Total Income, Total Expense, and Net Operating Income trends.
         </div>
       </div>
@@ -184,7 +184,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
         borderColor: 'rgb(34, 197, 94)',
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         fill: false,
-        tension: 0.1,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        cubicInterpolationMode: 'monotone' as const,
       },
       {
         label: 'Total Operating Expense',
@@ -192,7 +196,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
         borderColor: 'rgb(239, 68, 68)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         fill: false,
-        tension: 0.1,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        cubicInterpolationMode: 'monotone' as const,
       },
       {
         label: 'NOI - Net Operating Income',
@@ -200,7 +208,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: false,
-        tension: 0.1,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        cubicInterpolationMode: 'monotone' as const,
       },
     ],
   };
@@ -237,12 +249,12 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">💰 Cash Flow Trends</h3>
-      <div className="h-64">
+    <div className="bg-white p-8 rounded-lg shadow-sm border">
+      <h3 className="text-2xl font-semibold text-gray-900 mb-6">Property Performance</h3>
+      <div className="h-96">
         <Line data={data} options={options} />
       </div>
-      <div className="mt-4 text-sm text-gray-600">
+      <div className="mt-6 text-sm text-gray-600">
         <p>Shows Total Operating Income, Total Operating Expense, and NOI - Net Operating Income month-over-month from cash flow CSVs.</p>
       </div>
     </div>

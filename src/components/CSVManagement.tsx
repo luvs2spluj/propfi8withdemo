@@ -568,32 +568,11 @@ export default function CSVManagement() {
 
     return (
       <div className="space-y-6">
-      {/* Bucketed Totals Summary */}
+      {/* Header */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h1 className="text-2xl font-bold text-gray-900">CSV Management</h1>
           <p className="text-gray-600 mt-1">Manage your saved CSV files and categorize data for dashboard integration</p>
-        </div>
-        
-        <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4">📊 Dashboard Bucket Totals Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {DASHBOARD_BUCKETS.map(bucket => {
-              const value = allBucketTotals[bucket.id] || 0;
-              return (
-                <div key={bucket.id} className="p-4 border rounded-lg">
-                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
-                    {bucket.name}
-          </div>
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
-                    ${value.toLocaleString()}
-          </div>
-                  <p className="text-sm text-gray-600">{bucket.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">{bucket.calculation}</p>
-        </div>
-              );
-            })}
-          </div>
         </div>
       </div>
 
@@ -1212,6 +1191,35 @@ export default function CSVManagement() {
             </div>
           </div>
         </div>
+
+      {/* Bucketed Totals Summary */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">📊 Dashboard Bucket Totals Summary</h3>
+          <p className="text-gray-600 mt-1">Calculated totals from your categorized CSV data</p>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            {DASHBOARD_BUCKETS.map(bucket => {
+              const value = allBucketTotals[bucket.id] || 0;
+              return (
+                <div key={bucket.id} className="p-4 border rounded-lg">
+                  <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
+                    {bucket.name}
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                    ${value.toLocaleString()}
+                  </div>
+                  <p className="text-sm text-gray-600">{bucket.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{bucket.calculation}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Dashboard Buckets Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">

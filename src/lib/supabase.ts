@@ -60,7 +60,6 @@ export async function getCSVData() {
     const { data, error } = await supabase
       .from('csv_data')
       .select('*')
-      .eq('is_active', true)
       .order('uploaded_at', { ascending: false });
     
     if (error) {
@@ -83,9 +82,10 @@ export async function deleteCSVData(csvId: string) {
   }
   
   try {
+    // Actually delete the record instead of just marking as inactive
     const { error } = await supabase
       .from('csv_data')
-      .update({ is_active: false })
+      .delete()
       .eq('id', csvId);
     
     if (error) {
