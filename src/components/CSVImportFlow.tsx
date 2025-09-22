@@ -156,11 +156,14 @@ export default function CSVImportFlow() {
   const [error, setError] = useState<string | null>(null);
   const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
   const [aiLearningData, setAiLearningData] = useState<any>(null);
-  const [categorizationSummary, setCategorizationSummary] = useState<any>(null);
   const [includedItems, setIncludedItems] = useState<Record<string, boolean>>({});
   const [bucketAssignments, setBucketAssignments] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [hasPreviewed, setHasPreviewed] = useState(false);
+  
+  // Multi-select functionality
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [showBulkToolbar, setShowBulkToolbar] = useState(false);
   
   // CSV Management state
   const [savedCSVs, setSavedCSVs] = useState<any[]>([]);
@@ -214,7 +217,19 @@ export default function CSVImportFlow() {
       console.log('💾 LocalStorage CSVs:', localSavedCSVs.length, 'files');
       
       // Combine both sources, prioritizing Supabase data
-      const combinedCSVs = [...supabaseCSVs];
+      const combinedCSVs = supabaseCSVs.map((csv: any) => ({
+        ...csv,
+        // Add compatibility fields for Supabase CSVs
+        fileName: csv.file_name,
+        fileType: csv.file_type,
+        uploadedAt: csv.uploaded_at,
+        totalRecords: csv.total_records,
+        accountCategories: csv.account_categories,
+        bucketAssignments: csv.bucket_assignments,
+        includedItems: csv.included_items,
+        isActive: csv.is_active !== false,
+        previewData: csv.preview_data
+      }));
       
       // Add localStorage CSVs that aren't already in Supabase
       localSavedCSVs.forEach((localCSV: any) => {
@@ -233,6 +248,7 @@ export default function CSVImportFlow() {
             total_records: localCSV.totalRecords,
             account_categories: localCSV.accountCategories,
             bucket_assignments: localCSV.bucketAssignments,
+            included_items: localCSV.includedItems,
             tags: localCSV.tags,
             is_active: localCSV.isActive,
             preview_data: localCSV.previewData,
@@ -243,6 +259,7 @@ export default function CSVImportFlow() {
             totalRecords: localCSV.totalRecords,
             accountCategories: localCSV.accountCategories,
             bucketAssignments: localCSV.bucketAssignments,
+            includedItems: localCSV.includedItems,
             isActive: localCSV.isActive,
             previewData: localCSV.previewData
           };
@@ -293,7 +310,35 @@ export default function CSVImportFlow() {
   };
 
   useEffect(() => {
+    // Clear any existing preview data when component mounts to prevent double-counting
+    setPreview([]);
+    setHasPreviewed(false);
+    setSelectedCSV(null);
+    setAccountCategories({});
+    setBucketAssignments({});
+    setIncludedItems({});
+    setFile(null);
+    setError(null);
+    setSaved(false);
+    
+    console.log('🧹 Cleared preview data on component mount to prevent double-counting');
+    
     loadCSVs();
+  }, []);
+
+  // Listen for data updates to force recalculation
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      console.log('📡 Received dataUpdated event:', event.detail);
+      // Force recalculation by updating a dummy state
+      setSavedCSVs(prev => [...prev]);
+    };
+
+    window.addEventListener('dataUpdated', handleDataUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('dataUpdated', handleDataUpdate as EventListener);
+    };
   }, []);
 
   // Initialize bucket terms with default values
@@ -353,6 +398,154 @@ export default function CSVImportFlow() {
       }
     }
   }, []);
+
+  // Helper function to check if a line item has any non-zero values
+  const hasNonZeroValues = (row: any): boolean => {
+    if (!row.time_series) return false;
+    
+    return Object.values(row.time_series).some((value: any) => {
+      const numValue = typeof value === 'number' ? value : parseFloat(value);
+      return !isNaN(numValue) && numValue !== 0;
+    });
+  };
+
+  // Helper function to check if a bucket name contains "total"
+  const isTotalBucket = (bucketName: string): boolean => {
+    return bucketName.toLowerCase().includes('total');
+  };
+
+  // Multi-select functionality
+  const toggleRowSelection = (accountName: string) => {
+    setSelectedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(accountName)) {
+        newSet.delete(accountName);
+      } else {
+        newSet.add(accountName);
+      }
+      setShowBulkToolbar(newSet.size > 0);
+      return newSet;
+    });
+  };
+
+  const selectAllRows = () => {
+    if (!preview || preview.length === 0) return;
+    const allAccountNames = preview.map((row: any) => row.account_name).filter(Boolean);
+    setSelectedRows(new Set(allAccountNames));
+    setShowBulkToolbar(true);
+  };
+
+  const clearSelection = () => {
+    setSelectedRows(new Set());
+    setShowBulkToolbar(false);
+  };
+
+  const assignBulkBucket = (bucketKey: string) => {
+    if (selectedRows.size === 0) return;
+    
+    setBucketAssignments(prev => {
+      const updated = { ...prev };
+      selectedRows.forEach(accountName => {
+        updated[accountName] = bucketKey;
+      });
+      return updated;
+    });
+    
+    console.log(`🔄 Assigned ${selectedRows.size} items to bucket: ${bucketKey}`);
+    clearSelection();
+  };
+
+  // Helper function to get the total value from a row
+  const getTotalValue = (row: any): number => {
+    if (!row.time_series) return 0;
+    
+    // Look for "Total" column first (case-insensitive)
+    const totalKeys = Object.keys(row.time_series).filter(key => 
+      key.toLowerCase().includes('total') || 
+      key.toLowerCase().includes('sum') || 
+      key.toLowerCase().includes('grand total')
+    );
+    
+    if (totalKeys.length > 0) {
+      const totalValue = row.time_series[totalKeys[0]];
+      const numValue = typeof totalValue === 'number' ? totalValue : parseFloat(totalValue);
+      return !isNaN(numValue) ? numValue : 0;
+    }
+    
+    // If no total column, sum all numeric values
+    return Object.values(row.time_series).reduce((sum: number, value: any) => {
+      const numValue = typeof value === 'number' ? value : parseFloat(value);
+      return !isNaN(numValue) ? sum + numValue : sum;
+    }, 0);
+  };
+
+  // Helper function to set included items with total bucket logic
+  const setIncludedItemsWithTotalLogic = (data: any[], bucketAssignments: Record<string, string>): Record<string, boolean> => {
+    const included: Record<string, boolean> = {};
+    const totalBucketSelections: Record<string, string> = {}; // Track which account is selected for each total bucket
+    const totalValueGroups: Record<string, string[]> = {}; // Track items with same total values
+    
+    // First pass: set all items - include items with data, exclude items without data
+    data.forEach((row: any) => {
+      if (row.account_name) {
+        included[row.account_name] = hasNonZeroValues(row);
+        if (!hasNonZeroValues(row)) {
+          console.log(`🚫 Auto-deselected ${row.account_name} (no non-zero values) - but keeping visible`);
+        }
+      }
+    });
+    
+    // Second pass: group items by their total values to detect duplicates
+    data.forEach((row: any) => {
+      if (row.account_name && included[row.account_name]) {
+        const totalValue = getTotalValue(row);
+        if (totalValue !== 0) {
+          const valueKey = totalValue.toString();
+          if (!totalValueGroups[valueKey]) {
+            totalValueGroups[valueKey] = [];
+          }
+          totalValueGroups[valueKey].push(row.account_name);
+        }
+      }
+    });
+    
+    // Third pass: handle duplicate total values - only keep one item per unique total value
+    Object.entries(totalValueGroups).forEach(([totalValue, accountNames]) => {
+      if (accountNames.length > 1) {
+        console.log(`🔄 Found ${accountNames.length} items with same total value ${totalValue}:`, accountNames);
+        
+        // Keep the first item, deselect the rest
+        const keepAccount = accountNames[0];
+        for (let i = 1; i < accountNames.length; i++) {
+          const accountName = accountNames[i];
+          included[accountName] = false;
+          console.log(`🚫 Deselected ${accountName} (duplicate total value ${totalValue}, keeping ${keepAccount})`);
+        }
+        console.log(`✅ Kept ${keepAccount} for total value ${totalValue}`);
+      }
+    });
+    
+    // Fourth pass: handle total buckets - only allow one selection per total bucket
+    data.forEach((row: any) => {
+      if (row.account_name && included[row.account_name]) {
+        const bucket = bucketAssignments[row.account_name] || getSuggestedBucket(row.account_name, 'unknown');
+        
+        if (isTotalBucket(bucket)) {
+          if (!totalBucketSelections[bucket]) {
+            // First item for this total bucket - keep it selected
+            totalBucketSelections[bucket] = row.account_name;
+            console.log(`✅ Selected ${row.account_name} for total bucket: ${bucket}`);
+          } else {
+            // Another item for this total bucket - deselect it to prevent double-counting
+            included[row.account_name] = false;
+            console.log(`🚫 Deselected ${row.account_name} to prevent double-counting in total bucket: ${bucket} (${totalBucketSelections[bucket]} already selected)`);
+          }
+        }
+      }
+    });
+    
+    return included;
+  };
 
   const handleFile = (f: File) => {
     setFile(f);
@@ -455,11 +648,14 @@ export default function CSVImportFlow() {
               setPreview(processedData);
               setHasPreviewed(true);
               
-              // Set all items as included by default
+              // Set items as included only if they have non-zero values (but keep all items visible)
               const included: Record<string, boolean> = {};
               processedData.forEach((row: any) => {
                 if (row.account_name) {
-                  included[row.account_name] = true;
+                  included[row.account_name] = hasNonZeroValues(row);
+                  if (!hasNonZeroValues(row)) {
+                    console.log(`🚫 Auto-deselected ${row.account_name} (no non-zero values) - but keeping visible`);
+                  }
                 }
               });
               setIncludedItems(included);
@@ -483,7 +679,6 @@ export default function CSVImportFlow() {
                   
                   // Update with AI-categorized data
                   setPreview(aiResult.categorized_data);
-                  setCategorizationSummary(aiResult.summary);
                   
                   // Update account categories from AI results
                   const categories: Record<string, string> = {};
@@ -493,6 +688,17 @@ export default function CSVImportFlow() {
                     }
                   });
                   setAccountCategories(categories);
+                  
+                  // Auto-populate bucket assignments based on AI learning
+                  const initialBucketAssignments: Record<string, string> = {};
+                  aiResult.categorized_data.forEach((row: any) => {
+                    if (row.account_name) {
+                      const suggestedBucket = getSuggestedBucket(row.account_name, row.ai_category);
+                      initialBucketAssignments[row.account_name] = suggestedBucket;
+                      console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
+                    }
+                  });
+                  setBucketAssignments(initialBucketAssignments);
                 }
               } catch (aiError) {
                 console.warn("AI backend error, using manual categorization:", aiError);
@@ -552,6 +758,18 @@ export default function CSVImportFlow() {
   const getSuggestedBucket = (accountName: string, aiCategory: string): string => {
     const name = accountName.toLowerCase();
     
+    // First, check AI learning for this account name
+    if (aiLearningData && aiLearningData.length > 0) {
+      const learnedAssignment = aiLearningData.find((item: any) => 
+        item.account_name && item.account_name.toLowerCase() === name
+      );
+      
+      if (learnedAssignment && learnedAssignment.ai_category) {
+        console.log(`🧠 Using AI learning for ${accountName}: ${learnedAssignment.ai_category}`);
+        return learnedAssignment.ai_category;
+      }
+    }
+    
     // Use customizable bucket terms for matching
     for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
       for (const term of terms) {
@@ -587,11 +805,25 @@ export default function CSVImportFlow() {
     const name = accountName.toLowerCase();
     const suggestions: string[] = [];
     
+    // First, check AI learning for this account name and prioritize it
+    if (aiLearningData && aiLearningData.length > 0) {
+      const learnedAssignment = aiLearningData.find((item: any) => 
+        item.account_name && item.account_name.toLowerCase() === name
+      );
+      
+      if (learnedAssignment && learnedAssignment.ai_category) {
+        suggestions.push(learnedAssignment.ai_category);
+        console.log(`🧠 AI learning suggestion for ${accountName}: ${learnedAssignment.ai_category}`);
+      }
+    }
+    
     // Find all buckets that match this account name
     for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
       for (const term of terms) {
         if (name.includes(term.toLowerCase())) {
-          suggestions.push(bucketKey);
+          if (!suggestions.includes(bucketKey)) {
+            suggestions.push(bucketKey);
+          }
           break; // Only add each bucket once
         }
       }
@@ -643,10 +875,11 @@ export default function CSVImportFlow() {
     const allExcluded: Record<string, boolean> = {};
     preview.forEach((row: any) => {
       if (row.account_name) {
-        allExcluded[row.account_name] = false;
+        allExcluded[row.account_name] = false; // Explicitly set to false
       }
     });
     setIncludedItems(allExcluded);
+    console.log('❌ Deselected all items:', allExcluded);
   };
 
   const selectByCategory = (category: string) => {
@@ -789,16 +1022,12 @@ export default function CSVImportFlow() {
               
               // Update state with AI-categorized data
               setPreview(aiResult.categorized_data);
-              setCategorizationSummary(aiResult.summary);
               
               // Update account categories from AI results
               const categories: Record<string, string> = {};
-              const included: Record<string, boolean> = {};
               aiResult.categorized_data.forEach((row: any) => {
                 if (row.account_name) {
                   categories[row.account_name] = row.ai_category;
-                  // Default all items to included
-                  included[row.account_name] = true;
                   // Debug: Check if time_series is preserved
                   if (!row.time_series) {
                     console.warn(`⚠️ Missing time_series for ${row.account_name}`);
@@ -808,6 +1037,20 @@ export default function CSVImportFlow() {
                 }
               });
               setAccountCategories(categories);
+              
+              // Auto-populate bucket assignments based on AI learning
+              const initialBucketAssignments: Record<string, string> = {};
+              aiResult.categorized_data.forEach((row: any) => {
+                if (row.account_name) {
+                  const suggestedBucket = getSuggestedBucket(row.account_name, row.ai_category);
+                  initialBucketAssignments[row.account_name] = suggestedBucket;
+                  console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
+                }
+              });
+              setBucketAssignments(initialBucketAssignments);
+              
+              // Set included items with total bucket logic to prevent double-counting
+              const included = setIncludedItemsWithTotalLogic(aiResult.categorized_data, initialBucketAssignments);
               setIncludedItems(included);
               
             } else {
@@ -815,13 +1058,19 @@ export default function CSVImportFlow() {
               setPreview(processedData);
               setAccountCategories({});
               
-              // Set all items as included by default for manual categorization
-              const included: Record<string, boolean> = {};
+              // Auto-populate bucket assignments based on AI learning even for manual categorization
+              const initialBucketAssignments: Record<string, string> = {};
               processedData.forEach((row: any) => {
                 if (row.account_name) {
-                  included[row.account_name] = true;
+                  const suggestedBucket = getSuggestedBucket(row.account_name, 'unknown');
+                  initialBucketAssignments[row.account_name] = suggestedBucket;
+                  console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, manual mode)`);
                 }
               });
+              setBucketAssignments(initialBucketAssignments);
+              
+              // Set included items with total bucket logic to prevent double-counting
+              const included = setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
               setIncludedItems(included);
             }
           } catch (aiError) {
@@ -829,13 +1078,19 @@ export default function CSVImportFlow() {
             setPreview(processedData);
             setAccountCategories({});
             
-            // Set all items as included by default for manual categorization
-            const included: Record<string, boolean> = {};
+            // Auto-populate bucket assignments based on AI learning even when AI fails
+            const initialBucketAssignments: Record<string, string> = {};
             processedData.forEach((row: any) => {
               if (row.account_name) {
-                included[row.account_name] = true;
+                const suggestedBucket = getSuggestedBucket(row.account_name, 'unknown');
+                initialBucketAssignments[row.account_name] = suggestedBucket;
+                console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, AI error fallback)`);
               }
             });
+            setBucketAssignments(initialBucketAssignments);
+            
+            // Set included items with total bucket logic to prevent double-counting
+            const included = setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
             setIncludedItems(included);
           }
           
@@ -853,6 +1108,31 @@ export default function CSVImportFlow() {
       console.error("Preview error:", error);
       setError(`Preview failed: ${error.message}`);
       setLoading(false);
+    }
+  };
+
+  // Save bucket assignments to AI learning
+  const saveBucketAssignmentsToAI = async (csvRecord: any) => {
+    try {
+      console.log('🧠 Saving bucket assignments to AI learning for file type:', csvRecord.fileType);
+      
+      const bucketAssignments = csvRecord.bucketAssignments || {};
+      const accountCategories = csvRecord.accountCategories || {};
+      
+      // Save each bucket assignment to AI learning
+      for (const [accountName, bucket] of Object.entries(bucketAssignments)) {
+        if (bucket && bucket !== 'exclude' && accountName && typeof bucket === 'string') {
+          const category = accountCategories[accountName] || 'unknown';
+          
+          // Save the bucket assignment as AI learning
+          await saveAILearning(csvRecord.fileType, accountName, bucket);
+          console.log(`🧠 Learned: ${accountName} → ${bucket} (${category})`);
+        }
+      }
+      
+      console.log('✅ Bucket assignments saved to AI learning');
+    } catch (error) {
+      console.error('❌ Error saving bucket assignments to AI:', error);
     }
   };
 
@@ -898,12 +1178,12 @@ export default function CSVImportFlow() {
 
       // Filter out excluded items
       const includedPreviewData = preview.filter((row: any) => 
-        includedItems[row.account_name] !== false
+        includedItems[row.account_name] === true
       );
       
       const includedAccountCategories: Record<string, string> = {};
       Object.entries(accountCategories).forEach(([accountName, category]) => {
-        if (includedItems[accountName] !== false) {
+        if (includedItems[accountName] === true) {
           includedAccountCategories[accountName] = category;
         }
       });
@@ -917,6 +1197,7 @@ export default function CSVImportFlow() {
           totalRecords: includedPreviewData.length,
           accountCategories: includedAccountCategories,
           bucketAssignments: generateBucketAssignments(),
+          includedItems: includedItems,
           tags: generateTags(),
           previewData: includedPreviewData
         };
@@ -930,6 +1211,7 @@ export default function CSVImportFlow() {
         totalRecords: includedPreviewData.length,
         accountCategories: includedAccountCategories,
         bucketAssignments: generateBucketAssignments(),
+        includedItems: includedItems,
         tags: generateTags(),
         isActive: true,
         previewData: includedPreviewData
@@ -954,6 +1236,7 @@ export default function CSVImportFlow() {
         total_records: csvRecord.totalRecords,
         account_categories: csvRecord.accountCategories,
         bucket_assignments: csvRecord.bucketAssignments,
+        included_items: csvRecord.includedItems,
         tags: csvRecord.tags,
         is_active: csvRecord.isActive,
         preview_data: csvRecord.previewData
@@ -978,6 +1261,9 @@ export default function CSVImportFlow() {
       setSaved(true);
       console.log("Data saved to database:", preview.length, "records");
       
+      // Save AI learning for bucket assignments
+      await saveBucketAssignmentsToAI(csvRecord);
+      
       // If we're editing an existing CSV, close the categorization interface
       if (selectedCSV) {
         // Clear the preview data to close the categorization interface
@@ -993,6 +1279,17 @@ export default function CSVImportFlow() {
           alert(`CSV "${csvRecord.fileName}" updated successfully!`);
         }, 500);
       } else {
+        // Clear preview data for new uploads to prevent double-counting when returning to screen
+        setPreview([]);
+        setHasPreviewed(false);
+        setAccountCategories({});
+        setBucketAssignments({});
+        setIncludedItems({});
+        setFile(null);
+        
+        // Refresh the CSV list to show the new CSV
+        await loadCSVs();
+        
         // Show success message with link to management for new uploads
       setTimeout(() => {
         alert(`CSV saved successfully! Go to "CSV Management" tab to review and adjust categorizations.`);
@@ -1032,23 +1329,34 @@ export default function CSVImportFlow() {
   };
 
   const handleEditCSV = (csv: any) => {
+    console.log('✏️ Editing CSV data:', {
+      fileName: csv.fileName || csv.file_name,
+      accountCategoriesCount: Object.keys(csv.accountCategories || csv.account_categories || {}).length,
+      bucketAssignmentsCount: Object.keys(csv.bucketAssignments || csv.bucket_assignments || {}).length,
+      includedItemsCount: Object.keys(csv.includedItems || csv.included_items || {}).length,
+      previewDataCount: (csv.previewData || csv.preview_data || []).length,
+      sampleAccountCategories: Object.keys(csv.accountCategories || csv.account_categories || {}).slice(0, 3),
+      sampleBucketAssignments: Object.keys(csv.bucketAssignments || csv.bucket_assignments || {}).slice(0, 3),
+      sampleIncludedItems: Object.keys(csv.includedItems || csv.included_items || {}).slice(0, 3)
+    });
+    
     setSelectedCSV(csv);
-    setEditingCategories(csv.accountCategories || {});
-    setEditingBuckets(csv.bucketAssignments || {});
-    setManagementBucketAssignments(csv.bucketAssignments || {});
+    setEditingCategories(csv.accountCategories || csv.account_categories || {});
+    setEditingBuckets(csv.bucketAssignments || csv.bucket_assignments || {});
+    setManagementBucketAssignments(csv.bucketAssignments || csv.bucket_assignments || {});
     setEditingTags(csv.tags || {});
-    setManagementIncludedItems(csv.includedItems || {});
+    setManagementIncludedItems(csv.includedItems || csv.included_items || {});
     setManagementPreviewMode(false);
     setShowManagementPreview(false);
     
     // Load the CSV data into the main preview interface for editing
-    setPreview(csv.previewData || []);
-    setAccountCategories(csv.accountCategories || {});
-    setBucketAssignments(csv.bucketAssignments || {});
-    setIncludedItems(csv.includedItems || {});
+    setPreview(csv.previewData || csv.preview_data || []);
+    setAccountCategories(csv.accountCategories || csv.account_categories || {});
+    setBucketAssignments(csv.bucketAssignments || csv.bucket_assignments || {});
+    setIncludedItems(csv.includedItems || csv.included_items || {});
     setHasPreviewed(true);
     
-    console.log('✏️ Editing CSV:', csv.fileName, 'with', csv.previewData?.length, 'records');
+    console.log('✏️ Editing CSV:', csv.fileName || csv.file_name, 'with', (csv.previewData || csv.preview_data || []).length, 'records');
   };
 
   const toggleCSVActive = async (csvId: string) => {
@@ -1156,6 +1464,7 @@ export default function CSVImportFlow() {
         total_records: updatedCSV.totalRecords,
         account_categories: updatedCSV.accountCategories,
         bucket_assignments: updatedCSV.bucketAssignments,
+        included_items: updatedCSV.includedItems,
         tags: updatedCSV.tags,
         is_active: updatedCSV.isActive,
         preview_data: updatedCSV.previewData
@@ -1195,22 +1504,35 @@ export default function CSVImportFlow() {
       const accountName = item.account_name;
       const category = accountCategories[accountName];
       const bucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, category);
-      const isIncluded = includedItems[accountName] !== false;
+      const isIncluded = includedItems[accountName] === true;
       
       if (!isIncluded || !item.time_series) return;
       
       // Calculate total for this account - use Total column if it exists, otherwise sum months
       let total = 0;
       
-      // Check if there's a "Total" column in the time_series
-      if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
-        total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
-        console.log(`📊 ${accountName}: Using Total column = ${total}`);
+      console.log(`🔍 Debug ${accountName} time_series keys:`, Object.keys(item.time_series));
+      console.log(`🔍 Debug ${accountName} time_series values:`, item.time_series);
+      
+      // Check if there's a "Total" column in the time_series (case insensitive)
+      const totalKey = Object.keys(item.time_series).find(key => 
+        key.toLowerCase() === 'total' || 
+        key.toLowerCase() === 'totals' ||
+        key.toLowerCase() === 'grand total' ||
+        key.toLowerCase() === 'sum'
+      );
+      
+      if (totalKey && item.time_series[totalKey] !== undefined && item.time_series[totalKey] !== null) {
+        total = typeof item.time_series[totalKey] === 'number' ? item.time_series[totalKey] : 0;
+        console.log(`📊 ${accountName}: Using ${totalKey} column = ${total}`);
       } else {
-        // No Total column, sum up the monthly values (excluding Total)
+        // No Total column, sum up the monthly values (excluding any total-like columns)
         total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
-          // Skip Total column and any non-numeric values
-          if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+          // Skip any total-like columns and any non-numeric values
+          if (key.toLowerCase().includes('total') || 
+              key.toLowerCase().includes('sum') || 
+              key.toLowerCase().includes('grand') ||
+              typeof value !== 'number') {
             return sum;
           }
           return sum + value;
@@ -1262,22 +1584,35 @@ export default function CSVImportFlow() {
         const accountName = item.account_name;
         const category = accountCategories[accountName];
         const bucket = bucketAssignments[accountName];
-        const isIncluded = includedItems[accountName] !== false;
+        const isIncluded = includedItems[accountName] === true;
         
         if (!isIncluded || !item.time_series) return;
         
         // Calculate total for this account - use Total column if it exists, otherwise sum months
         let total = 0;
         
-        // Check if there's a "Total" column in the time_series
-        if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
-          total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
-          console.log(`📊 ${accountName}: Using Total column = ${total}`);
+        console.log(`🔍 Debug ${accountName} time_series keys:`, Object.keys(item.time_series));
+        console.log(`🔍 Debug ${accountName} time_series values:`, item.time_series);
+        
+        // Check if there's a "Total" column in the time_series (case insensitive)
+        const totalKey = Object.keys(item.time_series).find(key => 
+          key.toLowerCase() === 'total' || 
+          key.toLowerCase() === 'totals' ||
+          key.toLowerCase() === 'grand total' ||
+          key.toLowerCase() === 'sum'
+        );
+        
+        if (totalKey && item.time_series[totalKey] !== undefined && item.time_series[totalKey] !== null) {
+          total = typeof item.time_series[totalKey] === 'number' ? item.time_series[totalKey] : 0;
+          console.log(`📊 ${accountName}: Using ${totalKey} column = ${total}`);
         } else {
-          // No Total column, sum up the monthly values (excluding Total)
+          // No Total column, sum up the monthly values (excluding any total-like columns)
           total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
-            // Skip Total column and any non-numeric values
-            if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+            // Skip any total-like columns and any non-numeric values
+            if (key.toLowerCase().includes('total') || 
+                key.toLowerCase().includes('sum') || 
+                key.toLowerCase().includes('grand') ||
+                typeof value !== 'number') {
               return sum;
             }
             return sum + value;
@@ -1322,22 +1657,35 @@ export default function CSVImportFlow() {
         const accountName = item.account_name;
         const category = accountCategories[accountName];
         const bucket = bucketAssignments[accountName];
-        const isIncluded = includedItems[accountName] !== false;
+        const isIncluded = includedItems[accountName] === true;
         
         if (!isIncluded || !item.time_series) return;
         
         // Calculate total for this account - use Total column if it exists, otherwise sum months
         let total = 0;
         
-        // Check if there's a "Total" column in the time_series
-        if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
-          total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
-          console.log(`📊 ${accountName}: Using Total column = ${total}`);
+        console.log(`🔍 Debug ${accountName} time_series keys:`, Object.keys(item.time_series));
+        console.log(`🔍 Debug ${accountName} time_series values:`, item.time_series);
+        
+        // Check if there's a "Total" column in the time_series (case insensitive)
+        const totalKey = Object.keys(item.time_series).find(key => 
+          key.toLowerCase() === 'total' || 
+          key.toLowerCase() === 'totals' ||
+          key.toLowerCase() === 'grand total' ||
+          key.toLowerCase() === 'sum'
+        );
+        
+        if (totalKey && item.time_series[totalKey] !== undefined && item.time_series[totalKey] !== null) {
+          total = typeof item.time_series[totalKey] === 'number' ? item.time_series[totalKey] : 0;
+          console.log(`📊 ${accountName}: Using ${totalKey} column = ${total}`);
         } else {
-          // No Total column, sum up the monthly values (excluding Total)
+          // No Total column, sum up the monthly values (excluding any total-like columns)
           total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
-            // Skip Total column and any non-numeric values
-            if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+            // Skip any total-like columns and any non-numeric values
+            if (key.toLowerCase().includes('total') || 
+                key.toLowerCase().includes('sum') || 
+                key.toLowerCase().includes('grand') ||
+                typeof value !== 'number') {
               return sum;
             }
             return sum + value;
@@ -1362,7 +1710,15 @@ export default function CSVImportFlow() {
     return bucketTotals;
   };
 
-  const allBucketTotals = calculateCombinedBucketTotals();
+  const allBucketTotals = React.useMemo(() => {
+    console.log('🔄 Recalculating allBucketTotals due to state change');
+    return calculateCombinedBucketTotals();
+  }, [savedCSVs, preview, selectedCSV, accountCategories, bucketAssignments, includedItems]);
+
+  const currentSessionTotals = React.useMemo(() => {
+    console.log('🔄 Recalculating currentSessionTotals');
+    return calculateCurrentSessionTotals();
+  }, [preview, accountCategories, bucketAssignments, includedItems]);
 
   // Bucket Management Functions
   const addTermToBucket = (bucketKey: string, term: string) => {
@@ -1628,14 +1984,14 @@ export default function CSVImportFlow() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full text-left px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between ${
+          className={`w-full text-left px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between whitespace-nowrap ${
             selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white'
           }`}
         >
-          <span>
+          <span className="truncate">
             {selectedOption ? `${selectedOption.bucket.icon} ${selectedOption.bucket.label}` : 'Select bucket...'}
           </span>
-          <span className="text-gray-400">⌄</span>
+          <span className="text-gray-400 flex-shrink-0 ml-2">⌄</span>
         </button>
 
         {isOpen && (
@@ -1663,12 +2019,12 @@ export default function CSVImportFlow() {
                     setIsOpen(false);
                     setSearchTerm('');
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center justify-between ${getDropdownOptionStyle(bucketCategory)}`}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center justify-between whitespace-nowrap ${getDropdownOptionStyle(bucketCategory)}`}
                 >
-                  <span>
+                  <span className="truncate">
                     {bucket.icon} {bucket.label}
                   </span>
-                  {isSuggested && <span className="text-yellow-500">✨</span>}
+                  {isSuggested && <span className="text-yellow-500 flex-shrink-0 ml-2">✨</span>}
                 </button>
               );
             })}
@@ -1771,9 +2127,15 @@ export default function CSVImportFlow() {
               CSV File
             </label>
             <input 
+              key={file ? file.name + file.lastModified : 'file-input'}
               type="file" 
               accept=".csv" 
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+              onChange={e => {
+                const selectedFile = e.target.files?.[0];
+                if (selectedFile) {
+                  handleFile(selectedFile);
+                }
+              }}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
           </div>
@@ -1848,16 +2210,62 @@ export default function CSVImportFlow() {
                 >
                   💸 Select Expense Only
                 </button>
+                
+                {/* Multi-Select Controls */}
+                <div className="ml-4 pl-4 border-l border-blue-200">
+                  <button
+                    onClick={selectAllRows}
+                    className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                  >
+                    📋 Select All Rows
+                  </button>
+                  <button
+                    onClick={clearSelection}
+                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors ml-2"
+                  >
+                    🚫 Clear Selection
+                </button>
               </div>
+            </div>
+            
+              {/* Bulk Assignment Toolbar */}
+              {showBulkToolbar && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-yellow-800">
+                        📦 Bulk Assignment ({selectedRows.size} items selected)
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => (
+                        <button
+                          key={bucketKey}
+                          onClick={() => assignBulkBucket(bucketKey)}
+                          className={`px-3 py-1 text-xs rounded hover:opacity-80 transition-opacity whitespace-nowrap flex items-center gap-1 ${
+                            bucket.category === 'income' ? 'bg-green-100 text-green-700' :
+                            bucket.category === 'expense' ? 'bg-red-100 text-red-700' :
+                            bucket.category === 'cash' ? 'bg-purple-100 text-purple-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          <span>{bucket.icon}</span>
+                          <span className="truncate">{bucket.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="overflow-x-auto max-h-[36rem]">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Include</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">🤖 AI Categorization</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b sticky left-0 bg-gray-50 z-10">Include</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b sticky left-12 bg-gray-50 z-10">Select</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700 border-b sticky left-24 bg-gray-50 z-10">Account Name</th>
                     <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Dashboard Bucket</th>
                     {(() => {
                       // Find the first row with time_series data to generate headers
@@ -1874,7 +2282,7 @@ export default function CSVImportFlow() {
                   {preview.map((row: any, index: number) => {
                     const accountName = row.account_name;
                     const timeSeries = row.time_series || {};
-                    const isIncluded = includedItems[accountName] !== false; // Default to true
+                    const isIncluded = includedItems[accountName] === true; // Only true if explicitly set to true
                     
                     // Debug: Log if time_series is missing
                     if (!row.time_series) {
@@ -1883,7 +2291,7 @@ export default function CSVImportFlow() {
                     
                     return (
                       <tr key={index} className={`hover:bg-gray-50 ${!isIncluded ? 'opacity-50 bg-gray-100' : ''}`}>
-                        <td className="px-3 py-2 text-center border-b">
+                        <td className="px-3 py-2 text-center border-b sticky left-0 bg-white z-10">
                           <input
                             type="checkbox"
                             checked={isIncluded}
@@ -1896,20 +2304,17 @@ export default function CSVImportFlow() {
                             className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                           />
                         </td>
-                        <td className="px-3 py-2 text-gray-900 border-b">
+                        <td className="px-3 py-2 text-center border-b sticky left-12 bg-white z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(accountName)}
+                            onChange={() => toggleRowSelection(accountName)}
+                            className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-gray-900 border-b sticky left-24 bg-white z-10">
                           <div className="max-w-xs truncate font-medium" title={String(accountName)}>
                             {accountName || '-'}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 border-b">
-                          <div className="flex flex-col gap-1">
-                            <div className="text-xs text-gray-600">
-                              🤖 AI: {(() => {
-                                const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
-                                const allBuckets = getAllBuckets();
-                                return suggestions.slice(0, 2).map(key => allBuckets[key as keyof typeof allBuckets]?.label).join(', ');
-                              })()}
-                              </div>
                           </div>
                         </td>
                         <td className="px-3 py-2 border-b">
@@ -1966,17 +2371,16 @@ export default function CSVImportFlow() {
             </div>
           </div>
           
-                {/* Real-Time Dashboard Impact Preview */}
+                {/* Total Amounts Preview */}
                 {preview && preview.length > 0 && (
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
                     <div className="px-6 py-4 border-b border-green-200">
-                      <h3 className="text-lg font-semibold text-green-900">🔄 Real-Time Dashboard Impact</h3>
+                      <h3 className="text-lg font-semibold text-green-900">💰 Total Amounts</h3>
                       <p className="text-green-700 mt-1">Live preview of how your current CSV will affect dashboard totals</p>
                     </div>
                     
                     <div className="p-6">
                       {(() => {
-                        const currentSessionTotals = calculateCurrentSessionTotals();
                         const combinedTotals = allBucketTotals;
                         
                         // Calculate income totals from current session only
@@ -2007,9 +2411,13 @@ export default function CSVImportFlow() {
                             <div className="space-y-3">
                               <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
                                 💰 Income Summary
-                                {incomeMismatch && (
+                                {incomeMismatch ? (
                                   <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                                     ⚠️ Mismatch
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                    ✅ Match
                                   </span>
                                 )}
                               </h4>
@@ -2053,7 +2461,7 @@ export default function CSVImportFlow() {
                                 </div>
                               </div>
                               
-                              {incomeMismatch && (
+                              {incomeMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
@@ -2064,6 +2472,13 @@ export default function CSVImportFlow() {
                                     Please edit your CSV data categorization to ensure totals match.
                                   </p>
                                 </div>
+                              ) : (
+                                <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="flex items-center gap-1 text-green-800">
+                                    <span className="text-green-600 text-xs">✅</span>
+                                    <span className="font-medium text-xs">Sum of items matches total amount</span>
+                                  </div>
+                                </div>
                               )}
                             </div>
 
@@ -2071,9 +2486,13 @@ export default function CSVImportFlow() {
                             <div className="space-y-3">
                               <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
                                 💸 Expense Summary
-                                {expenseMismatch && (
+                                {expenseMismatch ? (
                                   <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                                     ⚠️ Mismatch
+                                  </span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                    ✅ Match
                                   </span>
                                 )}
                               </h4>
@@ -2117,7 +2536,7 @@ export default function CSVImportFlow() {
                                 </div>
                               </div>
                               
-                              {expenseMismatch && (
+                              {expenseMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
@@ -2127,6 +2546,13 @@ export default function CSVImportFlow() {
                                     Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
                                     Please edit your CSV data categorization to ensure totals match.
                                   </p>
+                                </div>
+                              ) : (
+                                <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                                  <div className="flex items-center gap-1 text-green-800">
+                                    <span className="text-green-600 text-xs">✅</span>
+                                    <span className="font-medium text-xs">Sum of items matches total amount</span>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -2196,7 +2622,7 @@ export default function CSVImportFlow() {
             <div className="bg-green-50 p-3 rounded-lg border border-green-200">
               <div className="text-sm font-medium text-green-800">✅ Included</div>
               <div className="text-lg font-bold text-green-900">
-                {Object.values(includedItems).filter(included => included !== false).length}
+                {Object.values(includedItems).filter(included => included === true).length}
               </div>
             </div>
             <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
@@ -2209,7 +2635,7 @@ export default function CSVImportFlow() {
               <div className="text-sm font-medium text-green-800">💰 Income</div>
               <div className="text-lg font-bold text-green-900">
                 {Object.entries(accountCategories).filter(([name, cat]) => 
-                  cat === 'income' && includedItems[name] !== false
+                  cat === 'income' && includedItems[name] === true
                 ).length}
               </div>
             </div>
@@ -2217,38 +2643,12 @@ export default function CSVImportFlow() {
               <div className="text-sm font-medium text-red-800">💸 Expense</div>
               <div className="text-lg font-bold text-red-900">
                 {Object.entries(accountCategories).filter(([name, cat]) => 
-                  cat === 'expense' && includedItems[name] !== false
+                  cat === 'expense' && includedItems[name] === true
                 ).length}
               </div>
             </div>
           </div>
           
-          {/* AI Confidence Summary */}
-          {categorizationSummary && (
-            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <h5 className="font-medium text-gray-900 mb-2">🤖 AI Categorization Summary</h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Average Confidence:</span>
-                  <div className="font-semibold text-gray-900">
-                    {Math.round(categorizationSummary.confidence_avg * 100)}%
-                  </div>
-                </div>
-                <div>
-                  <span className="text-gray-600">AI Income:</span>
-                  <div className="font-semibold text-green-700">{categorizationSummary.income_count}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">AI Expense:</span>
-                  <div className="font-semibold text-red-700">{categorizationSummary.expense_count}</div>
-                </div>
-                <div>
-                  <span className="text-gray-600">Uncategorized:</span>
-                  <div className="font-semibold text-gray-700">{categorizationSummary.uncategorized_count}</div>
-                </div>
-              </div>
-            </div>
-          )}
           
           {/* Raw JSON toggle */}
           <details className="mt-3">
@@ -2265,10 +2665,10 @@ export default function CSVImportFlow() {
       {/* CSV Files Management */}
       <div className="space-y-4 p-4 border rounded-lg">
           <div className="flex items-center justify-between">
-            <div>
+                <div>
               <h3 className="text-lg font-semibold">CSV Files Management</h3>
               <p className="text-gray-600 text-sm">Edit categorizations and manage individual CSV files</p>
-    </div>
+                  </div>
             <div className="flex gap-2">
               <button
                 onClick={loadCSVs}
@@ -2290,7 +2690,7 @@ export default function CSVImportFlow() {
               >
                 Debug
               </button>
-            </div>
+                </div>
           </div>
           
           {/* CSV List */}
@@ -2315,7 +2715,7 @@ export default function CSVImportFlow() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Database className="w-4 h-4 text-gray-500" />
-                      <div>
+                <div>
                         <h5 className="font-medium text-gray-900 text-sm">{csv.fileName}</h5>
                         <div className="flex items-center gap-2 mt-1">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
@@ -2323,7 +2723,7 @@ export default function CSVImportFlow() {
                           </span>
                           <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
                           <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        </div>
+                </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -2538,10 +2938,10 @@ export default function CSVImportFlow() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <div>
+                <div>
                 <h2 className="text-xl font-semibold text-gray-900">🤖 AI Bucket Management</h2>
                 <p className="text-gray-600 mt-1">Customize how the AI parses CSV files and assigns buckets</p>
-              </div>
+                </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setShowBucketManagement(!showBucketManagement)}
@@ -2582,7 +2982,7 @@ export default function CSVImportFlow() {
                 <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                   <h3 className="text-lg font-semibold text-purple-900 mb-4">➕ Add New Bucket</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
+                <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Bucket Name</label>
                       <input
                         type="text"
@@ -2591,7 +2991,7 @@ export default function CSVImportFlow() {
                         placeholder="e.g., Marketing Expenses"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
-                    </div>
+                </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                       <select
@@ -2630,10 +3030,10 @@ export default function CSVImportFlow() {
                     >
                       Cancel
                     </button>
-                  </div>
-                </div>
-              )}
-
+              </div>
+            </div>
+          )}
+          
               {/* Usage Instructions */}
               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h4 className="font-medium text-blue-900 mb-2">💡 How It Works</h4>
@@ -2647,7 +3047,7 @@ export default function CSVImportFlow() {
                   <li>• <strong>Priority order:</strong> First matching bucket wins (order matters)</li>
                   <li>• <strong>Save changes:</strong> Click "Save Changes" to persist your settings</li>
                 </ul>
-              </div>
+        </div>
 
               <div className="mb-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Bucket Term Definitions</h3>
@@ -2772,9 +3172,13 @@ export default function CSVImportFlow() {
                   <div className="space-y-3">
                     <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
                       💰 Income Summary
-                      {incomeMismatch && (
+                      {incomeMismatch ? (
                         <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                           ⚠️ Mismatch
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          ✅ Match
                         </span>
                       )}
                     </h4>
@@ -2804,7 +3208,7 @@ export default function CSVImportFlow() {
                       </div>
                     </div>
                     
-                    {incomeMismatch && (
+                    {incomeMismatch ? (
                       <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex items-center gap-1 text-amber-800">
                           <span className="text-amber-600 text-xs">⚠️</span>
@@ -2815,6 +3219,13 @@ export default function CSVImportFlow() {
                           Please review your CSV categorizations.
                         </p>
                       </div>
+                    ) : (
+                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-1 text-green-800">
+                          <span className="text-green-600 text-xs">✅</span>
+                          <span className="font-medium text-xs">Sum of items matches total amount</span>
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -2822,9 +3233,13 @@ export default function CSVImportFlow() {
                   <div className="space-y-3">
                     <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
                       💸 Expense Summary
-                      {expenseMismatch && (
+                      {expenseMismatch ? (
                         <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                           ⚠️ Mismatch
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          ✅ Match
                         </span>
                       )}
                     </h4>
@@ -2854,7 +3269,7 @@ export default function CSVImportFlow() {
                       </div>
                     </div>
                     
-                    {expenseMismatch && (
+                    {expenseMismatch ? (
                       <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                         <div className="flex items-center gap-1 text-amber-800">
                           <span className="text-amber-600 text-xs">⚠️</span>
@@ -2864,6 +3279,13 @@ export default function CSVImportFlow() {
                           Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
                           Please review your CSV categorizations.
                         </p>
+                      </div>
+                    ) : (
+                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-1 text-green-800">
+                          <span className="text-green-600 text-xs">✅</span>
+                          <span className="font-medium text-xs">Sum of items matches total amount</span>
+                        </div>
                       </div>
                     )}
                   </div>
