@@ -6,7 +6,6 @@ import Analytics from './components/Analytics';
 import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVs from './components/CSVs';
-import CSVManagement from './components/CSVManagement';
 import { Page } from './types';
 
 // Install dev logger in development (disabled for now)
@@ -44,8 +43,6 @@ function App() {
             return <PropertiesConsolidated />;
           case 'csvs':
             return <CSVs />;
-          case 'csv-management':
-            return <CSVManagement />;
           case 'reports':
             return <Reports />;
           default:

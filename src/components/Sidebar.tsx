@@ -6,7 +6,6 @@ import {
   DollarSign, 
   FileText,
   Upload,
-  Database,
   Home
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
@@ -20,8 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
         { id: 'reports' as Page, label: 'Reports', icon: FileText },
         { id: 'properties' as Page, label: 'Properties', icon: Building2 },
-        { id: 'csvs' as Page, label: 'CSV Upload', icon: Upload },
-        { id: 'csv-management' as Page, label: 'CSV Management', icon: Database },
+        { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
       ];
 
   return (

@@ -203,18 +203,92 @@ export default function CSVImportFlow() {
   // Load saved CSVs for management
   const loadCSVs = async () => {
     try {
-      const supabaseCSVs = await getCSVData();
-      let activeCSVs = supabaseCSVs;
+      console.log('🔄 Loading CSVs from backend and localStorage...');
       
-      if (supabaseCSVs.length === 0) {
-        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-      }
+      // Get CSVs from Supabase
+      const supabaseCSVs = await getCSVData();
+      console.log('📊 Supabase CSVs:', supabaseCSVs.length, 'files');
+      
+      // Get CSVs from localStorage
+      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      console.log('💾 LocalStorage CSVs:', localSavedCSVs.length, 'files');
+      
+      // Combine both sources, prioritizing Supabase data
+      const combinedCSVs = [...supabaseCSVs];
+      
+      // Add localStorage CSVs that aren't already in Supabase
+      localSavedCSVs.forEach((localCSV: any) => {
+        const existsInSupabase = supabaseCSVs.some((supabaseCSV: any) => 
+          supabaseCSV.id === localCSV.id || 
+          (supabaseCSV.file_name === localCSV.fileName && supabaseCSV.uploaded_at === localCSV.uploadedAt)
+        );
+        
+        if (!existsInSupabase && localCSV.isActive) {
+          // Convert localStorage format to match Supabase format
+          const convertedCSV = {
+            id: localCSV.id,
+            file_name: localCSV.fileName,
+            file_type: localCSV.fileType,
+            uploaded_at: localCSV.uploadedAt,
+            total_records: localCSV.totalRecords,
+            account_categories: localCSV.accountCategories,
+            bucket_assignments: localCSV.bucketAssignments,
+            tags: localCSV.tags,
+            is_active: localCSV.isActive,
+            preview_data: localCSV.previewData,
+            // Add compatibility fields
+            fileName: localCSV.fileName,
+            fileType: localCSV.fileType,
+            uploadedAt: localCSV.uploadedAt,
+            totalRecords: localCSV.totalRecords,
+            accountCategories: localCSV.accountCategories,
+            bucketAssignments: localCSV.bucketAssignments,
+            isActive: localCSV.isActive,
+            previewData: localCSV.previewData
+          };
+          combinedCSVs.push(convertedCSV);
+        }
+      });
+      
+      // Filter to only active CSVs
+      const activeCSVs = combinedCSVs.filter((csv: any) => csv.is_active !== false && csv.isActive !== false);
       
       setSavedCSVs(activeCSVs);
-      console.log('📁 Loaded CSVs:', activeCSVs.length, 'files');
+      console.log('✅ Total active CSVs loaded:', activeCSVs.length, 'files');
+      console.log('📋 CSV details:', activeCSVs.map((csv: any) => ({
+        id: csv.id,
+        fileName: csv.file_name || csv.fileName,
+        fileType: csv.file_type || csv.fileType,
+        totalRecords: csv.total_records || csv.totalRecords,
+        isActive: csv.is_active !== false && csv.isActive !== false,
+        hasPreviewData: !!(csv.preview_data || csv.previewData),
+        previewDataLength: csv.preview_data?.length || csv.previewData?.length || 0,
+        bucketAssignmentsCount: Object.keys(csv.bucket_assignments || csv.bucketAssignments || {}).length
+      })));
+      
+      // Debug: Check if there are any inactive CSVs
+      const allCSVs = [...supabaseCSVs, ...localSavedCSVs];
+      const inactiveCSVs = allCSVs.filter((csv: any) => csv.is_active === false || csv.isActive === false);
+      if (inactiveCSVs.length > 0) {
+        console.log('⚠️ Found inactive CSVs:', inactiveCSVs.length, inactiveCSVs.map((csv: any) => ({
+          id: csv.id,
+          fileName: csv.file_name || csv.fileName,
+          isActive: csv.is_active !== false && csv.isActive !== false
+        })));
+      }
+      
     } catch (error) {
-      console.error('Error loading CSVs:', error);
+      console.error('❌ Error loading CSVs:', error);
+      // Fallback to localStorage only
+      try {
+        const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        const activeCSVs = localSavedCSVs.filter((csv: any) => csv.isActive);
+        setSavedCSVs(activeCSVs);
+        console.log('🔄 Fallback to localStorage:', activeCSVs.length, 'files');
+      } catch (localError) {
+        console.error('❌ Error loading from localStorage:', localError);
+        setSavedCSVs([]);
+      }
     }
   };
 
@@ -822,7 +896,6 @@ export default function CSVImportFlow() {
         }));
       }
 
-      // Create CSV record for management
       // Filter out excluded items
       const includedPreviewData = preview.filter((row: any) => 
         includedItems[row.account_name] !== false
@@ -835,7 +908,21 @@ export default function CSVImportFlow() {
         }
       });
 
-      const csvRecord = {
+      let csvRecord: any;
+      
+      if (selectedCSV) {
+        // Update existing CSV record
+        csvRecord = {
+          ...selectedCSV,
+          totalRecords: includedPreviewData.length,
+          accountCategories: includedAccountCategories,
+          bucketAssignments: generateBucketAssignments(),
+          tags: generateTags(),
+          previewData: includedPreviewData
+        };
+      } else {
+        // Create new CSV record
+        csvRecord = {
         id: Date.now().toString(),
         fileName: file.name,
         fileType: fileType,
@@ -847,6 +934,7 @@ export default function CSVImportFlow() {
         isActive: true,
         previewData: includedPreviewData
       };
+      }
       
       console.log("💾 Saving CSV record:", {
         fileName: csvRecord.fileName,
@@ -871,18 +959,45 @@ export default function CSVImportFlow() {
         preview_data: csvRecord.previewData
       });
 
-      // Also save to localStorage as backup
+      // Update localStorage
       const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      
+      if (selectedCSV) {
+        // Update existing CSV in localStorage
+        const csvIndex = savedCSVs.findIndex((csv: any) => csv.id === selectedCSV.id);
+        if (csvIndex !== -1) {
+          savedCSVs[csvIndex] = csvRecord;
+        }
+      } else {
+        // Add new CSV to localStorage
       savedCSVs.push(csvRecord);
+      }
+      
       localStorage.setItem('savedCSVs', JSON.stringify(savedCSVs));
       
       setSaved(true);
       console.log("Data saved to database:", preview.length, "records");
       
-      // Show success message with link to management
+      // If we're editing an existing CSV, close the categorization interface
+      if (selectedCSV) {
+        // Clear the preview data to close the categorization interface
+        setPreview([]);
+        setHasPreviewed(false);
+        setSelectedCSV(null);
+        
+        // Refresh the CSV list to show updated data
+        await loadCSVs();
+        
+        // Show success message
+        setTimeout(() => {
+          alert(`CSV "${csvRecord.fileName}" updated successfully!`);
+        }, 500);
+      } else {
+        // Show success message with link to management for new uploads
       setTimeout(() => {
         alert(`CSV saved successfully! Go to "CSV Management" tab to review and adjust categorizations.`);
       }, 500);
+      }
       
     } catch (error: any) {
       console.error("Save error:", error);
@@ -904,17 +1019,6 @@ export default function CSVImportFlow() {
     return colors[fileType] || colors['general'];
   };
 
-  const handleEditCSV = (csv: any) => {
-    setSelectedCSV(csv);
-    setEditingCategories(csv.accountCategories || {});
-    setEditingBuckets(csv.bucketAssignments || {});
-    setManagementBucketAssignments(csv.bucketAssignments || {});
-    setEditingTags(csv.tags || {});
-    setManagementIncludedItems(csv.includedItems || {});
-    setManagementPreviewMode(false);
-    setShowManagementPreview(false);
-  };
-
   const handlePreviewCSV = (csv: any) => {
     setSelectedCSV(csv);
     setEditingCategories(csv.accountCategories || {});
@@ -924,6 +1028,27 @@ export default function CSVImportFlow() {
     setManagementIncludedItems(csv.includedItems || {});
     setManagementPreviewMode(true);
     setShowManagementPreview(true);
+    console.log('👁️ Previewing CSV:', csv.fileName);
+  };
+
+  const handleEditCSV = (csv: any) => {
+    setSelectedCSV(csv);
+    setEditingCategories(csv.accountCategories || {});
+    setEditingBuckets(csv.bucketAssignments || {});
+    setManagementBucketAssignments(csv.bucketAssignments || {});
+    setEditingTags(csv.tags || {});
+    setManagementIncludedItems(csv.includedItems || {});
+    setManagementPreviewMode(false);
+    setShowManagementPreview(false);
+    
+    // Load the CSV data into the main preview interface for editing
+    setPreview(csv.previewData || []);
+    setAccountCategories(csv.accountCategories || {});
+    setBucketAssignments(csv.bucketAssignments || {});
+    setIncludedItems(csv.includedItems || {});
+    setHasPreviewed(true);
+    
+    console.log('✏️ Editing CSV:', csv.fileName, 'with', csv.previewData?.length, 'records');
   };
 
   const toggleCSVActive = async (csvId: string) => {
@@ -1074,10 +1199,24 @@ export default function CSVImportFlow() {
       
       if (!isIncluded || !item.time_series) return;
       
-      // Calculate total for this account
-      const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
-        return sum + (typeof value === 'number' ? value : 0);
-      }, 0);
+      // Calculate total for this account - use Total column if it exists, otherwise sum months
+      let total = 0;
+      
+      // Check if there's a "Total" column in the time_series
+      if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
+        total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
+        console.log(`📊 ${accountName}: Using Total column = ${total}`);
+      } else {
+        // No Total column, sum up the monthly values (excluding Total)
+        total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
+          // Skip Total column and any non-numeric values
+          if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+            return sum;
+          }
+          return sum + value;
+        }, 0);
+        console.log(`📊 ${accountName}: Summed monthly values = ${total}`);
+      }
       
       console.log(`📊 ${accountName}: bucket=${bucket}, total=${total}, included=${isIncluded}`);
       
@@ -1094,14 +1233,30 @@ export default function CSVImportFlow() {
   const calculateCombinedBucketTotals = () => {
     const bucketTotals: Record<string, number> = {};
     
-    // Add totals from saved CSVs
-    savedCSVs.forEach(csv => {
-      if (!csv.isActive) return;
+    console.log('🔍 Calculating combined bucket totals for', savedCSVs.length, 'saved CSVs');
+    
+    // Check if we're currently editing an existing CSV
+    const isEditingExistingCSV = selectedCSV && preview && preview.length > 0;
+    
+    // Add totals from saved CSVs (but skip the one being edited to avoid double-counting)
+    savedCSVs.forEach((csv, index) => {
+      if (!csv.isActive) {
+        console.log(`⏭️ Skipping inactive CSV ${index + 1}:`, csv.fileName || csv.file_name);
+        return;
+      }
       
-      const previewData = csv.previewData || [];
-      const accountCategories = csv.accountCategories || {};
-      const bucketAssignments = csv.bucketAssignments || {};
-      const includedItems = csv.includedItems || {};
+      // Skip the CSV being edited to avoid double-counting
+      if (isEditingExistingCSV && csv.id === selectedCSV.id) {
+        console.log(`⏭️ Skipping CSV being edited to avoid double-counting:`, csv.fileName || csv.file_name);
+        return;
+      }
+      
+      console.log(`📊 Processing CSV ${index + 1}:`, csv.fileName || csv.file_name, 'with', csv.previewData?.length || csv.preview_data?.length || 0, 'records');
+      
+      const previewData = csv.previewData || csv.preview_data || [];
+      const accountCategories = csv.accountCategories || csv.account_categories || {};
+      const bucketAssignments = csv.bucketAssignments || csv.bucket_assignments || {};
+      const includedItems = csv.includedItems || csv.included_items || {};
       
       previewData.forEach((item: any) => {
         const accountName = item.account_name;
@@ -1111,26 +1266,44 @@ export default function CSVImportFlow() {
         
         if (!isIncluded || !item.time_series) return;
         
-        // Calculate total for this account
-        const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
-          return sum + (typeof value === 'number' ? value : 0);
-        }, 0);
+        // Calculate total for this account - use Total column if it exists, otherwise sum months
+        let total = 0;
+        
+        // Check if there's a "Total" column in the time_series
+        if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
+          total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
+          console.log(`📊 ${accountName}: Using Total column = ${total}`);
+        } else {
+          // No Total column, sum up the monthly values (excluding Total)
+          total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
+            // Skip Total column and any non-numeric values
+            if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+              return sum;
+            }
+            return sum + value;
+          }, 0);
+          console.log(`📊 ${accountName}: Summed monthly values = ${total}`);
+        }
         
         // Add to appropriate bucket
         if (bucket && bucket !== 'exclude') {
           bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
+          console.log(`💰 Added ${total} to bucket ${bucket} from ${accountName}`);
         }
       });
     });
     
     // Add totals from current session (if preview exists)
     if (preview && preview.length > 0) {
+      console.log('📊 Adding current session totals for', preview.length, 'preview items');
       const currentSessionTotals = calculateCurrentSessionTotals();
       Object.entries(currentSessionTotals).forEach(([bucket, total]) => {
         bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
+        console.log(`💰 Added ${total} to bucket ${bucket} from current session`);
       });
     }
     
+    console.log('📈 Final bucket totals:', bucketTotals);
     return bucketTotals;
   };
 
@@ -1153,10 +1326,24 @@ export default function CSVImportFlow() {
         
         if (!isIncluded || !item.time_series) return;
         
-        // Calculate total for this account
-        const total = Object.values(item.time_series).reduce((sum: number, value: any) => {
-          return sum + (typeof value === 'number' ? value : 0);
-        }, 0);
+        // Calculate total for this account - use Total column if it exists, otherwise sum months
+        let total = 0;
+        
+        // Check if there's a "Total" column in the time_series
+        if (item.time_series.Total !== undefined && item.time_series.Total !== null) {
+          total = typeof item.time_series.Total === 'number' ? item.time_series.Total : 0;
+          console.log(`📊 ${accountName}: Using Total column = ${total}`);
+        } else {
+          // No Total column, sum up the monthly values (excluding Total)
+          total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
+            // Skip Total column and any non-numeric values
+            if (key.toLowerCase() === 'total' || typeof value !== 'number') {
+              return sum;
+            }
+            return sum + value;
+          }, 0);
+          console.log(`📊 ${accountName}: Summed monthly values = ${total}`);
+        }
         
         // Add to appropriate bucket
         if (bucket && bucketTotals[bucket] !== undefined) {
@@ -1540,11 +1727,9 @@ export default function CSVImportFlow() {
 
   return (
     <div className="space-y-6">
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CSV Import with AI Parser */}
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
+      {/* CSV Import with AI Parser */}
+    <div className="space-y-4 p-4 border rounded-lg">
+      <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
       
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
@@ -1666,7 +1851,7 @@ export default function CSVImportFlow() {
               </div>
             </div>
             
-            <div className="overflow-x-auto max-h-96">
+            <div className="overflow-x-auto max-h-[36rem]">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50 sticky top-0">
                   <tr>
@@ -1724,7 +1909,7 @@ export default function CSVImportFlow() {
                                 const allBuckets = getAllBuckets();
                                 return suggestions.slice(0, 2).map(key => allBuckets[key as keyof typeof allBuckets]?.label).join(', ');
                               })()}
-                            </div>
+                              </div>
                           </div>
                         </td>
                         <td className="px-3 py-2 border-b">
@@ -1732,14 +1917,14 @@ export default function CSVImportFlow() {
                             {/* Bucket Selection Dropdown */}
                             {(() => {
                               const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
-                              const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
                               const allBuckets = getAllBuckets();
                               const options = Object.entries(allBuckets).map(([bucketKey, bucket]) => ({
                                 key: bucketKey,
                                 bucket
                               }));
-                              
-                              return (
+                                  
+                                  return (
                                 <ColorCodedDropdown
                                   value={currentBucket}
                                   onChange={(value) => updateBucketAssignment(accountName, value)}
@@ -1781,60 +1966,226 @@ export default function CSVImportFlow() {
             </div>
           </div>
           
-          {/* Real-Time Dashboard Impact Preview */}
-          {preview && preview.length > 0 && (
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
-              <div className="px-6 py-4 border-b border-green-200">
-                <h3 className="text-lg font-semibold text-green-900">🔄 Real-Time Dashboard Impact</h3>
-                <p className="text-green-700 mt-1">Live preview of how your current CSV will affect dashboard totals</p>
-              </div>
-              
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => {
-                    const currentSessionValue = calculateCurrentSessionTotals()[bucketKey] || 0;
-                    const savedValue = calculateAllBucketedTotals()[bucketKey] || 0;
-                    const combinedValue = allBucketTotals[bucketKey] || 0;
-                    const hasChange = currentSessionValue !== 0;
+                {/* Real-Time Dashboard Impact Preview */}
+                {preview && preview.length > 0 && (
+                  <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
+                    <div className="px-6 py-4 border-b border-green-200">
+                      <h3 className="text-lg font-semibold text-green-900">🔄 Real-Time Dashboard Impact</h3>
+                      <p className="text-green-700 mt-1">Live preview of how your current CSV will affect dashboard totals</p>
+                    </div>
                     
-                    console.log(`🔄 Dashboard Impact - ${bucketKey}: current=${currentSessionValue}, saved=${savedValue}, combined=${combinedValue}`);
-                    
-                    return (
-                      <div key={bucketKey} className={`p-4 border rounded-lg ${hasChange ? 'border-green-300 bg-green-50' : 'border-gray-200 bg-white'}`}>
-                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
-                          {bucket.icon} {bucket.label}
-                        </div>
-                        <div className="space-y-1">
-                          {hasChange && (
-                            <div className="text-sm text-green-600">
-                              +${currentSessionValue.toLocaleString()} (this CSV)
+                    <div className="p-6">
+                      {(() => {
+                        const currentSessionTotals = calculateCurrentSessionTotals();
+                        const combinedTotals = allBucketTotals;
+                        
+                        // Calculate income totals from current session only
+                        const incomeItems = ['income_item', 'rental_income', 'other_income'].reduce((sum, key) => sum + (currentSessionTotals[key] || 0), 0);
+                        const incomeTotal = currentSessionTotals['income_total'] || currentSessionTotals['total_income'] || currentSessionTotals['total_operating_income'] || 0;
+                        
+                        // Calculate expense totals from current session only
+                        const expenseItems = ['expense_item', 'operating_expenses', 'maintenance_expenses', 'management_expenses'].reduce((sum, key) => sum + (currentSessionTotals[key] || 0), 0);
+                        const expenseTotal = currentSessionTotals['expense_total'] || currentSessionTotals['total_expenses'] || currentSessionTotals['total_operating_expense'] || 0;
+                        
+                        // Check for mismatches
+                        const incomeMismatch = Math.abs(incomeItems - incomeTotal) > 0.01;
+                        const expenseMismatch = Math.abs(expenseItems - expenseTotal) > 0.01;
+                        
+                        console.log('🔍 Real-Time Impact Debug:', {
+                          currentSessionTotals,
+                          incomeItems,
+                          incomeTotal,
+                          expenseItems,
+                          expenseTotal,
+                          incomeMismatch,
+                          expenseMismatch
+                        });
+                        
+                        return (
+                          <div className="space-y-6">
+                            {/* Income Section */}
+                            <div className="space-y-3">
+                              <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
+                                💰 Income Summary
+                                {incomeMismatch && (
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                    ⚠️ Mismatch
+                                  </span>
+                                )}
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Income Total */}
+                                <div className="p-4 border-2 border-green-300 bg-green-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-600">📈</span>
+                                      <span className="font-semibold text-green-800">Income Total</span>
+                                    </div>
+                                    {incomeTotal > 0 && (
+                                      <span className="text-sm text-green-600 font-medium">
+                                        +${incomeTotal.toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-2xl font-bold text-green-900">
+                                    ${(combinedTotals['income_total'] || combinedTotals['total_income'] || combinedTotals['total_operating_income'] || 0).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-green-700 mt-1">Total (all CSVs)</div>
+                                </div>
+                                
+                                {/* Income Items */}
+                                <div className="p-4 border border-green-200 bg-green-25 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-600">💰</span>
+                                      <span className="font-semibold text-green-800">Income Items</span>
+                                    </div>
+                                    {incomeItems > 0 && (
+                                      <span className="text-sm text-green-600 font-medium">
+                                        +${incomeItems.toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-2xl font-bold text-green-900">
+                                    ${incomeItems.toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-green-700 mt-1">Sum of all income line items (this CSV)</div>
+                                </div>
+                              </div>
+                              
+                              {incomeMismatch && (
+                                <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                  <div className="flex items-center gap-1 text-amber-800">
+                                    <span className="text-amber-600 text-xs">⚠️</span>
+                                    <span className="font-medium text-xs">Income Mismatch Detected</span>
+                                  </div>
+                                  <p className="text-xs text-amber-700 mt-1">
+                                    Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
+                                    Please edit your CSV data categorization to ensure totals match.
+                                  </p>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div className="text-lg font-bold text-gray-900">
-                            ${combinedValue.toLocaleString()}
+
+                            {/* Expense Section */}
+                            <div className="space-y-3">
+                              <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
+                                💸 Expense Summary
+                                {expenseMismatch && (
+                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                    ⚠️ Mismatch
+                                  </span>
+                                )}
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Expense Total */}
+                                <div className="p-4 border-2 border-red-300 bg-red-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-red-600">📉</span>
+                                      <span className="font-semibold text-red-800">Expense Total</span>
+                                    </div>
+                                    {expenseTotal > 0 && (
+                                      <span className="text-sm text-red-600 font-medium">
+                                        +${expenseTotal.toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-2xl font-bold text-red-900">
+                                    ${(combinedTotals['expense_total'] || combinedTotals['total_expenses'] || combinedTotals['total_operating_expense'] || 0).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-red-700 mt-1">Total (all CSVs)</div>
+                                </div>
+                                
+                                {/* Expense Items */}
+                                <div className="p-4 border border-red-200 bg-red-25 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-red-600">💸</span>
+                                      <span className="font-semibold text-red-800">Expense Items</span>
+                                    </div>
+                                    {expenseItems > 0 && (
+                                      <span className="text-sm text-red-600 font-medium">
+                                        +${expenseItems.toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-2xl font-bold text-red-900">
+                                    ${expenseItems.toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-red-700 mt-1">Sum of all expense line items</div>
+                                </div>
+                              </div>
+                              
+                              {expenseMismatch && (
+                                <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                  <div className="flex items-center gap-1 text-amber-800">
+                                    <span className="text-amber-600 text-xs">⚠️</span>
+                                    <span className="font-medium text-xs">Expense Mismatch Detected</span>
+                                  </div>
+                                  <p className="text-xs text-amber-700 mt-1">
+                                    Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
+                                    Please edit your CSV data categorization to ensure totals match.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Net Income & Cash Section */}
+                            <div className="space-y-3">
+                              <h4 className="text-md font-semibold text-blue-800">📊 Net Income & Cash</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Net Operating Income */}
+                                <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-blue-600">📊</span>
+                                      <span className="font-semibold text-blue-800">Net Operating Income</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-2xl font-bold text-blue-900">
+                                    ${(combinedTotals['net_operating_income'] || 0).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-blue-700 mt-1">Income - Expenses</div>
+                                </div>
+                                
+                                {/* Cash Amount */}
+                                <div className="p-4 border-2 border-purple-300 bg-purple-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-purple-600">💳</span>
+                                      <span className="font-semibold text-purple-800">Cash Amount</span>
+                                    </div>
+                                    {(currentSessionTotals['cash_amount'] || 0) > 0 && (
+                                      <span className="text-sm text-purple-600 font-medium">
+                                        +${(currentSessionTotals['cash_amount'] || 0).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-2xl font-bold text-purple-900">
+                                    ${(combinedTotals['cash_amount'] || 0).toLocaleString()}
+                                  </div>
+                                  <div className="text-xs text-purple-700 mt-1">Cash and cash equivalents</div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Live Updates Notice */}
+                            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-center gap-2 text-blue-800">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                <span className="text-sm font-medium">Live Updates</span>
+                              </div>
+                              <p className="text-sm text-blue-700 mt-1">
+                                These totals update automatically as you change bucket assignments or include/exclude items.
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-xs text-gray-500">
-                            Total (all CSVs)
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-2">{bucket.description}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-800">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">Live Updates</span>
+                        );
+                      })()}
+                    </div>
                   </div>
-                  <p className="text-sm text-blue-700 mt-1">
-                    These totals update automatically as you change bucket assignments or include/exclude items.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
+                )}
           
           {/* Data Selection Summary */}
           <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -1911,13 +2262,132 @@ export default function CSVImportFlow() {
         </div>
       )}
 
+      {/* CSV Files Management */}
+      <div className="space-y-4 p-4 border rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">CSV Files Management</h3>
+              <p className="text-gray-600 text-sm">Edit categorizations and manage individual CSV files</p>
+    </div>
+            <div className="flex gap-2">
+              <button
+                onClick={loadCSVs}
+                disabled={managementLoading}
+                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-xs font-medium flex items-center gap-1"
+                title="Refresh CSV list from backend"
+              >
+                <RefreshCw className={`w-3 h-3 ${managementLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button
+                onClick={() => {
+                  console.log('🔍 DEBUG: Current savedCSVs state:', savedCSVs);
+                  console.log('🔍 DEBUG: LocalStorage savedCSVs:', JSON.parse(localStorage.getItem('savedCSVs') || '[]'));
+                  console.log('🔍 DEBUG: All bucket totals:', calculateCombinedBucketTotals());
+                }}
+                className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
+                title="Debug CSV data"
+              >
+                Debug
+              </button>
+            </div>
+          </div>
+          
+          {/* CSV List */}
+          <div className="space-y-3">
+            <h4 className="text-md font-medium">Saved CSVs ({savedCSVs.length})</h4>
+            
+            {managementLoading ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500">Loading CSVs...</p>
+              </div>
+            ) : savedCSVs.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                <Database className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                <p className="text-sm text-gray-500 mb-1">No CSV files found</p>
+                <p className="text-xs text-gray-400">Upload a CSV file above to get started</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {savedCSVs.map((csv) => (
+                <div key={csv.id} className={`p-3 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Database className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <h5 className="font-medium text-gray-900 text-sm">{csv.fileName}</h5>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
+                            {csv.fileType.replace('_', ' ')}
+                          </span>
+                          <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
+                          <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handlePreviewCSV(csv)}
+                        className={`p-2 rounded-md transition-colors ${
+                          selectedCSV?.id === csv.id && managementPreviewMode 
+                            ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                            : 'text-purple-600 hover:bg-purple-100'
+                        }`}
+                        title="Preview spreadsheet data"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCSV(csv)}
+                        className={`p-2 rounded-md transition-colors ${
+                          selectedCSV?.id === csv.id && !managementPreviewMode 
+                            ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                            : 'text-blue-600 hover:bg-blue-100'
+                        }`}
+                        title="Edit categorizations and buckets"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => toggleCSVActive(csv.id)}
+                        className={`p-2 rounded-md transition-colors ${
+                          csv.isActive 
+                            ? 'text-green-600 hover:bg-green-100' 
+                            : 'text-gray-400 hover:bg-gray-100'
+                        }`}
+                        disabled={managementLoading}
+                        title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => deleteCSV(csv.id)}
+                        className="p-2 rounded-md text-red-600 hover:bg-red-100 transition-colors"
+                        disabled={managementLoading}
+                        title="Delete CSV"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                  </div>
+                </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
       {/* Compact Header Mapping */}
       {!!headers.length && (
         <div className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex items-center justify-between mb-2">
             <h5 className="text-sm font-medium text-gray-700">🔗 Header Mapping</h5>
             <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">auto</span>
-          </div>
+    </div>
           <div className="text-xs text-gray-600 mb-2">
             🤖 AI automatically mapped {headers.length} headers
           </div>
@@ -1939,75 +2409,128 @@ export default function CSVImportFlow() {
           </div>
         </div>
       )}
-        </div>
 
-        {/* CSV Files Management */}
-        <div className="space-y-4 p-4 border rounded-lg">
-          <h3 className="text-lg font-semibold">CSV Files Management</h3>
-          <p className="text-gray-600 text-sm">Edit categorizations and manage individual CSV files</p>
-          
-          {/* CSV List */}
-          <div className="space-y-3">
-            <h4 className="text-md font-medium">Saved CSVs</h4>
-            <div className="space-y-3">
-              {savedCSVs.map((csv) => (
-                <div key={csv.id} className={`p-3 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Database className="w-4 h-4 text-gray-500" />
-                      <div>
-                        <h5 className="font-medium text-gray-900 text-sm">{csv.fileName}</h5>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
-                            {csv.fileType.replace('_', ' ')}
-                          </span>
-                          <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
-                          <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handlePreviewCSV(csv)}
-                        className="p-1 text-purple-600 hover:bg-purple-100 rounded"
-                        title="Preview CSV structure"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleCSVActive(csv.id)}
-                        className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
-                        disabled={managementLoading}
-                        title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEditCSV(csv)}
-                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                        title="Edit CSV categorizations"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteCSV(csv.id)}
-                        className="p-1 text-red-600 hover:bg-red-100 rounded"
-                        disabled={managementLoading}
-                        title="Delete CSV"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
-                  </div>
-                </div>
-              ))}
+      {/* CSV Editor Section */}
+      {selectedCSV && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {managementPreviewMode ? '👁️ Preview Mode' : '✏️ Edit Mode'}: {selectedCSV.fileName}
+                </h3>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getFileTypeColor(selectedCSV.fileType)}`}>
+                  {selectedCSV.fileType.replace('_', ' ')}
+                </span>
+                <span className="text-sm text-gray-500">{selectedCSV.totalRecords} records</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedCSV(null)}
+                  className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
+                >
+                  Close
+                </button>
+                {!managementPreviewMode && (
+                  <button
+                    onClick={() => {
+                      // Save changes logic here
+                      console.log('💾 Saving changes for:', selectedCSV.fileName);
+                    }}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                  >
+                    Save Changes
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+
+          <div className="p-6">
+            {/* Show different content based on mode */}
+            {managementPreviewMode ? (
+              // Preview Mode - Visual Spreadsheet
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">📋 Spreadsheet Preview</h4>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto max-h-96">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
+                          {(() => {
+                            // Get headers from the first row with time_series data
+                            const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
+                            return headerRow?.time_series ? Object.keys(headerRow.time_series).map((key) => (
+                              <th key={key} className="px-3 py-2 text-right font-medium text-gray-700 border-b">
+                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </th>
+                            )) : [];
+                          })()}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
+                          const timeSeries = row.time_series || {};
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-900 border-b font-medium">
+                                {row.account_name || '-'}
+                              </td>
+                              {(() => {
+                                const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
+                                const headerKeys = headerRow?.time_series ? Object.keys(headerRow.time_series) : [];
+                                
+                                return headerKeys.map((month, cellIndex) => (
+                                  <td key={cellIndex} className="px-3 py-2 text-gray-900 border-b text-right font-mono text-xs">
+                                    {timeSeries[month] !== null && timeSeries[month] !== undefined ? 
+                                      new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                      }).format(timeSeries[month]) : '-'}
+                                  </td>
+                                ));
+                              })()}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedCSV.previewData.length > 20 && (
+                    <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 border-t">
+                      Showing first 20 rows of {selectedCSV.previewData.length} total records
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              // Edit Mode - Show message that data is being edited in main interface
+              <div className="text-center py-8">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="text-blue-600 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-semibold text-blue-900 mb-2">✏️ Editing in Main Interface</h4>
+                  <p className="text-blue-700 mb-4">
+                    The CSV data with categorization interface is now active above. You can edit bucket assignments, 
+                    include/exclude items, and make changes directly in the main categorization table.
+                  </p>
+                  <div className="text-sm text-blue-600">
+                    <p>• Use the categorization table above to edit your data</p>
+                    <p>• Changes will be saved when you click "Save to Database"</p>
+                    <p>• Close this panel when you're done editing</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Full-width sections below */}
       <div className="space-y-6">
@@ -2228,302 +2751,161 @@ export default function CSVImportFlow() {
           </div>
           
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => {
-                const value = allBucketTotals[bucketKey] || 0;
-                return (
-                  <div key={bucketKey} className="p-4 border rounded-lg">
-                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${bucket.color}`}>
-                      {bucket.icon} {bucket.label}
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      ${value.toLocaleString()}
-                    </div>
-                    <p className="text-sm text-gray-600">{bucket.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <Database className="w-5 h-5 text-gray-500" />
-                        <div>
-                          <h4 className="font-medium text-gray-900">{csv.fileName}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
-                              {csv.fileType.replace('_', ' ')}
-                            </span>
-                            <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
-                            <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                          </div>
+            {(() => {
+              const combinedTotals = allBucketTotals;
+              
+              // Calculate income totals
+              const incomeItems = ['income_item', 'rental_income', 'other_income'].reduce((sum, key) => sum + (combinedTotals[key] || 0), 0);
+              const incomeTotal = combinedTotals['income_total'] || combinedTotals['total_income'] || combinedTotals['total_operating_income'] || 0;
+              
+              // Calculate expense totals
+              const expenseItems = ['expense_item', 'operating_expenses', 'maintenance_expenses', 'management_expenses'].reduce((sum, key) => sum + (combinedTotals[key] || 0), 0);
+              const expenseTotal = combinedTotals['expense_total'] || combinedTotals['total_expenses'] || combinedTotals['total_operating_expense'] || 0;
+              
+              // Check for mismatches
+              const incomeMismatch = Math.abs(incomeItems - incomeTotal) > 0.01;
+              const expenseMismatch = Math.abs(expenseItems - expenseTotal) > 0.01;
+              
+              return (
+                <div className="space-y-6">
+                  {/* Income Section */}
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
+                      💰 Income Summary
+                      {incomeMismatch && (
+                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                          ⚠️ Mismatch
+                        </span>
+                      )}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Income Total */}
+                      <div className="p-4 border-2 border-green-300 bg-green-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-green-600">📈</span>
+                          <span className="font-semibold text-green-800">Income Total</span>
                         </div>
+                        <div className="text-2xl font-bold text-green-900">
+                          ${incomeTotal.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-green-700 mt-1">Total income calculations</div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePreviewCSV(csv)}
-                          className="p-1 text-purple-600 hover:bg-purple-100 rounded"
-                          title="Preview CSV structure"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleCSVActive(csv.id)}
-                          className={`p-1 rounded ${csv.isActive ? 'text-green-600 hover:bg-green-100' : 'text-gray-400 hover:bg-gray-100'}`}
-                          disabled={managementLoading}
-                          title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEditCSV(csv)}
-                          className="p-1 text-blue-600 hover:bg-blue-100 rounded"
-                          title="Edit CSV categorizations"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteCSV(csv.id)}
-                          className="p-1 text-red-600 hover:bg-red-100 rounded"
-                          disabled={managementLoading}
-                          title="Delete CSV"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      
+                      {/* Income Items */}
+                      <div className="p-4 border border-green-200 bg-green-25 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-green-600">💰</span>
+                          <span className="font-semibold text-green-800">Income Items</span>
+                        </div>
+                        <div className="text-2xl font-bold text-green-900">
+                          ${incomeItems.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-green-700 mt-1">Sum of all income line items</div>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-600">
-                      Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            {/* CSV Editor */}
-            {selectedCSV && (
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold">
-                      {managementPreviewMode ? 'Preview: ' : 'Edit: '}{selectedCSV.fileName}
-                    </h3>
-                    {managementPreviewMode && (
-                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                        👁️ Preview Mode
-                      </span>
+                    
+                    {incomeMismatch && (
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-1 text-amber-800">
+                          <span className="text-amber-600 text-xs">⚠️</span>
+                          <span className="font-medium text-xs">Income Mismatch Detected</span>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
+                          Please review your CSV categorizations.
+                        </p>
+                      </div>
                     )}
                   </div>
-                  <div className="flex gap-2">
-                    {managementPreviewMode ? (
-                      <>
-                        <button
-                          onClick={() => setShowManagementPreview(!showManagementPreview)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-                            showManagementPreview 
-                              ? 'bg-purple-600 text-white hover:bg-purple-700' 
-                              : 'bg-gray-600 text-white hover:bg-gray-700'
-                          }`}
-                        >
-                          <Eye className="w-4 h-4" />
-                          {showManagementPreview ? 'Hide Data Preview' : 'Show Data Preview'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setManagementPreviewMode(false);
-                            setShowManagementPreview(false);
-                          }}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          Switch to Edit Mode
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setShowManagementPreview(!showManagementPreview)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
-                            showManagementPreview 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                              : 'bg-gray-600 text-white hover:bg-gray-700'
-                          }`}
-                        >
-                          <Eye className="w-4 h-4" />
-                          {showManagementPreview ? 'Hide Data Preview' : 'Show Data Preview'}
-                        </button>
-                        <button
-                          onClick={saveManagementChanges}
-                          disabled={managementSaving}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
-                        >
-                          <Save className="w-4 h-4" />
-                          {managementSaving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                      </>
+
+                  {/* Expense Section */}
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
+                      💸 Expense Summary
+                      {expenseMismatch && (
+                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                          ⚠️ Mismatch
+                        </span>
+                      )}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Expense Total */}
+                      <div className="p-4 border-2 border-red-300 bg-red-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-red-600">📉</span>
+                          <span className="font-semibold text-red-800">Expense Total</span>
+                        </div>
+                        <div className="text-2xl font-bold text-red-900">
+                          ${expenseTotal.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-red-700 mt-1">Total expense calculations</div>
+                      </div>
+                      
+                      {/* Expense Items */}
+                      <div className="p-4 border border-red-200 bg-red-25 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-red-600">💸</span>
+                          <span className="font-semibold text-red-800">Expense Items</span>
+                        </div>
+                        <div className="text-2xl font-bold text-red-900">
+                          ${expenseItems.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-red-700 mt-1">Sum of all expense line items</div>
+                      </div>
+                    </div>
+                    
+                    {expenseMismatch && (
+                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                        <div className="flex items-center gap-1 text-amber-800">
+                          <span className="text-amber-600 text-xs">⚠️</span>
+                          <span className="font-medium text-xs">Expense Mismatch Detected</span>
+                        </div>
+                        <p className="text-xs text-amber-700 mt-1">
+                          Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
+                          Please review your CSV categorizations.
+                        </p>
+                      </div>
                     )}
                   </div>
-                </div>
 
-                {/* CSV Data Overview */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-lg font-semibold text-blue-900">📊 CSV Data Overview</h4>
-                    <div className="text-sm text-blue-700">
-                      {selectedCSV.totalRecords} records • {selectedCSV.fileType.replace('_', ' ')} • Uploaded {new Date(selectedCSV.uploadedAt).toLocaleDateString()}
-                    </div>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-4 gap-4 mb-4">
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-lg font-bold text-green-600">
-                        {Object.values(editingCategories).filter(cat => cat === 'income').length}
+                  {/* Net Income & Cash Section */}
+                  <div className="space-y-3">
+                    <h4 className="text-md font-semibold text-blue-800">📊 Net Income & Cash</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Net Operating Income */}
+                      <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-blue-600">📊</span>
+                          <span className="font-semibold text-blue-800">Net Operating Income</span>
+                        </div>
+                        <div className="text-2xl font-bold text-blue-900">
+                          ${(combinedTotals['net_operating_income'] || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-blue-700 mt-1">Income - Expenses</div>
                       </div>
-                      <div className="text-xs text-gray-600">Income Accounts</div>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-lg font-bold text-red-600">
-                        {Object.values(editingCategories).filter(cat => cat === 'expense').length}
+                      
+                      {/* Cash Amount */}
+                      <div className="p-4 border-2 border-purple-300 bg-purple-50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-purple-600">💳</span>
+                          <span className="font-semibold text-purple-800">Cash Amount</span>
+                        </div>
+                        <div className="text-2xl font-bold text-purple-900">
+                          ${(combinedTotals['cash_amount'] || 0).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-purple-700 mt-1">Cash and cash equivalents</div>
                       </div>
-                      <div className="text-xs text-gray-600">Expense Accounts</div>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-lg font-bold text-blue-600">
-                        {Object.values(editingCategories).filter(cat => ['asset', 'liability', 'equity'].includes(cat)).length}
-                      </div>
-                      <div className="text-xs text-gray-600">Balance Sheet</div>
-                    </div>
-                    <div className="text-center p-3 bg-white rounded-lg border">
-                      <div className="text-lg font-bold text-purple-600">
-                        {Object.values(managementIncludedItems).filter(included => included !== false).length}
-                      </div>
-                      <div className="text-xs text-gray-600">Included</div>
                     </div>
                   </div>
                 </div>
-
-                {/* Data Preview */}
-                {showManagementPreview && selectedCSV.previewData && (
-                  <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                    <h5 className="font-medium text-gray-900 mb-2">📋 Data Preview</h5>
-                    <div className="max-h-64 overflow-auto">
-                      <pre className="text-xs text-gray-700">
-                        {JSON.stringify(selectedCSV.previewData.slice(0, 5), null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-
-                {/* Bucket Assignment Editor */}
-                {!managementPreviewMode && selectedCSV.previewData && (
-                  <div className="mt-6">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-4">🎯 Edit Bucket Assignments</h4>
-                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Include
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Account Name
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                🤖 AI Categorization
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Bucket Assignment
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {selectedCSV.previewData.map((row: any, index: number) => {
-                              const accountName = row.account_name;
-                              const isIncluded = managementIncludedItems[accountName] !== false;
-                              
-                              return (
-                                <tr key={index} className={`hover:bg-gray-50 ${!isIncluded ? 'opacity-50 bg-gray-100' : ''}`}>
-                                  <td className="px-3 py-2 text-center border-b">
-                                    <input
-                                      type="checkbox"
-                                      checked={isIncluded}
-                                      onChange={(e) => {
-                                        setManagementIncludedItems(prev => ({
-                                          ...prev,
-                                          [accountName]: e.target.checked
-                                        }));
-                                      }}
-                                      className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                                    />
-                                  </td>
-                                  <td className="px-3 py-2 text-gray-900 border-b">
-                                    <div className="max-w-xs truncate font-medium" title={String(accountName)}>
-                                      {accountName || '-'}
-                                    </div>
-                                  </td>
-                                  <td className="px-3 py-2 border-b">
-                                    <div className="flex flex-col gap-1">
-                                      <div className="text-xs text-gray-600">
-                                        🤖 AI: {(() => {
-                                          const suggestions = getBucketSuggestions(accountName, editingCategories[accountName] || row.ai_category);
-                                          const allBuckets = getAllBuckets();
-                                          return suggestions.slice(0, 2).map(key => allBuckets[key as keyof typeof allBuckets]?.label).join(', ');
-                                        })()}
-                                      </div>
-                                    </div>
-                                  </td>
-                                  <td className="px-3 py-2 border-b">
-                                    <div className="space-y-1">
-                                      {/* Bucket Selection Dropdown */}
-                                      {(() => {
-                                        const suggestions = getBucketSuggestions(accountName, editingCategories[accountName] || row.ai_category);
-                                        const currentBucket = managementBucketAssignments[accountName] || getSuggestedBucket(accountName, editingCategories[accountName] || row.ai_category);
-                                        const allBuckets = getAllBuckets();
-                                        const options = Object.entries(allBuckets).map(([bucketKey, bucket]) => ({
-                                          key: bucketKey,
-                                          bucket
-                                        }));
-                                        
-                                        return (
-                                          <ColorCodedDropdown
-                                            value={currentBucket}
-                                            onChange={(value) => {
-                                              setManagementBucketAssignments(prev => ({
-                                                ...prev,
-                                                [accountName]: value
-                                              }));
-                                            }}
-                                            options={options}
-                                            suggestions={suggestions}
-                                            className="w-full"
-                                          />
-                                        );
-                                      })()}
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 
       </div>
     </div>
+    </div>
   );
 }
+

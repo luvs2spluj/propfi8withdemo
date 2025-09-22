@@ -11,7 +11,6 @@ export type Page =
   | 'analytics' 
   | 'properties' 
   | 'csvs'
-  | 'csv-management'
   | 'reports';
 
 export interface NavigationProps {
