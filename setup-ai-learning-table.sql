@@ -1,35 +1,38 @@
--- Setup AI Learning Table for Horton Properties Dashboard
--- Run this in your Supabase SQL Editor
-
--- AI Learning table for storing user categorizations
+-- Create AI learning table for storing user categorization patterns
 CREATE TABLE IF NOT EXISTS ai_learning (
-    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-    file_type VARCHAR(50) NOT NULL,
-    account_name VARCHAR(255) NOT NULL,
-    user_category VARCHAR(50) NOT NULL,
-    confidence_score DECIMAL(3,2) DEFAULT 1.0,
+    id BIGSERIAL PRIMARY KEY,
+    file_type TEXT NOT NULL,
+    account_name TEXT NOT NULL,
+    user_category TEXT NOT NULL,
+    confidence_score REAL DEFAULT 1.0,
     usage_count INTEGER DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(file_type, account_name)
 );
 
--- RLS policies for ai_learning table
+-- Add RLS (Row Level Security) policies
 ALTER TABLE ai_learning ENABLE ROW LEVEL SECURITY;
 
+-- Allow all operations for now (you can restrict this later)
 CREATE POLICY "Allow all operations on ai_learning" ON ai_learning
     FOR ALL USING (true);
 
--- Trigger for automatic timestamp updates on ai_learning
-CREATE TRIGGER update_ai_learning_updated_at BEFORE UPDATE ON ai_learning
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_ai_learning_file_type ON ai_learning(file_type);
+CREATE INDEX IF NOT EXISTS idx_ai_learning_account_name ON ai_learning(account_name);
+CREATE INDEX IF NOT EXISTS idx_ai_learning_user_category ON ai_learning(user_category);
 
--- Insert some sample learning data (optional)
-INSERT INTO ai_learning (file_type, account_name, user_category, confidence_score, usage_count) VALUES
-('cash_flow', 'Resident / Tenant Rents & Asmts', 'income', 1.0, 1),
-('cash_flow', 'Management Fee', 'expense', 1.0, 1),
-('cash_flow', 'Utilities', 'expense', 1.0, 1),
-('cash_flow', 'Maintenance & Repairs', 'expense', 1.0, 1),
-('cash_flow', 'Late Fees', 'income', 1.0, 1),
-('cash_flow', 'Application Fees', 'income', 1.0, 1)
-ON CONFLICT (file_type, account_name) DO NOTHING;
+-- Add a trigger to update the updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_ai_learning_updated_at 
+    BEFORE UPDATE ON ai_learning 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();

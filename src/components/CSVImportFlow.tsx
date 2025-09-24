@@ -155,7 +155,7 @@ export default function CSVImportFlow() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
-  const [aiLearningData, setAiLearningData] = useState<any>(null);
+  const [aiLearningData, setAiLearningData] = useState<any[]>([]);
   const [includedItems, setIncludedItems] = useState<Record<string, boolean>>({});
   const [bucketAssignments, setBucketAssignments] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
@@ -194,10 +194,21 @@ export default function CSVImportFlow() {
   useEffect(() => {
     const loadAILearning = async () => {
       if (fileType && fileType !== 'general') {
-        console.log('🧠 Loading AI learning data for file type:', fileType);
-        const learningData = await getAILearning(fileType);
-        setAiLearningData(learningData);
-        console.log('🧠 AI learning data loaded:', learningData);
+        try {
+          console.log('🧠 Loading AI learning data for file type:', fileType);
+          const learningData = await getAILearning(fileType);
+          
+          // Ensure we always set an array, even if the response is null or not an array
+          const dataArray = Array.isArray(learningData) ? learningData : [];
+          setAiLearningData(dataArray);
+          
+          console.log('🧠 AI learning data loaded:', dataArray.length, 'entries');
+        } catch (error) {
+          console.warn('Failed to load AI learning data in useEffect:', error);
+          setAiLearningData([]);
+        }
+      } else {
+        setAiLearningData([]);
       }
     };
     loadAILearning();
@@ -547,11 +558,33 @@ export default function CSVImportFlow() {
     return included;
   };
 
-  const handleFile = (f: File) => {
+  const handleFile = async (f: File) => {
     setFile(f);
     setError(null);
     setHasPreviewed(false);
     setSaved(false);
+    
+    // Load AI learning data first
+    try {
+      console.log('🧠 Loading AI learning data for file type:', fileType);
+      const learningData = await getAILearning(fileType);
+      
+      // Ensure we always set an array, even if the response is null or not an array
+      const dataArray = Array.isArray(learningData) ? learningData : [];
+      setAiLearningData(dataArray);
+      
+      console.log('🧠 Loaded AI learning data:', dataArray.length, 'entries');
+      
+      if (dataArray.length > 0) {
+        console.log('🧠 Available AI learning patterns:');
+        dataArray.forEach((item: any) => {
+          console.log(`  • ${item.account_name} → ${item.user_category}`);
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to load AI learning data:', error);
+      setAiLearningData([]); // Ensure we set an empty array on error
+    }
     
     // First try with preview to get headers quickly
     Papa.parse(f, {
@@ -747,26 +780,53 @@ export default function CSVImportFlow() {
     }
   };
 
-  const updateBucketAssignment = (accountName: string, bucket: string) => {
+  const updateBucketAssignment = async (accountName: string, bucket: string) => {
     setBucketAssignments(prev => ({
       ...prev,
       [accountName]: bucket
     }));
     console.log(`🪣 Assigned ${accountName} to bucket: ${bucket}`);
+    
+    // Save bucket assignment to AI learning for future auto-categorization
+    if (bucket !== 'exclude' && accountName && bucket) {
+      try {
+        await saveAILearning(fileType, accountName, bucket);
+        console.log(`🧠 Learned bucket assignment: ${accountName} → ${bucket}`);
+        
+        // Update local AI learning data immediately for this session
+        setAiLearningData((prev: any[]) => {
+          const currentData = Array.isArray(prev) ? prev : [];
+          
+          const existingIndex = currentData.findIndex((item: any) => 
+            item.account_name && item.account_name.toLowerCase() === accountName.toLowerCase()
+          );
+          
+          if (existingIndex >= 0) {
+            const updated = [...currentData];
+            updated[existingIndex] = { ...updated[existingIndex], user_category: bucket };
+            return updated;
+          } else {
+            return [...currentData, { account_name: accountName, user_category: bucket, file_type: fileType }];
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to save bucket assignment to AI learning:', error);
+      }
+    }
   };
 
   const getSuggestedBucket = (accountName: string, aiCategory: string): string => {
     const name = accountName.toLowerCase();
     
     // First, check AI learning for this account name
-    if (aiLearningData && aiLearningData.length > 0) {
+    if (aiLearningData && Array.isArray(aiLearningData) && aiLearningData.length > 0) {
       const learnedAssignment = aiLearningData.find((item: any) => 
         item.account_name && item.account_name.toLowerCase() === name
       );
       
-      if (learnedAssignment && learnedAssignment.ai_category) {
-        console.log(`🧠 Using AI learning for ${accountName}: ${learnedAssignment.ai_category}`);
-        return learnedAssignment.ai_category;
+      if (learnedAssignment && learnedAssignment.user_category) {
+        console.log(`🧠 Using AI learning for ${accountName}: ${learnedAssignment.user_category} (learned from previous uploads)`);
+        return learnedAssignment.user_category;
       }
     }
     
@@ -806,14 +866,14 @@ export default function CSVImportFlow() {
     const suggestions: string[] = [];
     
     // First, check AI learning for this account name and prioritize it
-    if (aiLearningData && aiLearningData.length > 0) {
+    if (aiLearningData && Array.isArray(aiLearningData) && aiLearningData.length > 0) {
       const learnedAssignment = aiLearningData.find((item: any) => 
         item.account_name && item.account_name.toLowerCase() === name
       );
       
-      if (learnedAssignment && learnedAssignment.ai_category) {
-        suggestions.push(learnedAssignment.ai_category);
-        console.log(`🧠 AI learning suggestion for ${accountName}: ${learnedAssignment.ai_category}`);
+      if (learnedAssignment && learnedAssignment.user_category) {
+        suggestions.push(learnedAssignment.user_category);
+        console.log(`🧠 AI learning suggestion for ${accountName}: ${learnedAssignment.user_category} (learned from previous uploads)`);
       }
     }
     
@@ -1328,7 +1388,7 @@ export default function CSVImportFlow() {
     console.log('👁️ Previewing CSV:', csv.fileName);
   };
 
-  const handleEditCSV = (csv: any) => {
+  const handleEditCSV = async (csv: any) => {
     console.log('✏️ Editing CSV data:', {
       fileName: csv.fileName || csv.file_name,
       accountCategoriesCount: Object.keys(csv.accountCategories || csv.account_categories || {}).length,
@@ -1339,6 +1399,21 @@ export default function CSVImportFlow() {
       sampleBucketAssignments: Object.keys(csv.bucketAssignments || csv.bucket_assignments || {}).slice(0, 3),
       sampleIncludedItems: Object.keys(csv.includedItems || csv.included_items || {}).slice(0, 3)
     });
+    
+    // Load AI learning data for this file type
+    try {
+      console.log('🧠 Loading AI learning data for editing CSV with file type:', csv.fileType || csv.file_type);
+      const learningData = await getAILearning(csv.fileType || csv.file_type);
+      
+      // Ensure we always set an array, even if the response is null or not an array
+      const dataArray = Array.isArray(learningData) ? learningData : [];
+      setAiLearningData(dataArray);
+      
+      console.log('🧠 Loaded AI learning data for editing:', dataArray.length, 'entries');
+    } catch (error) {
+      console.warn('Failed to load AI learning data for editing:', error);
+      setAiLearningData([]);
+    }
     
     setSelectedCSV(csv);
     setEditingCategories(csv.accountCategories || csv.account_categories || {});
@@ -1945,12 +2020,13 @@ export default function CSVImportFlow() {
     }
   };
 
-  const ColorCodedDropdown = ({ value, onChange, options, suggestions, className }: {
+  const ColorCodedDropdown = ({ value, onChange, options, suggestions, className, isFromAILearning }: {
     value: string;
     onChange: (value: string) => void;
     options: Array<{ key: string; bucket: any }>;
     suggestions: string[];
     className?: string;
+    isFromAILearning?: boolean;
   }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -1986,10 +2062,11 @@ export default function CSVImportFlow() {
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full text-left px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between whitespace-nowrap ${
             selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white'
-          }`}
+          } ${isFromAILearning ? 'ring-2 ring-blue-300' : ''}`}
         >
-          <span className="truncate">
+          <span className="truncate flex items-center">
             {selectedOption ? `${selectedOption.bucket.icon} ${selectedOption.bucket.label}` : 'Select bucket...'}
+            {isFromAILearning && <span className="ml-1 text-blue-500" title="Auto-categorized from previous uploads">🧠</span>}
           </span>
           <span className="text-gray-400 flex-shrink-0 ml-2">⌄</span>
         </button>
@@ -2328,6 +2405,14 @@ export default function CSVImportFlow() {
                                 key: bucketKey,
                                 bucket
                               }));
+                              
+                              // Check if this bucket assignment is from AI learning
+                              const isFromAILearning = aiLearningData && Array.isArray(aiLearningData) && aiLearningData.length > 0 && 
+                                aiLearningData.some((item: any) => 
+                                  item.account_name && 
+                                  item.account_name.toLowerCase() === accountName.toLowerCase() && 
+                                  item.user_category === currentBucket
+                                );
                                   
                                   return (
                                 <ColorCodedDropdown
@@ -2336,6 +2421,7 @@ export default function CSVImportFlow() {
                                   options={options}
                                   suggestions={suggestions}
                                   className="w-full"
+                                  isFromAILearning={isFromAILearning}
                                 />
                               );
                             })()}
