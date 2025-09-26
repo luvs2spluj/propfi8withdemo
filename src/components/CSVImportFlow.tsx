@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
-import HeaderMapper, { FieldSuggestion } from "./HeaderMapper";
+import { FieldSuggestion } from "./HeaderMapper";
 import { saveCSVData, getAILearning, saveAILearning, getCSVData, deleteCSVData } from "../lib/supabase";
-import { Database, Edit3, Trash2, Save, RefreshCw, Eye } from 'lucide-react';
+import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
+import { userAuthService } from '../services/userAuthService';
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5002";
 
-type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'general';
+type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'maintenance_log' | 'general';
 
 // Dashboard Bucket Definitions
 const DASHBOARD_BUCKETS = {
@@ -185,6 +186,7 @@ export default function CSVImportFlow() {
   const [showBucketManagement, setShowBucketManagement] = useState(false);
   const [customBuckets, setCustomBuckets] = useState<Record<string, any>>({});
   const [showAddBucket, setShowAddBucket] = useState(false);
+  const [showBucketPreview, setShowBucketPreview] = useState(false);
   const [newBucketName, setNewBucketName] = useState<string>('');
   const [newBucketDescription, setNewBucketDescription] = useState<string>('');
   const [newBucketCategory, setNewBucketCategory] = useState<string>('income');
@@ -356,31 +358,51 @@ export default function CSVImportFlow() {
   useEffect(() => {
     const defaultBucketTerms: Record<string, string[]> = {
       // Primary Cash Flow Buckets
-      'income_item': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income', 'fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee', 'income', 'revenue'],
-      'income_total': ['total income', 'total operating income', 'gross income', 'total revenue', 'income total'],
-      'expense_item': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation', 'utilities', 'electric', 'water', 'gas', 'trash', 'insurance', 'tax', 'management', 'admin', 'administrative', 'office', 'management fee', 'expense', 'cost'],
-      'expense_total': ['total expense', 'total operating expense', 'total costs', 'expense total'],
-      'cash_amount': ['cash', 'cash equivalent', 'bank', 'checking', 'savings', 'money market'],
+      'income_item': ['Rent', 'Rental', 'Tenant', 'Lease', 'Monthly Rent', 'Rental Income', 'Fee', 'Charge', 'Late Fee', 'Application Fee', 'Pet Fee', 'Parking Fee', 'Income', 'Revenue'],
+      'income_total': ['Total Income', 'Total Operating Income', 'Gross Income', 'Total Revenue', 'Income Total'],
+      'expense_item': ['Maintenance', 'Repair', 'Fix', 'Service', 'Upkeep', 'Renovation', 'Utilities', 'Electric', 'Water', 'Gas', 'Trash', 'Insurance', 'Tax', 'Management', 'Admin', 'Administrative', 'Office', 'Management Fee', 'Expense', 'Cost'],
+      'expense_total': ['Total Expense', 'Total Operating Expense', 'Total Costs', 'Expense Total'],
+      'cash_amount': ['Cash', 'Cash Equivalent', 'Bank', 'Checking', 'Savings', 'Money Market'],
       
       // Legacy Buckets (for backward compatibility)
-      'total_operating_income': ['total operating income', 'total income', 'operating income', 'gross income'],
-      'total_operating_expense': ['total operating expense', 'total expense', 'operating expense', 'total costs'],
-      'net_operating_income': ['noi', 'net operating income', 'net income', 'operating profit'],
-      'rental_income': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income'],
-      'other_income': ['fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee'],
-      'operating_expenses': ['operating', 'general', 'administrative', 'office', 'utilities'],
-      'maintenance_expenses': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation'],
-      'management_expenses': ['management', 'admin', 'administrative', 'office', 'management fee'],
-      'exclude': ['total', 'sum', 'grand total', 'subtotal', 'balance', 'equity']
+      'total_operating_income': ['Total Operating Income', 'Total Income', 'Operating Income', 'Gross Income'],
+      'total_operating_expense': ['Total Operating Expense', 'Total Expense', 'Operating Expense', 'Total Costs'],
+      'net_operating_income': ['NOI', 'Net Operating Income', 'Net Income', 'Operating Profit'],
+      'rental_income': ['Rent', 'Rental', 'Tenant', 'Lease', 'Monthly Rent', 'Rental Income'],
+      'other_income': ['Fee', 'Charge', 'Late Fee', 'Application Fee', 'Pet Fee', 'Parking Fee'],
+      'operating_expenses': ['Operating', 'General', 'Administrative', 'Office', 'Utilities'],
+      'maintenance_expenses': ['Maintenance', 'Repair', 'Fix', 'Service', 'Upkeep', 'Renovation'],
+      'management_expenses': ['Management', 'Admin', 'Administrative', 'Office', 'Management Fee'],
+      'exclude': ['Total', 'Sum', 'Grand Total', 'Subtotal', 'Balance', 'Equity']
     };
     
     // Load saved bucket terms from localStorage or use defaults
-    const savedBucketTerms = localStorage.getItem('bucketTerms');
+    // First try to load CSV-type specific bucket terms
+    let savedBucketTerms = null;
+    if (fileType) {
+      const csvTypeBucketTerms = localStorage.getItem(`bucketTerms_${fileType}`);
+      if (csvTypeBucketTerms) {
+        try {
+          const parsed = JSON.parse(csvTypeBucketTerms);
+          savedBucketTerms = parsed[fileType];
+          console.log(`📂 Loaded bucket terms for CSV type: ${fileType}`);
+        } catch (error) {
+          console.error(`Error loading bucket terms for CSV type ${fileType}:`, error);
+        }
+      }
+    }
+    
+    // Fallback to general bucket terms
+    if (!savedBucketTerms) {
+      savedBucketTerms = localStorage.getItem('bucketTerms');
+    }
+    
     if (savedBucketTerms) {
       try {
-        const parsed = JSON.parse(savedBucketTerms);
+        const parsed = typeof savedBucketTerms === 'string' ? JSON.parse(savedBucketTerms) : savedBucketTerms;
         setBucketTerms({ ...defaultBucketTerms, ...parsed });
       } catch (error) {
+        console.error('Error loading saved bucket terms:', error);
         setBucketTerms(defaultBucketTerms);
       }
     } else {
@@ -833,7 +855,7 @@ export default function CSVImportFlow() {
     // Use customizable bucket terms for matching
     for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
       for (const term of terms) {
-        if (name.includes(term.toLowerCase())) {
+        if (name.toLowerCase().includes(term.toLowerCase())) {
           return bucketKey;
         }
       }
@@ -880,7 +902,7 @@ export default function CSVImportFlow() {
     // Find all buckets that match this account name
     for (const [bucketKey, terms] of Object.entries(bucketTerms)) {
       for (const term of terms) {
-        if (name.includes(term.toLowerCase())) {
+        if (name.toLowerCase().includes(term.toLowerCase())) {
           if (!suggestions.includes(bucketKey)) {
             suggestions.push(bucketKey);
           }
@@ -1799,14 +1821,18 @@ export default function CSVImportFlow() {
   const addTermToBucket = (bucketKey: string, term: string) => {
     if (!term.trim()) return;
     
-    const trimmedTerm = term.trim().toLowerCase();
+    // Capitalize first letter of each word
+    const capitalizedTerm = term.trim().toLowerCase().split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+    
     setBucketTerms(prev => {
       const updated = { ...prev };
       if (!updated[bucketKey]) {
         updated[bucketKey] = [];
       }
-      if (!updated[bucketKey].includes(trimmedTerm)) {
-        updated[bucketKey] = [...updated[bucketKey], trimmedTerm];
+      if (!updated[bucketKey].includes(capitalizedTerm)) {
+        updated[bucketKey] = [...updated[bucketKey], capitalizedTerm];
       }
       return updated;
     });
@@ -1826,20 +1852,29 @@ export default function CSVImportFlow() {
   const saveBucketTerms = () => {
     localStorage.setItem('bucketTerms', JSON.stringify(bucketTerms));
     localStorage.setItem('customBuckets', JSON.stringify(customBuckets));
+    
+    // Save bucket terms for specific CSV type
+    if (fileType) {
+      const csvTypeBucketTerms = JSON.parse(localStorage.getItem(`bucketTerms_${fileType}`) || '{}');
+      csvTypeBucketTerms[fileType] = bucketTerms;
+      localStorage.setItem(`bucketTerms_${fileType}`, JSON.stringify(csvTypeBucketTerms));
+      console.log(`💾 Bucket terms saved for CSV type: ${fileType}`);
+    }
+    
     console.log('💾 Bucket terms and custom buckets saved:', { bucketTerms, customBuckets });
   };
 
   const resetBucketTerms = () => {
     const defaultBucketTerms: Record<string, string[]> = {
-      'total_operating_income': ['total operating income', 'total income', 'operating income', 'gross income'],
-      'total_operating_expense': ['total operating expense', 'total expense', 'operating expense', 'total costs'],
-      'net_operating_income': ['noi', 'net operating income', 'net income', 'operating profit'],
-      'rental_income': ['rent', 'rental', 'tenant', 'lease', 'monthly rent', 'rental income'],
-      'other_income': ['fee', 'charge', 'late fee', 'application fee', 'pet fee', 'parking fee'],
-      'operating_expenses': ['operating', 'general', 'administrative', 'office', 'utilities'],
-      'maintenance_expenses': ['maintenance', 'repair', 'fix', 'service', 'upkeep', 'renovation'],
-      'management_expenses': ['management', 'admin', 'administrative', 'office', 'management fee'],
-      'exclude': ['total', 'sum', 'grand total', 'subtotal', 'balance', 'equity']
+      'total_operating_income': ['Total Operating Income', 'Total Income', 'Operating Income', 'Gross Income'],
+      'total_operating_expense': ['Total Operating Expense', 'Total Expense', 'Operating Expense', 'Total Costs'],
+      'net_operating_income': ['NOI', 'Net Operating Income', 'Net Income', 'Operating Profit'],
+      'rental_income': ['Rent', 'Rental', 'Tenant', 'Lease', 'Monthly Rent', 'Rental Income'],
+      'other_income': ['Fee', 'Charge', 'Late Fee', 'Application Fee', 'Pet Fee', 'Parking Fee'],
+      'operating_expenses': ['Operating', 'General', 'Administrative', 'Office', 'Utilities'],
+      'maintenance_expenses': ['Maintenance', 'Repair', 'Fix', 'Service', 'Upkeep', 'Renovation'],
+      'management_expenses': ['Management', 'Admin', 'Administrative', 'Office', 'Management Fee'],
+      'exclude': ['Total', 'Sum', 'Grand Total', 'Subtotal', 'Balance', 'Equity']
     };
     setBucketTerms(defaultBucketTerms);
     localStorage.setItem('bucketTerms', JSON.stringify(defaultBucketTerms));
@@ -2256,9 +2291,21 @@ export default function CSVImportFlow() {
           {/* CSV Data Table with Categorization */}
           <div className="border rounded-lg overflow-hidden bg-white">
             <div className="bg-blue-50 px-4 py-3 border-b">
-              <h5 className="font-medium text-blue-900">📊 CSV Data with Categorization</h5>
+              <h5 className="font-medium text-blue-900">📊 CSV Data with Categorization v.1 beta</h5>
               <p className="text-sm text-blue-700 mt-1">
-                Review your data and categorize line items as Income or Expense. Look for "Total Income", "Total Expense", and "Net Income" sections.
+                The AI Parser this tool uses isnt yet perfect. Please help by selecting and categorizing line items as "Income" or "Expense".
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                Look for Total Income, Total Expense, and Net Operating Income. Deselect all other Total Items.
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                Keep adjusting the income/expense column until the summed total of items matches the selected total.
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                Income/Expense items should match Total Income/Expense by the end to correctly populate the data page.
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                Income/Expense will indicate a "Match" in the Income/Expense Summary Section once the total line items match the user's selected line item nominated as the Total Income/Expense line.
               </p>
               
               {/* Bulk Selection Controls */}
@@ -2460,12 +2507,24 @@ export default function CSVImportFlow() {
                 {/* Total Amounts Preview */}
                 {preview && preview.length > 0 && (
                   <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
-                    <div className="px-6 py-4 border-b border-green-200">
-                      <h3 className="text-lg font-semibold text-green-900">💰 Total Amounts</h3>
-                      <p className="text-green-700 mt-1">Live preview of how your current CSV will affect dashboard totals</p>
+                    <div className="px-4 py-3 border-b border-green-200">
+                      <h3 className="text-base font-semibold text-green-900">💰 Total Amounts</h3>
+                      <p className="text-green-700 mt-1 text-sm">
+                        Live preview of how your current {fileType === 'cash_flow' ? 'Cash Flow' : 
+                        fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                        fileType === 'rent_roll' ? 'Rent Roll' : 
+                        fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                        'CSV'} will affect dashboard totals
+                      </p>
+                      
+                      {/* Scrollable Window Notice */}
+                      <div className="mt-3 flex items-center gap-2 text-xs text-green-600">
+                        <span>📜</span>
+                        <span>Scroll to browse all sections</span>
+                      </div>
                     </div>
                     
-                    <div className="p-6">
+                    <div className="p-4" style={{ height: '300px', overflowY: 'auto' }}>
                       {(() => {
                         const combinedTotals = allBucketTotals;
                         
@@ -2492,71 +2551,81 @@ export default function CSVImportFlow() {
                         });
                         
                         return (
-                          <div className="space-y-6">
+                          <div className="space-y-4">
                             {/* Income Section */}
                             <div className="space-y-3">
-                              <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-green-800 flex items-center gap-2">
                                 💰 Income Summary
                                 {incomeMismatch ? (
-                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                  <span className="px-1 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                                     ⚠️ Mismatch
                                   </span>
                                 ) : (
-                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                  <span className="px-1 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                                     ✅ Match
                                   </span>
                                 )}
                               </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {/* Income Total */}
-                                <div className="p-4 border-2 border-green-300 bg-green-50 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-green-600">📈</span>
-                                      <span className="font-semibold text-green-800">Income Total</span>
+                                <div className="p-3 border-2 border-green-300 bg-green-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-green-600 text-sm">📈</span>
+                                      <span className="font-semibold text-green-800 text-sm">Income Total</span>
                                     </div>
                                     {incomeTotal > 0 && (
-                                      <span className="text-sm text-green-600 font-medium">
+                                      <span className="text-xs text-green-600 font-medium">
                                         +${incomeTotal.toLocaleString()}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-2xl font-bold text-green-900">
+                                  <div className="text-lg font-bold text-green-900">
                                     ${(combinedTotals['income_total'] || combinedTotals['total_income'] || combinedTotals['total_operating_income'] || 0).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-green-700 mt-1">Total (all CSVs)</div>
                                 </div>
                                 
                                 {/* Income Items */}
-                                <div className="p-4 border border-green-200 bg-green-25 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-green-600">💰</span>
-                                      <span className="font-semibold text-green-800">Income Items</span>
+                                <div className="p-3 border border-green-200 bg-green-25 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-green-600 text-sm">💰</span>
+                                      <span className="font-semibold text-green-800 text-sm">Income Items</span>
                                     </div>
                                     {incomeItems > 0 && (
-                                      <span className="text-sm text-green-600 font-medium">
+                                      <span className="text-xs text-green-600 font-medium">
                                         +${incomeItems.toLocaleString()}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-2xl font-bold text-green-900">
+                                  <div className="text-lg font-bold text-green-900">
                                     ${incomeItems.toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-green-700 mt-1">Sum of all income line items (this CSV)</div>
+                                  <div className="text-xs text-green-700 mt-1">
+                                    Sum of all income line items (this {fileType === 'cash_flow' ? 'Cash Flow' : 
+                                    fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                                    fileType === 'rent_roll' ? 'Rent Roll' : 
+                                    fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                                    'CSV'})
+                                  </div>
                                 </div>
                               </div>
-                              
+                                
                               {incomeMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
                                     <span className="font-medium text-xs">Income Mismatch Detected</span>
                                   </div>
-                                  <p className="text-xs text-amber-700 mt-1">
-                                    Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
-                                    Please edit your CSV data categorization to ensure totals match.
-                                  </p>
+                                <p className="text-xs text-amber-700 mt-1">
+                                  Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
+                                  Please edit your {fileType === 'cash_flow' ? 'Cash Flow' : 
+                                  fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                                  fileType === 'rent_roll' ? 'Rent Roll' : 
+                                  fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                                  'CSV'} data categorization to ensure totals match.
+                                </p>
                                 </div>
                               ) : (
                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
@@ -2570,68 +2639,78 @@ export default function CSVImportFlow() {
 
                             {/* Expense Section */}
                             <div className="space-y-3">
-                              <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-red-800 flex items-center gap-2">
                                 💸 Expense Summary
                                 {expenseMismatch ? (
-                                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
+                                  <span className="px-1 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                                     ⚠️ Mismatch
                                   </span>
                                 ) : (
-                                  <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                  <span className="px-1 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                                     ✅ Match
                                   </span>
                                 )}
                               </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {/* Expense Total */}
-                                <div className="p-4 border-2 border-red-300 bg-red-50 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-red-600">📉</span>
-                                      <span className="font-semibold text-red-800">Expense Total</span>
+                                <div className="p-3 border-2 border-red-300 bg-red-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-red-600 text-sm">📉</span>
+                                      <span className="font-semibold text-red-800 text-sm">Expense Total</span>
                                     </div>
                                     {expenseTotal > 0 && (
-                                      <span className="text-sm text-red-600 font-medium">
+                                      <span className="text-xs text-red-600 font-medium">
                                         +${expenseTotal.toLocaleString()}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-2xl font-bold text-red-900">
+                                  <div className="text-lg font-bold text-red-900">
                                     ${(combinedTotals['expense_total'] || combinedTotals['total_expenses'] || combinedTotals['total_operating_expense'] || 0).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-red-700 mt-1">Total (all CSVs)</div>
                                 </div>
                                 
                                 {/* Expense Items */}
-                                <div className="p-4 border border-red-200 bg-red-25 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-red-600">💸</span>
-                                      <span className="font-semibold text-red-800">Expense Items</span>
+                                <div className="p-3 border border-red-200 bg-red-25 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-red-600 text-sm">💸</span>
+                                      <span className="font-semibold text-red-800 text-sm">Expense Items</span>
                                     </div>
                                     {expenseItems > 0 && (
-                                      <span className="text-sm text-red-600 font-medium">
+                                      <span className="text-xs text-red-600 font-medium">
                                         +${expenseItems.toLocaleString()}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-2xl font-bold text-red-900">
+                                  <div className="text-lg font-bold text-red-900">
                                     ${expenseItems.toLocaleString()}
                                   </div>
-                                  <div className="text-xs text-red-700 mt-1">Sum of all expense line items</div>
+                                  <div className="text-xs text-red-700 mt-1">
+                                    Sum of all expense line items (this {fileType === 'cash_flow' ? 'Cash Flow' : 
+                                    fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                                    fileType === 'rent_roll' ? 'Rent Roll' : 
+                                    fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                                    'CSV'})
+                                  </div>
                                 </div>
                               </div>
-                              
+                                
                               {expenseMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
                                     <span className="font-medium text-xs">Expense Mismatch Detected</span>
                                   </div>
-                                  <p className="text-xs text-amber-700 mt-1">
-                                    Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
-                                    Please edit your CSV data categorization to ensure totals match.
-                                  </p>
+                                <p className="text-xs text-amber-700 mt-1">
+                                  Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
+                                  Please edit your {fileType === 'cash_flow' ? 'Cash Flow' : 
+                                  fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                                  fileType === 'rent_roll' ? 'Rent Roll' : 
+                                  fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                                  'CSV'} data categorization to ensure totals match.
+                                </p>
                                 </div>
                               ) : (
                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
@@ -2645,52 +2724,56 @@ export default function CSVImportFlow() {
 
                             {/* Net Income & Cash Section */}
                             <div className="space-y-3">
-                              <h4 className="text-md font-semibold text-blue-800">📊 Net Income & Cash</h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <h4 className="text-sm font-semibold text-blue-800">📊 Net Income & Cash</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {/* Net Operating Income */}
-                                <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-blue-600">📊</span>
-                                      <span className="font-semibold text-blue-800">Net Operating Income</span>
+                                <div className="p-3 border-2 border-blue-300 bg-blue-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-blue-600 text-sm">📊</span>
+                                      <span className="font-semibold text-blue-800 text-sm">Net Operating Income</span>
                                     </div>
                                   </div>
-                                  <div className="text-2xl font-bold text-blue-900">
+                                  <div className="text-lg font-bold text-blue-900">
                                     ${(combinedTotals['net_operating_income'] || 0).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-blue-700 mt-1">Income - Expenses</div>
                                 </div>
                                 
                                 {/* Cash Amount */}
-                                <div className="p-4 border-2 border-purple-300 bg-purple-50 rounded-lg">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-purple-600">💳</span>
-                                      <span className="font-semibold text-purple-800">Cash Amount</span>
+                                <div className="p-3 border-2 border-purple-300 bg-purple-50 rounded-lg">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-purple-600 text-sm">💳</span>
+                                      <span className="font-semibold text-purple-800 text-sm">Cash Amount</span>
                                     </div>
                                     {(currentSessionTotals['cash_amount'] || 0) > 0 && (
-                                      <span className="text-sm text-purple-600 font-medium">
+                                      <span className="text-xs text-purple-600 font-medium">
                                         +${(currentSessionTotals['cash_amount'] || 0).toLocaleString()}
                                       </span>
                                     )}
                                   </div>
-                                  <div className="text-2xl font-bold text-purple-900">
+                                  <div className="text-lg font-bold text-purple-900">
                                     ${(combinedTotals['cash_amount'] || 0).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-purple-700 mt-1">Cash and cash equivalents</div>
                                 </div>
                               </div>
-                            </div>
-                            
-                            {/* Live Updates Notice */}
-                            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                              <div className="flex items-center gap-2 text-blue-800">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                                <span className="text-sm font-medium">Live Updates</span>
+                              
+                              {/* Live Updates Notice */}
+                              <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2 text-blue-800">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                  <span className="text-xs font-medium">Live Updates</span>
+                                </div>
+                                <p className="text-xs text-blue-700 mt-1">
+                                  These totals update automatically as you change bucket assignments or include/exclude items from your {fileType === 'cash_flow' ? 'Cash Flow' : 
+                                  fileType === 'balance_sheet' ? 'Balance Sheet' : 
+                                  fileType === 'rent_roll' ? 'Rent Roll' : 
+                                  fileType === 'maintenance_log' ? 'Maintenance Log' : 
+                                  'CSV'}.
+                                </p>
                               </div>
-                              <p className="text-sm text-blue-700 mt-1">
-                                These totals update automatically as you change bucket assignments or include/exclude items.
-                              </p>
                             </div>
                           </div>
                         );
@@ -2699,42 +2782,263 @@ export default function CSVImportFlow() {
                   </div>
                 )}
           
-          {/* Data Selection Summary */}
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-              <div className="text-sm font-medium text-blue-800">Total Records</div>
-              <div className="text-lg font-bold text-blue-900">{preview.length}</div>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-              <div className="text-sm font-medium text-green-800">✅ Included</div>
-              <div className="text-lg font-bold text-green-900">
-                {Object.values(includedItems).filter(included => included === true).length}
-              </div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-              <div className="text-sm font-medium text-gray-800">❌ Excluded</div>
-              <div className="text-lg font-bold text-gray-900">
-                {Object.values(includedItems).filter(included => included === false).length}
-              </div>
-            </div>
-            <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-              <div className="text-sm font-medium text-green-800">💰 Income</div>
-              <div className="text-lg font-bold text-green-900">
-                {Object.entries(accountCategories).filter(([name, cat]) => 
-                  cat === 'income' && includedItems[name] === true
-                ).length}
-              </div>
-            </div>
-            <div className="bg-red-50 p-3 rounded-lg border border-red-200">
-              <div className="text-sm font-medium text-red-800">💸 Expense</div>
-              <div className="text-lg font-bold text-red-900">
-                {Object.entries(accountCategories).filter(([name, cat]) => 
-                  cat === 'expense' && includedItems[name] === true
-                ).length}
-              </div>
-            </div>
-          </div>
           
+          {/* AI Bucket Management */}
+          <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+                <div>
+                <h2 className="text-xl font-semibold text-gray-900">🤖 AI Bucket Management</h2>
+                <p className="text-gray-600 mt-1">Customize how the AI parses CSV files and assigns buckets</p>
+                
+                {/* Quick Bucket Preview */}
+                <div className="flex items-center gap-1 mt-2 flex-wrap">
+                  {Object.entries(getAllBuckets()).slice(0, 5).map(([bucketKey, bucket]) => (
+                    <div
+                      key={bucketKey}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${bucket.color}`}
+                      title={`${bucket.label}: ${bucketTerms[bucketKey]?.length || 0} terms`}
+                    >
+                      {bucket.icon}
+                      <span className="text-xs">{bucket.label}</span>
+                    </div>
+                  ))}
+                  {Object.entries(getAllBuckets()).length > 5 && (
+                    <button
+                      onClick={() => setShowBucketPreview(!showBucketPreview)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                      title="Click to view all buckets"
+                    >
+                      <span>...</span>
+                    </button>
+                  )}
+                </div>
+                
+                {/* Full Bucket Preview Modal */}
+                {showBucketPreview && (
+                  <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-sm font-medium text-gray-900">All Active Buckets</h5>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowAddBucket(true)}
+                          className="px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700"
+                          title="Add new bucket"
+                        >
+                          + Add Bucket
+                        </button>
+                        <button
+                          onClick={() => setShowBucketPreview(false)}
+                          className="text-gray-500 hover:text-gray-700 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="max-h-96 overflow-y-auto space-y-2">
+                      {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => (
+                        <div
+                          key={bucketKey}
+                          className={`flex items-start gap-3 p-3 rounded-lg border ${bucket.color} group hover:shadow-sm transition-shadow`}
+                        >
+                          {/* Bucket Icon and Label */}
+                          <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
+                            <span className="text-lg">{bucket.icon}</span>
+                            <div className="min-w-0">
+                              <div className="font-medium text-sm truncate">{bucket.label}</div>
+                              <div className="text-xs opacity-75">
+                                {bucketTerms[bucketKey]?.length || 0} terms
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Terms List */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap gap-1">
+                              {bucketTerms[bucketKey]?.map((term, index) => (
+                                <span
+                                  key={index}
+                                  className="inline-flex items-center gap-1 px-2 py-1 bg-white bg-opacity-50 rounded text-xs border group/term hover:bg-opacity-70 transition-colors"
+                                >
+                                  {term}
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm(`Remove "${term}" from ${bucket.label}?`)) {
+                                        setBucketTerms(prev => ({
+                                          ...prev,
+                                          [bucketKey]: prev[bucketKey]?.filter((_, i) => i !== index) || []
+                                        }));
+                                      }
+                                    }}
+                                    className="opacity-0 group-hover/term:opacity-100 hover:bg-red-100 hover:text-red-600 rounded-full p-0.5 transition-all"
+                                    title={`Remove "${term}"`}
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              )) || (
+                                <span className="text-xs opacity-50 italic">No terms defined</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                const term = prompt(`Add term to ${bucket.label}:`);
+                                if (term && term.trim()) {
+                                  addTermToBucket(bucketKey, term.trim());
+                                }
+                              }}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                              title="Add term"
+                            >
+                              +
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Delete "${bucket.label}" bucket? This will remove all ${bucketTerms[bucketKey]?.length || 0} terms.`)) {
+                                  deleteBucket(bucketKey);
+                                }
+                              }}
+                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                              title="Delete bucket"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-3 pt-2 border-t border-gray-300">
+                      <div className="flex items-center justify-between text-xs text-gray-600">
+                        <span>Hover over buckets to see quick actions</span>
+                        <button
+                          onClick={saveBucketTerms}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                        >
+                          Save Changes
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowBucketManagement(!showBucketManagement)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium ${
+                      showBucketManagement 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'bg-gray-600 text-white hover:bg-gray-700'
+                    }`}
+                  >
+                    {showBucketManagement ? 'Hide' : 'Show'}
+                  </button>
+                  <button
+                    onClick={saveBucketTerms}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setShowAddBucket(!showAddBucket)}
+                    className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
+                  >
+                    {showAddBucket ? 'Cancel' : 'Add Bucket'}
+                  </button>
+                  <button
+                    onClick={resetBucketTerms}
+                    className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {showBucketManagement && (
+              <div className="p-6">
+                {/* Add New Bucket Form */}
+                {showAddBucket && (
+                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h3 className="text-lg font-semibold text-purple-900 mb-4">➕ Add New Bucket</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Bucket Name</label>
+                      <input
+                        type="text"
+                        value={newBucketName}
+                        onChange={(e) => setNewBucketName(e.target.value)}
+                        placeholder="e.g., Marketing Expenses"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <select
+                        value={newBucketCategory}
+                        onChange={(e) => setNewBucketCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                        <option value="net_income">Net Income</option>
+                        <option value="cash">Cash</option>
+                        <option value="exclude">Exclude</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <input
+                      type="text"
+                      value={newBucketDescription}
+                      onChange={(e) => setNewBucketDescription(e.target.value)}
+                      placeholder="Brief description of what this bucket represents"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={addCustomBucket}
+                      className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
+                    >
+                      Add Bucket
+                    </button>
+                    <button
+                      onClick={() => setShowAddBucket(false)}
+                      className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
+                    >
+                      Cancel
+                    </button>
+                </div>
+              </div>
+            )}
+            
+                {/* Usage Instructions */}
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 mb-2">💡 How It Works</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• <strong>Add terms:</strong> Type a term and click "Add" to include it in the bucket</li>
+                    <li>• <strong>Remove terms:</strong> Click "Remove" to delete unwanted terms</li>
+                    <li>• <strong>Delete buckets:</strong> Click the 🗑️ trash icon to remove entire buckets</li>
+                    <li>• <strong>Adjust categories:</strong> Change bucket category to control color coding (Income=Green, Expense=Red, Cash=Purple)</li>
+                    <li>• <strong>Case insensitive:</strong> Terms are automatically converted to lowercase</li>
+                    <li>• <strong>Partial matching:</strong> AI looks for terms anywhere in account names</li>
+                    <li>• <strong>Priority order:</strong> First matching bucket wins (order matters)</li>
+                    <li>• <strong>Save changes:</strong> Click "Save Changes" to persist your settings</li>
+                  </ul>
+            </div>
+
+              </div>
+            )}
+          </div>
           
           {/* Raw JSON toggle */}
           <details className="mt-3">
@@ -3020,397 +3324,43 @@ export default function CSVImportFlow() {
 
       {/* Full-width sections below */}
       <div className="space-y-6">
-        {/* AI Bucket Management */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-                <div>
-                <h2 className="text-xl font-semibold text-gray-900">🤖 AI Bucket Management</h2>
-                <p className="text-gray-600 mt-1">Customize how the AI parses CSV files and assigns buckets</p>
-                </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setShowBucketManagement(!showBucketManagement)}
-                  className={`px-3 py-1.5 rounded text-xs font-medium ${
-                    showBucketManagement 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  {showBucketManagement ? 'Hide' : 'Show'}
-                </button>
-                <button
-                  onClick={saveBucketTerms}
-                  className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setShowAddBucket(!showAddBucket)}
-                  className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
-                >
-                  {showAddBucket ? 'Cancel' : 'Add Bucket'}
-                </button>
-                <button
-                  onClick={resetBucketTerms}
-                  className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 text-xs font-medium"
-                >
-                  Reset
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {showBucketManagement && (
-            <div className="p-6">
-              {/* Add New Bucket Form */}
-              {showAddBucket && (
-                <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <h3 className="text-lg font-semibold text-purple-900 mb-4">➕ Add New Bucket</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Bucket Name</label>
-                      <input
-                        type="text"
-                        value={newBucketName}
-                        onChange={(e) => setNewBucketName(e.target.value)}
-                        placeholder="e.g., Marketing Expenses"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                      <select
-                        value={newBucketCategory}
-                        onChange={(e) => setNewBucketCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="income">Income</option>
-                        <option value="expense">Expense</option>
-                        <option value="net_income">Net Income</option>
-                        <option value="cash">Cash</option>
-                        <option value="exclude">Exclude</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <input
-                      type="text"
-                      value={newBucketDescription}
-                      onChange={(e) => setNewBucketDescription(e.target.value)}
-                      placeholder="Brief description of what this bucket represents"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={addCustomBucket}
-                      className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 text-xs font-medium"
-                    >
-                      Add Bucket
-                    </button>
-                    <button
-                      onClick={() => setShowAddBucket(false)}
-                      className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
-                    >
-                      Cancel
-                    </button>
-              </div>
-            </div>
-          )}
-          
-              {/* Usage Instructions */}
-              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">💡 How It Works</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• <strong>Add terms:</strong> Type a term and click "Add" to include it in the bucket</li>
-                  <li>• <strong>Remove terms:</strong> Click "Remove" to delete unwanted terms</li>
-                  <li>• <strong>Delete buckets:</strong> Click the 🗑️ trash icon to remove entire buckets</li>
-                  <li>• <strong>Adjust categories:</strong> Change bucket category to control color coding (Income=Green, Expense=Red, Cash=Purple)</li>
-                  <li>• <strong>Case insensitive:</strong> Terms are automatically converted to lowercase</li>
-                  <li>• <strong>Partial matching:</strong> AI looks for terms anywhere in account names</li>
-                  <li>• <strong>Priority order:</strong> First matching bucket wins (order matters)</li>
-                  <li>• <strong>Save changes:</strong> Click "Save Changes" to persist your settings</li>
-                </ul>
+      </div>
+      
+      {/* Data Selection Summary - Moved to bottom */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <div className="text-sm font-medium text-blue-800">Total Records</div>
+          <div className="text-lg font-bold text-blue-900">{preview.length}</div>
         </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">📋 Bucket Term Definitions</h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  Add or remove terms for each bucket. The AI will use these terms to automatically categorize CSV account names.
-                </p>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {Object.entries(getAllBuckets()).map(([bucketKey, bucket]) => (
-                    <div key={bucketKey} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${bucket.color}`}>
-                          {bucket.icon} {bucket.label}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">
-                            {bucketTerms[bucketKey]?.length || 0} terms
-                          </span>
-                          <button
-                            onClick={() => deleteBucket(bucketKey)}
-                            className="text-red-600 hover:text-red-800 text-xs font-medium"
-                            title="Delete bucket"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Category Selector */}
-                      <div className="mb-3">
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
-                        <select
-                          value={bucketCategories[bucketKey] || bucket.category}
-                          onChange={(e) => updateBucketCategory(bucketKey, e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="income">💰 Income (Green)</option>
-                          <option value="expense">💸 Expense (Red)</option>
-                          <option value="cash">💳 Cash (Purple)</option>
-                          <option value="net_income">📊 Net Income (Blue)</option>
-                          <option value="exclude">🚫 Exclude (Gray)</option>
-                        </select>
-                      </div>
-                      
-                      <p className="text-sm text-gray-600 mb-3">{bucket.description}</p>
-                      
-                      {/* Add new term */}
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="text"
-                          value={editingBucket === bucketKey ? newTerm : ''}
-                          onChange={(e) => {
-                            setEditingBucket(bucketKey);
-                            setNewTerm(e.target.value);
-                          }}
-                          placeholder="Add new term..."
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              addTermToBucket(bucketKey, newTerm);
-                            }
-                          }}
-                        />
-                        <button
-                          onClick={() => addTermToBucket(bucketKey, newTerm)}
-                          className="px-2 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
-                        >
-                          Add
-                        </button>
-                      </div>
-                      
-                      {/* Existing terms */}
-                      <div className="space-y-2">
-                        {bucketTerms[bucketKey]?.map((term, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-                            <span className="text-sm text-gray-700">{term}</span>
-                            <button
-                              onClick={() => removeTermFromBucket(bucketKey, term)}
-                              className="text-red-600 hover:text-red-800 text-xs font-medium"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        )) || (
-                          <div className="text-sm text-gray-500 italic">No terms defined</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Dashboard Bucket Totals Summary */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">📊 Dashboard Bucket Totals Summary</h3>
-            <p className="text-gray-600 mt-1">Combined totals from all saved CSVs and current session</p>
-          </div>
-          
-          <div className="p-6">
-            {(() => {
-              const combinedTotals = allBucketTotals;
-              
-              // Calculate income totals
-              const incomeItems = ['income_item', 'rental_income', 'other_income'].reduce((sum, key) => sum + (combinedTotals[key] || 0), 0);
-              const incomeTotal = combinedTotals['income_total'] || combinedTotals['total_income'] || combinedTotals['total_operating_income'] || 0;
-              
-              // Calculate expense totals
-              const expenseItems = ['expense_item', 'operating_expenses', 'maintenance_expenses', 'management_expenses'].reduce((sum, key) => sum + (combinedTotals[key] || 0), 0);
-              const expenseTotal = combinedTotals['expense_total'] || combinedTotals['total_expenses'] || combinedTotals['total_operating_expense'] || 0;
-              
-              // Check for mismatches
-              const incomeMismatch = Math.abs(incomeItems - incomeTotal) > 0.01;
-              const expenseMismatch = Math.abs(expenseItems - expenseTotal) > 0.01;
-              
-              return (
-                <div className="space-y-6">
-                  {/* Income Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-green-800 flex items-center gap-2">
-                      💰 Income Summary
-                      {incomeMismatch ? (
-                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                          ⚠️ Mismatch
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                          ✅ Match
-                        </span>
-                      )}
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Income Total */}
-                      <div className="p-4 border-2 border-green-300 bg-green-50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-green-600">📈</span>
-                          <span className="font-semibold text-green-800">Income Total</span>
-                        </div>
-                        <div className="text-2xl font-bold text-green-900">
-                          ${incomeTotal.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-green-700 mt-1">Total income calculations</div>
-                      </div>
-                      
-                      {/* Income Items */}
-                      <div className="p-4 border border-green-200 bg-green-25 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-green-600">💰</span>
-                          <span className="font-semibold text-green-800">Income Items</span>
-                        </div>
-                        <div className="text-2xl font-bold text-green-900">
-                          ${incomeItems.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-green-700 mt-1">Sum of all income line items</div>
-                      </div>
-                    </div>
-                    
-                    {incomeMismatch ? (
-                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-center gap-1 text-amber-800">
-                          <span className="text-amber-600 text-xs">⚠️</span>
-                          <span className="font-medium text-xs">Income Mismatch Detected</span>
-                        </div>
-                        <p className="text-xs text-amber-700 mt-1">
-                          Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
-                          Please review your CSV categorizations.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-1 text-green-800">
-                          <span className="text-green-600 text-xs">✅</span>
-                          <span className="font-medium text-xs">Sum of items matches total amount</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Expense Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-red-800 flex items-center gap-2">
-                      💸 Expense Summary
-                      {expenseMismatch ? (
-                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                          ⚠️ Mismatch
-                        </span>
-                      ) : (
-                        <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                          ✅ Match
-                        </span>
-                      )}
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Expense Total */}
-                      <div className="p-4 border-2 border-red-300 bg-red-50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-red-600">📉</span>
-                          <span className="font-semibold text-red-800">Expense Total</span>
-                        </div>
-                        <div className="text-2xl font-bold text-red-900">
-                          ${expenseTotal.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-red-700 mt-1">Total expense calculations</div>
-                      </div>
-                      
-                      {/* Expense Items */}
-                      <div className="p-4 border border-red-200 bg-red-25 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-red-600">💸</span>
-                          <span className="font-semibold text-red-800">Expense Items</span>
-                        </div>
-                        <div className="text-2xl font-bold text-red-900">
-                          ${expenseItems.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-red-700 mt-1">Sum of all expense line items</div>
-                      </div>
-                    </div>
-                    
-                    {expenseMismatch ? (
-                      <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                        <div className="flex items-center gap-1 text-amber-800">
-                          <span className="text-amber-600 text-xs">⚠️</span>
-                          <span className="font-medium text-xs">Expense Mismatch Detected</span>
-                        </div>
-                        <p className="text-xs text-amber-700 mt-1">
-                          Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
-                          Please review your CSV categorizations.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-1 text-green-800">
-                          <span className="text-green-600 text-xs">✅</span>
-                          <span className="font-medium text-xs">Sum of items matches total amount</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Net Income & Cash Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-md font-semibold text-blue-800">📊 Net Income & Cash</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Net Operating Income */}
-                      <div className="p-4 border-2 border-blue-300 bg-blue-50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-blue-600">📊</span>
-                          <span className="font-semibold text-blue-800">Net Operating Income</span>
-                        </div>
-                        <div className="text-2xl font-bold text-blue-900">
-                          ${(combinedTotals['net_operating_income'] || 0).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-blue-700 mt-1">Income - Expenses</div>
-                      </div>
-                      
-                      {/* Cash Amount */}
-                      <div className="p-4 border-2 border-purple-300 bg-purple-50 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-purple-600">💳</span>
-                          <span className="font-semibold text-purple-800">Cash Amount</span>
-                        </div>
-                        <div className="text-2xl font-bold text-purple-900">
-                          ${(combinedTotals['cash_amount'] || 0).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-purple-700 mt-1">Cash and cash equivalents</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+          <div className="text-sm font-medium text-green-800">✅ Included</div>
+          <div className="text-lg font-bold text-green-900">
+            {Object.values(includedItems).filter(included => included === true).length}
           </div>
         </div>
-
+        <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <div className="text-sm font-medium text-gray-800">❌ Excluded</div>
+          <div className="text-lg font-bold text-gray-900">
+            {Object.values(includedItems).filter(included => included === false).length}
+          </div>
+        </div>
+        <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+          <div className="text-sm font-medium text-green-800">💰 Income</div>
+          <div className="text-lg font-bold text-green-900">
+            {Object.entries(accountCategories).filter(([name, cat]) => 
+              cat === 'income' && includedItems[name] === true
+            ).length}
+          </div>
+        </div>
+        <div className="bg-red-50 p-3 rounded-lg border border-red-200">
+          <div className="text-sm font-medium text-red-800">💸 Expense</div>
+          <div className="text-lg font-bold text-red-900">
+            {Object.entries(accountCategories).filter(([name, cat]) => 
+              cat === 'expense' && includedItems[name] === true
+            ).length}
+          </div>
+        </div>
       </div>
     </div>
     </div>

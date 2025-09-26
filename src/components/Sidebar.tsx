@@ -6,13 +6,18 @@ import {
   DollarSign, 
   FileText,
   Upload,
-  Home
+  Home,
+  LogOut
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
+import { useUser } from '@clerk/clerk-react';
 
-interface SidebarProps extends NavigationProps {}
+interface SidebarProps extends NavigationProps {
+  onLogout: () => void;
+}
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, onLogout }) => {
+  const { user } = useUser();
       const menuItems = [
         { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
         { id: 'financials' as Page, label: 'Financials', icon: DollarSign },
@@ -58,18 +63,33 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage }) => {
         })}
       </nav>
       
-      <div className="p-6">
+      <div className="p-6 space-y-4">
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-medium">AH</span>
+              <span className="text-white text-sm font-medium">
+                {user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress?.[0] || 'U'}
+              </span>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">Alex Horton</p>
+              <p className="text-sm font-medium text-gray-900">
+                {user?.firstName && user?.lastName 
+                  ? `${user.firstName} ${user.lastName}`
+                  : user?.emailAddresses[0]?.emailAddress || 'User'
+                }
+              </p>
               <p className="text-xs text-gray-500">Property Manager</p>
             </div>
           </div>
         </div>
+        
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center space-x-3 px-4 py-2 text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 rounded-lg transition-colors duration-200"
+        >
+          <LogOut className="w-5 h-5 text-gray-400" />
+          <span className="font-medium">Sign Out</span>
+        </button>
       </div>
     </div>
   );
