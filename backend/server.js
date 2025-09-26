@@ -14,6 +14,9 @@ const SmartCSVService = require('./services/smartCSVService');
 // Import cashflow ingestion route
 const cashflowIngestRoute = require('./routes/cashflowIngest');
 
+// Import Stripe routes
+const stripeRoutes = require('./routes/stripe');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -403,6 +406,9 @@ app.post('/api/process-csv-local', upload.single('csvFile'), async (req, res) =>
 
 // Cashflow ingestion route
 app.use('/api', cashflowIngestRoute);
+
+// Stripe routes
+app.use('/api', stripeRoutes);
 
 // Upload history
 app.get('/api/upload-history', async (req, res) => {
