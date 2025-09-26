@@ -247,7 +247,7 @@ const Financials: React.FC = () => {
     if (selectedProperty) {
       loadPropertyData();
     }
-  }, [selectedProperty]);
+  }, [selectedProperty, loadPropertyData]);
 
   // Calculate financial summary from CSV data (same as Dashboard)
   const calculateFinancialSummary = async () => {
@@ -725,7 +725,7 @@ const Financials: React.FC = () => {
   // Load financial data when component mounts or when CSV data changes
   useEffect(() => {
     loadFinancialData();
-  }, [calculateExpenseCategories, calculateRevenueSources]); // Include dependencies
+  }, [calculateExpenseCategories, calculateRevenueSources, loadFinancialData]); // Include dependencies
 
   // Helper function for color classes
   const getColorClass = (color: string) => {

@@ -11,7 +11,8 @@ export type Page =
   | 'analytics' 
   | 'properties' 
   | 'csvs'
-  | 'reports';
+  | 'reports'
+  | 'pricing';
 
 export interface NavigationProps {
   currentPage: Page;

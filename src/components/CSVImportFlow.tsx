@@ -3,11 +3,11 @@ import Papa from "papaparse";
 import { FieldSuggestion } from "./HeaderMapper";
 import { saveCSVData, getAILearning, saveAILearning, getCSVData, deleteCSVData } from "../lib/supabase";
 import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
-import { userAuthService } from '../services/userAuthService';
+// import { userAuthService } from '../services/userAuthService';
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5002";
 
-type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'maintenance_log' | 'general';
+type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'maintenance_log' | 'general' | 'pdf';
 
 // Dashboard Bucket Definitions
 const DASHBOARD_BUCKETS = {
@@ -175,13 +175,13 @@ export default function CSVImportFlow() {
   const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({});
   const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({});
   const [managementLoading, setManagementLoading] = useState(false);
-  const [managementSaving, setManagementSaving] = useState(false);
+  const [managementSaving] = useState(false);
   const [showManagementPreview, setShowManagementPreview] = useState(false);
   const [managementPreviewMode, setManagementPreviewMode] = useState(false);
   
   // Bucket Management state
   const [bucketTerms, setBucketTerms] = useState<Record<string, string[]>>({});
-  const [editingBucket, setEditingBucket] = useState<string | null>(null);
+  const [editingBucket] = useState<string | null>(null);
   const [newTerm, setNewTerm] = useState<string>('');
   const [showBucketManagement, setShowBucketManagement] = useState(false);
   const [customBuckets, setCustomBuckets] = useState<Record<string, any>>({});
@@ -586,6 +586,13 @@ export default function CSVImportFlow() {
     setHasPreviewed(false);
     setSaved(false);
     
+    // Check if file is PDF
+    if (f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')) {
+      setFileType('pdf');
+      setError('PDF processing is coming soon! Please upload a CSV file for now.');
+      return;
+    }
+    
     // Load AI learning data first
     try {
       console.log('🧠 Loading AI learning data for file type:', fileType);
@@ -643,7 +650,7 @@ export default function CSVImportFlow() {
             console.log("Processing", allRows.length, "total rows from CSV");
             
             // Auto-categorize individual account line items based on names
-            const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
+            // const accountCol = cols.find((col: string) => /account|name|description|item/.test(col.toLowerCase()));
             // Initialize empty categories - user will categorize manually in preview
             setAccountCategories({});
             
@@ -772,35 +779,35 @@ export default function CSVImportFlow() {
 
 
 
-  const updateAccountCategory = async (accountName: string, category: string) => {
-    setAccountCategories(prev => ({
-      ...prev,
-      [accountName]: category
-    }));
-    
-    // Send correction to AI backend for learning
-    try {
-      await fetch(`${API}/api/learn`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          account_name: accountName,
-          file_type: fileType,
-          user_category: category
-        })
-      });
-      console.log(`🧠 Learned correction: ${accountName} -> ${category}`);
-    } catch (error) {
-      console.warn("Failed to send correction to AI backend:", error);
-    }
-    
-    // Also save to Supabase
-    if (category !== 'uncategorized' && accountName) {
-      saveAILearning(fileType, accountName, category);
-    }
-  };
+  // const updateAccountCategory = async (accountName: string, category: string) => {
+  //   setAccountCategories(prev => ({
+  //     ...prev,
+  //     [accountName]: category
+  //   }));
+  //   
+  //   // Send correction to AI backend for learning
+  //   try {
+  //     await fetch(`${API}/api/learn`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         account_name: accountName,
+  //         file_type: fileType,
+  //         user_category: category
+  //       })
+  //     });
+  //     console.log(`🧠 Learned correction: ${accountName} -> ${category}`);
+  //   } catch (error) {
+  //     console.warn("Failed to send correction to AI backend:", error);
+  //   }
+  //   
+  //   // Also save to Supabase
+  //   if (category !== 'uncategorized' && accountName) {
+  //     saveAILearning(fileType, accountName, category);
+  //   }
+  // };
 
   const updateBucketAssignment = async (accountName: string, bucket: string) => {
     setBucketAssignments(prev => ({
@@ -940,8 +947,8 @@ export default function CSVImportFlow() {
     return suggestions;
   };
 
-  const onChange = (orig: string, field: string) => 
-    setMap(m => ({ ...m, [orig]: { field, score: 1 } }));
+  // const onChange = (orig: string, field: string) => 
+  //   setMap(m => ({ ...m, [orig]: { field, score: 1 } }));
 
   const selectAllItems = () => {
     const allIncluded: Record<string, boolean> = {};
@@ -1310,19 +1317,19 @@ export default function CSVImportFlow() {
       });
 
       // Save to Supabase first
-      const supabaseResult = await saveCSVData({
-        id: csvRecord.id,
-        file_name: csvRecord.fileName,
-        file_type: csvRecord.fileType,
-        uploaded_at: csvRecord.uploadedAt,
-        total_records: csvRecord.totalRecords,
-        account_categories: csvRecord.accountCategories,
-        bucket_assignments: csvRecord.bucketAssignments,
-        included_items: csvRecord.includedItems,
-        tags: csvRecord.tags,
-        is_active: csvRecord.isActive,
-        preview_data: csvRecord.previewData
-      });
+      // const supabaseResult = await saveCSVData({
+      //   id: csvRecord.id,
+      //   file_name: csvRecord.fileName,
+      //   file_type: csvRecord.fileType,
+      //   uploaded_at: csvRecord.uploadedAt,
+      //   total_records: csvRecord.totalRecords,
+      //   account_categories: csvRecord.accountCategories,
+      //   bucket_assignments: csvRecord.bucketAssignments,
+      //   included_items: csvRecord.includedItems,
+      //   tags: csvRecord.tags,
+      //   is_active: csvRecord.isActive,
+      //   preview_data: csvRecord.previewData
+      // });
 
       // Update localStorage
       const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
@@ -1500,10 +1507,10 @@ export default function CSVImportFlow() {
     setManagementLoading(true);
     try {
       // Delete from Supabase first
-      const supabaseResult = await deleteCSVData(csvId);
-      if (supabaseResult) {
-        console.log('✅ CSV deleted from Supabase');
-      }
+      // const supabaseResult = await deleteCSVData(csvId);
+      // if (supabaseResult) {
+      //   console.log('✅ CSV deleted from Supabase');
+      // }
       
       // Remove from localStorage
       const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
@@ -1539,56 +1546,56 @@ export default function CSVImportFlow() {
     }
   };
 
-  const saveManagementChanges = async () => {
-    if (!selectedCSV) return;
-    
-    setManagementSaving(true);
-    try {
-      const updatedCSV = {
-        ...selectedCSV,
-        accountCategories: editingCategories,
-        bucketAssignments: managementBucketAssignments,
-        tags: editingTags,
-        includedItems: managementIncludedItems
-      };
-      
-      // Update in Supabase
-      await saveCSVData({
-        id: updatedCSV.id,
-        file_name: updatedCSV.fileName,
-        file_type: updatedCSV.fileType,
-        uploaded_at: updatedCSV.uploadedAt,
-        total_records: updatedCSV.totalRecords,
-        account_categories: updatedCSV.accountCategories,
-        bucket_assignments: updatedCSV.bucketAssignments,
-        included_items: updatedCSV.includedItems,
-        tags: updatedCSV.tags,
-        is_active: updatedCSV.isActive,
-        preview_data: updatedCSV.previewData
-      });
-      
-      // Update localStorage
-      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-      const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
-        csv.id === updatedCSV.id ? updatedCSV : csv
-      );
-      localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
-      
-      // Update state
-      setSavedCSVs(prev => prev.map(csv => csv.id === updatedCSV.id ? updatedCSV : csv));
-      setSelectedCSV(updatedCSV);
-      
-      // Trigger dashboard update
-      window.dispatchEvent(new CustomEvent('dataUpdated', { 
-        detail: { action: 'csv_updated', csvId: updatedCSV.id } 
-      }));
-      
-    } catch (error) {
-      console.error('Error saving changes:', error);
-    } finally {
-      setManagementSaving(false);
-    }
-  };
+  // const saveManagementChanges = async () => {
+  //   if (!selectedCSV) return;
+  //   
+  //   setManagementSaving(true);
+  //   try {
+  //     const updatedCSV = {
+  //       ...selectedCSV,
+  //       accountCategories: editingCategories,
+  //       bucketAssignments: managementBucketAssignments,
+  //       tags: editingTags,
+  //       includedItems: managementIncludedItems
+  //     };
+  //     
+  //     // Update in Supabase
+  //     await saveCSVData({
+  //       id: updatedCSV.id,
+  //       file_name: updatedCSV.fileName,
+  //       file_type: updatedCSV.fileType,
+  //       uploaded_at: updatedCSV.uploadedAt,
+  //       total_records: updatedCSV.totalRecords,
+  //       account_categories: updatedCSV.accountCategories,
+  //       bucket_assignments: updatedCSV.bucketAssignments,
+  //       included_items: updatedCSV.includedItems,
+  //       tags: updatedCSV.tags,
+  //       is_active: updatedCSV.isActive,
+  //       preview_data: updatedCSV.previewData
+  //     });
+  //     
+  //     // Update localStorage
+  //     const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+  //     const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
+  //       csv.id === updatedCSV.id ? updatedCSV : csv
+  //     );
+  //     localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
+  //     
+  //     // Update state
+  //     setSavedCSVs(prev => prev.map(csv => csv.id === updatedCSV.id ? updatedCSV : csv));
+  //     setSelectedCSV(updatedCSV);
+  //     
+  //     // Trigger dashboard update
+  //     window.dispatchEvent(new CustomEvent('dataUpdated', { 
+  //       detail: { action: 'csv_updated', csvId: updatedCSV.id } 
+  //     }));
+  //     
+  //   } catch (error) {
+  //     console.error('Error saving changes:', error);
+  //   } finally {
+  //     setManagementSaving(false);
+  //   }
+  // };
 
   const calculateCurrentSessionTotals = () => {
     const bucketTotals: Record<string, number> = {};
@@ -1679,7 +1686,7 @@ export default function CSVImportFlow() {
       
       previewData.forEach((item: any) => {
         const accountName = item.account_name;
-        const category = accountCategories[accountName];
+        // const category = accountCategories[accountName];
         const bucket = bucketAssignments[accountName];
         const isIncluded = includedItems[accountName] === true;
         
@@ -1739,83 +1746,83 @@ export default function CSVImportFlow() {
     return bucketTotals;
   };
 
-  const calculateAllBucketedTotals = () => {
-    const bucketTotals: Record<string, number> = {};
-    
-    savedCSVs.forEach(csv => {
-      if (!csv.isActive) return;
-      
-      const previewData = csv.previewData || [];
-      const accountCategories = csv.accountCategories || {};
-      const bucketAssignments = csv.bucketAssignments || {};
-      const includedItems = csv.includedItems || {};
-      
-      previewData.forEach((item: any) => {
-        const accountName = item.account_name;
-        const category = accountCategories[accountName];
-        const bucket = bucketAssignments[accountName];
-        const isIncluded = includedItems[accountName] === true;
-        
-        if (!isIncluded || !item.time_series) return;
-        
-        // Calculate total for this account - use Total column if it exists, otherwise sum months
-        let total = 0;
-        
-        console.log(`🔍 Debug ${accountName} time_series keys:`, Object.keys(item.time_series));
-        console.log(`🔍 Debug ${accountName} time_series values:`, item.time_series);
-        
-        // Check if there's a "Total" column in the time_series (case insensitive)
-        const totalKey = Object.keys(item.time_series).find(key => 
-          key.toLowerCase() === 'total' || 
-          key.toLowerCase() === 'totals' ||
-          key.toLowerCase() === 'grand total' ||
-          key.toLowerCase() === 'sum'
-        );
-        
-        if (totalKey && item.time_series[totalKey] !== undefined && item.time_series[totalKey] !== null) {
-          total = typeof item.time_series[totalKey] === 'number' ? item.time_series[totalKey] : 0;
-          console.log(`📊 ${accountName}: Using ${totalKey} column = ${total}`);
-        } else {
-          // No Total column, sum up the monthly values (excluding any total-like columns)
-          total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
-            // Skip any total-like columns and any non-numeric values
-            if (key.toLowerCase().includes('total') || 
-                key.toLowerCase().includes('sum') || 
-                key.toLowerCase().includes('grand') ||
-                typeof value !== 'number') {
-              return sum;
-            }
-            return sum + value;
-          }, 0);
-          console.log(`📊 ${accountName}: Summed monthly values = ${total}`);
-        }
-        
-        // Add to appropriate bucket
-        if (bucket && bucketTotals[bucket] !== undefined) {
-          bucketTotals[bucket] += total;
-        } else if (category === 'income') {
-          bucketTotals['total_income'] = (bucketTotals['total_income'] || 0) + total;
-        } else if (category === 'expense') {
-          bucketTotals['total_expense'] = (bucketTotals['total_expense'] || 0) + total;
-        }
-      });
-    });
-    
-    // Calculate NOI
-    bucketTotals['net_operating_income'] = (bucketTotals['total_income'] || 0) - (bucketTotals['total_expense'] || 0);
-    
-    return bucketTotals;
-  };
+  // const calculateAllBucketedTotals = () => {
+  //   const bucketTotals: Record<string, number> = {};
+  //   
+  //   savedCSVs.forEach(csv => {
+  //     if (!csv.isActive) return;
+  //     
+  //     const previewData = csv.previewData || [];
+  //     const accountCategories = csv.accountCategories || {};
+  //     const bucketAssignments = csv.bucketAssignments || {};
+  //     const includedItems = csv.includedItems || {};
+  //     
+  //     previewData.forEach((item: any) => {
+  //       const accountName = item.account_name;
+  //       // const category = accountCategories[accountName];
+  //       const bucket = bucketAssignments[accountName];
+  //       const isIncluded = includedItems[accountName] === true;
+  //       
+  //       if (!isIncluded || !item.time_series) return;
+  //       
+  //       // Calculate total for this account - use Total column if it exists, otherwise sum months
+  //       let total = 0;
+  //       
+  //       console.log(`🔍 Debug ${accountName} time_series keys:`, Object.keys(item.time_series));
+  //       console.log(`🔍 Debug ${accountName} time_series values:`, item.time_series);
+  //       
+  //       // Check if there's a "Total" column in the time_series (case insensitive)
+  //       const totalKey = Object.keys(item.time_series).find(key => 
+  //         key.toLowerCase() === 'total' || 
+  //         key.toLowerCase() === 'totals' ||
+  //         key.toLowerCase() === 'grand total' ||
+  //         key.toLowerCase() === 'sum'
+  //       );
+  //       
+  //       if (totalKey && item.time_series[totalKey] !== undefined && item.time_series[totalKey] !== null) {
+  //         total = typeof item.time_series[totalKey] === 'number' ? item.time_series[totalKey] : 0;
+  //         console.log(`📊 ${accountName}: Using ${totalKey} column = ${total}`);
+  //       } else {
+  //         // No Total column, sum up the monthly values (excluding any total-like columns)
+  //         total = Object.entries(item.time_series).reduce((sum: number, [key, value]: [string, any]) => {
+  //           // Skip any total-like columns and any non-numeric values
+  //           if (key.toLowerCase().includes('total') || 
+  //               key.toLowerCase().includes('sum') || 
+  //               key.toLowerCase().includes('grand') ||
+  //               typeof value !== 'number') {
+  //             return sum;
+  //           }
+  //           return sum + value;
+  //         }, 0);
+  //         console.log(`📊 ${accountName}: Summed monthly values = ${total}`);
+  //       }
+  //       
+  //       // Add to appropriate bucket
+  //       if (bucket && bucketTotals[bucket] !== undefined) {
+  //         bucketTotals[bucket] += total;
+  //       } else if (category === 'income') {
+  //         bucketTotals['total_income'] = (bucketTotals['total_income'] || 0) + total;
+  //       } else if (category === 'expense') {
+  //         bucketTotals['total_expense'] = (bucketTotals['total_expense'] || 0) + total;
+  //       }
+  //     });
+  //   });
+  //   
+  //   // Calculate NOI
+  //   bucketTotals['net_operating_income'] = (bucketTotals['total_income'] || 0) - (bucketTotals['total_expense'] || 0);
+  //   
+  //   return bucketTotals;
+  // };
 
   const allBucketTotals = React.useMemo(() => {
     console.log('🔄 Recalculating allBucketTotals due to state change');
     return calculateCombinedBucketTotals();
-  }, [savedCSVs, preview, selectedCSV, accountCategories, bucketAssignments, includedItems]);
+  }, [savedCSVs, preview, selectedCSV, accountCategories, bucketAssignments, includedItems, calculateCombinedBucketTotals]);
 
   const currentSessionTotals = React.useMemo(() => {
     console.log('🔄 Recalculating currentSessionTotals');
     return calculateCurrentSessionTotals();
-  }, [preview, accountCategories, bucketAssignments, includedItems]);
+  }, [preview, accountCategories, bucketAssignments, includedItems, calculateCurrentSessionTotals]);
 
   // Bucket Management Functions
   const addTermToBucket = (bucketKey: string, term: string) => {
@@ -1839,15 +1846,15 @@ export default function CSVImportFlow() {
     setNewTerm('');
   };
 
-  const removeTermFromBucket = (bucketKey: string, term: string) => {
-    setBucketTerms(prev => {
-      const updated = { ...prev };
-      if (updated[bucketKey]) {
-        updated[bucketKey] = updated[bucketKey].filter(t => t !== term);
-      }
-      return updated;
-    });
-  };
+  // const removeTermFromBucket = (bucketKey: string, term: string) => {
+  //   setBucketTerms(prev => {
+  //     const updated = { ...prev };
+  //     if (updated[bucketKey]) {
+  //       updated[bucketKey] = updated[bucketKey].filter(t => t !== term);
+  //     }
+  //     return updated;
+  //   });
+  // };
 
   const saveBucketTerms = () => {
     localStorage.setItem('bucketTerms', JSON.stringify(bucketTerms));
@@ -1911,23 +1918,23 @@ export default function CSVImportFlow() {
     setShowAddBucket(false);
   };
 
-  const removeCustomBucket = (bucketKey: string) => {
-    if (!window.confirm(`Are you sure you want to delete the "${customBuckets[bucketKey]?.label}" bucket? This will also remove all associated terms.`)) {
-      return;
-    }
-    
-    setCustomBuckets(prev => {
-      const updated = { ...prev };
-      delete updated[bucketKey];
-      return updated;
-    });
-    
-    setBucketTerms(prev => {
-      const updated = { ...prev };
-      delete updated[bucketKey];
-      return updated;
-    });
-  };
+  // const removeCustomBucket = (bucketKey: string) => {
+  //   if (!window.confirm(`Are you sure you want to delete the "${customBuckets[bucketKey]?.label}" bucket? This will also remove all associated terms.`)) {
+  //     return;
+  //   }
+  //   
+  //   setCustomBuckets(prev => {
+  //     const updated = { ...prev };
+  //     delete updated[bucketKey];
+  //     return updated;
+  //   });
+  //   
+  //   setBucketTerms(prev => {
+  //     const updated = { ...prev };
+  //     delete updated[bucketKey];
+  //     return updated;
+  //   });
+  // };
 
   const deleteBucket = (bucketKey: string) => {
     const allBuckets = getAllBuckets();
@@ -1991,18 +1998,18 @@ export default function CSVImportFlow() {
     return allBuckets;
   };
 
-  const updateBucketCategory = (bucketKey: string, newCategory: string) => {
-    setBucketCategories(prev => ({
-      ...prev,
-      [bucketKey]: newCategory
-    }));
-    
-    // Save to localStorage
-    localStorage.setItem('bucketCategories', JSON.stringify({
-      ...bucketCategories,
-      [bucketKey]: newCategory
-    }));
-  };
+  // const updateBucketCategory = (bucketKey: string, newCategory: string) => {
+  //   setBucketCategories(prev => ({
+  //     ...prev,
+  //     [bucketKey]: newCategory
+  //   }));
+  //   
+  //   // Save to localStorage
+  //   localStorage.setItem('bucketCategories', JSON.stringify({
+  //     ...bucketCategories,
+  //     [bucketKey]: newCategory
+  //   }));
+  // };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -2228,6 +2235,7 @@ export default function CSVImportFlow() {
               <option value="balance_sheet">Balance Sheet</option>
               <option value="rent_roll">Rent Roll</option>
               <option value="income_statement">Income Statement</option>
+              <option value="pdf">PDF Document</option>
             </select>
             <p className="mt-1 text-xs text-gray-500">
               Select the type of financial document to get better AI mapping suggestions
@@ -2236,12 +2244,12 @@ export default function CSVImportFlow() {
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              CSV File
+              CSV or PDF File
             </label>
             <input 
               key={file ? file.name + file.lastModified : 'file-input'}
               type="file" 
-              accept=".csv" 
+              accept=".csv,.pdf" 
               onChange={e => {
                 const selectedFile = e.target.files?.[0];
                 if (selectedFile) {

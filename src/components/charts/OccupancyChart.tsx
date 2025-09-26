@@ -11,7 +11,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import ApiService from '../../services/api';
+// import ApiService from '../../services/api';
 
 ChartJS.register(
   CategoryScale,

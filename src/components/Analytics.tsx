@@ -345,7 +345,7 @@ const Analytics: React.FC = () => {
               total_units: 26
             }));
             
-            setProperties(localProperties);
+            // setProperties(localProperties);
             
             // Calculate detailed analytics from sample data
             const allData = Object.values(localData.data).flat();

@@ -8,6 +8,8 @@ import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVs from './components/CSVs';
 import LandingPage from './components/LandingPage';
+import OrganizationSetup from './components/OrganizationSetup';
+import Pricing from './components/Pricing';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -18,6 +20,8 @@ import { userAuthService } from './services/userAuthService';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [showOrganizationSetup, setShowOrganizationSetup] = useState(false);
+  const [organizationName, setOrganizationName] = useState<string | null>(null);
   const { isSignedIn, isLoaded, user } = useUser();
   const { signOut } = useClerk();
 
@@ -25,8 +29,18 @@ function AppContent() {
   useEffect(() => {
     if (isSignedIn && user) {
       userAuthService.setCurrentUser(user);
+      // Check if user has an organization
+      // For now, we'll show the setup for new users
+      const hasOrganization = localStorage.getItem('organizationName');
+      if (!hasOrganization) {
+        setShowOrganizationSetup(true);
+      } else {
+        setOrganizationName(hasOrganization);
+      }
     } else if (!isSignedIn) {
       userAuthService.clearUser();
+      setShowOrganizationSetup(false);
+      setOrganizationName(null);
     }
   }, [isSignedIn, user]);
 
@@ -50,8 +64,44 @@ function AppContent() {
     try {
       await signOut();
       userAuthService.clearUser();
+      localStorage.removeItem('organizationName');
     } catch (error) {
       console.error('Error during logout:', error);
+    }
+  };
+
+  // Handle organization setup completion
+  const handleOrganizationComplete = (name: string) => {
+    setOrganizationName(name);
+    setShowOrganizationSetup(false);
+    localStorage.setItem('organizationName', name);
+  };
+
+  // Handle organization setup skip
+  const handleOrganizationSkip = () => {
+    setShowOrganizationSetup(false);
+    setOrganizationName('My Organization');
+    localStorage.setItem('organizationName', 'My Organization');
+  };
+
+  // Handle subscription
+  const handleSubscribe = async (plan: string, properties: number) => {
+    if (!user) return;
+    
+    try {
+      // Import stripeService dynamically to avoid issues
+      const { createCheckoutSession } = await import('./services/stripeService');
+      
+      await createCheckoutSession({
+        plan,
+        properties,
+        userId: user.id,
+        userEmail: user.primaryEmailAddress?.emailAddress || '',
+        organizationId: organizationName || undefined,
+      });
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      // You could show a toast notification here
     }
   };
 
@@ -69,6 +119,8 @@ function AppContent() {
         return <CSVs />;
       case 'reports':
         return <Reports />;
+      case 'pricing':
+        return <Pricing onSubscribe={handleSubscribe} />;
       default:
         return <Dashboard />;
     }
@@ -88,10 +140,25 @@ function AppContent() {
     return <LandingPage />;
   }
 
-  // Show dashboard if user is signed in
+  // Show organization setup if user is signed in but hasn't set up organization
+  if (showOrganizationSetup) {
+    return (
+      <OrganizationSetup
+        onComplete={handleOrganizationComplete}
+        onSkip={handleOrganizationSkip}
+      />
+    );
+  }
+
+  // Show dashboard if user is signed in and has organization
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} onLogout={handleLogout} />
+      <Sidebar 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+        onLogout={handleLogout}
+        organizationName={organizationName}
+      />
       <main className="flex-1 overflow-y-auto">
         <div className="p-6 pb-12">
           {renderPage()}
