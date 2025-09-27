@@ -517,10 +517,10 @@ const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's what's happening with your properties.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Welcome back! Here's what's happening with your properties.</p>
           {error && (
-            <div className="mt-2 text-sm text-red-600 flex items-center">
+            <div className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
               <AlertCircle className="w-4 h-4 mr-1" />
               {error}
             </div>
@@ -533,10 +533,10 @@ const Dashboard: React.FC = () => {
             className="btn-secondary flex items-center"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh Data
+            Refresh
           </button>
           <button className="btn-secondary">
-            Export Report
+            Export
           </button>
           <button className="btn-primary">
             Add Property
@@ -549,28 +549,28 @@ const Dashboard: React.FC = () => {
         {metrics.map((metric, index) => {
           const Icon = metric.icon;
           return (
-            <div key={index} className="metric-card">
+            <div key={index} className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{metric.title}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric.title}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{metric.value}</p>
                   <p className={`text-sm mt-1 ${
-                    metric.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                    metric.changeType === 'positive' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}>
                     {metric.change} from last month
                   </p>
                 </div>
                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                  metric.color === 'blue' ? 'bg-blue-100' :
-                  metric.color === 'green' ? 'bg-green-100' :
-                  metric.color === 'purple' ? 'bg-purple-100' :
-                  'bg-orange-100'
+                  metric.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                  metric.color === 'green' ? 'bg-green-100 dark:bg-green-900/20' :
+                  metric.color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/20' :
+                  'bg-orange-100 dark:bg-orange-900/20'
                 }`}>
                   <Icon className={`w-6 h-6 ${
-                    metric.color === 'blue' ? 'text-blue-600' :
-                    metric.color === 'green' ? 'text-green-600' :
-                    metric.color === 'purple' ? 'text-purple-600' :
-                    'text-orange-600'
+                    metric.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                    metric.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                    metric.color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
+                    'text-orange-600 dark:text-orange-400'
                   }`} />
                 </div>
               </div>
@@ -592,32 +592,32 @@ const Dashboard: React.FC = () => {
         </div>
       ) : (
         // Show regular charts when no cash flow data
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Trend</h3>
           <RevenueChart properties={properties} />
         </div>
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Occupancy Rate</h3>
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Occupancy Rate</h3>
           <OccupancyChart properties={properties} />
         </div>
       </div>
       )}
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Activity</h3>
           <div className="space-y-4">
             {recentActivities.map((activity) => {
               const Icon = activity.icon;
               return (
                 <div key={activity.id} className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-gray-600" />
+                  <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-900">{activity.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                    <p className="text-sm text-gray-900 dark:text-white">{activity.message}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{activity.time}</p>
                   </div>
                 </div>
               );

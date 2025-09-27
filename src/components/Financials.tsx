@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -110,7 +110,7 @@ const Financials: React.FC = () => {
     }
   };
 
-  const loadPropertyData = async () => {
+  const loadPropertyData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -240,7 +240,7 @@ const Financials: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedProperty]);
 
   // Load property data when selected property changes
   useEffect(() => {
@@ -614,7 +614,7 @@ const Financials: React.FC = () => {
   };
 
   // Calculate expense categories from real data or generate from monthly data
-  const calculateExpenseCategories = () => {
+  const calculateExpenseCategories = useCallback(() => {
     if (!propertyData || propertyData.length === 0) {
       return [];
     }
@@ -658,10 +658,10 @@ const Financials: React.FC = () => {
       { category: 'Property Tax', amount: totalPropertyTax, percentage: (totalPropertyTax / totalExpenses) * 100, color: 'purple' },
       { category: 'Other Expenses', amount: totalOther, percentage: (totalOther / totalExpenses) * 100, color: 'orange' },
     ];
-  };
+  }, [propertyData]);
 
   // Calculate revenue sources from actual data or generate realistic breakdown
-  const calculateRevenueSources = () => {
+  const calculateRevenueSources = useCallback(() => {
     if (!propertyData || propertyData.length === 0) {
       return [];
     }
@@ -687,7 +687,7 @@ const Financials: React.FC = () => {
       { source: 'Pet Fees', amount: 18000, percentage: 3.0 },
       { source: 'Other Income', amount: 18000, percentage: 3.0 },
     ];
-  };
+  }, [propertyData]);
 
   // State for async data
   const [financialSummary, setFinancialSummary] = useState({
@@ -702,7 +702,7 @@ const Financials: React.FC = () => {
   const [revenueSources, setRevenueSources] = useState<any[]>([]);
 
   // Function to load financial data
-  const loadFinancialData = async () => {
+  const loadFinancialData = useCallback(async () => {
     try {
       console.log('🔄 Loading financial data from CSV...');
       const summary = await calculateFinancialSummary();
@@ -720,7 +720,7 @@ const Financials: React.FC = () => {
     } catch (error) {
       console.error('Error loading financial data:', error);
     }
-  };
+  }, [calculateExpenseCategories, calculateRevenueSources]);
 
   // Load financial data when component mounts or when CSV data changes
   useEffect(() => {
@@ -753,15 +753,15 @@ const Financials: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Financials</h1>
-          <p className="text-gray-600 mt-1">Real-time financial data from CSV uploads</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Financials</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Real-time financial data from CSV uploads</p>
         </div>
         <div className="flex space-x-3">
           <div className="flex items-center space-x-2">
             <select
               value={selectedProperty}
               onChange={(e) => setSelectedProperty(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               disabled={isLoading}
             >
               <option value="">Select Property</option>
@@ -773,11 +773,11 @@ const Financials: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center space-x-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
+            <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="2024">2024</option>
               <option value="2023">2023</option>
@@ -787,12 +787,12 @@ const Financials: React.FC = () => {
           <button 
             onClick={loadFinancialData}
             disabled={isLoading}
-            className="btn-secondary flex items-center space-x-2"
+            className="btn-secondary flex items-center space-x-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <button className="btn-secondary flex items-center space-x-2">
+          <button className="btn-secondary flex items-center space-x-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">
             <Download className="w-4 h-4" />
             <span>Export</span>
           </button>
@@ -801,9 +801,9 @@ const Financials: React.FC = () => {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 flex items-center">
-          <AlertCircle className="w-5 h-5 text-red-400 mr-3" />
-          <p className="text-sm text-red-800">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4 flex items-center">
+          <AlertCircle className="w-5 h-5 text-red-400 dark:text-red-500 mr-3" />
+          <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
         </div>
       )}
 
@@ -831,44 +831,44 @@ const Financials: React.FC = () => {
       {!isLoading && !error && propertyData.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="metric-card">
+        <div className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 ${financialSummary.totalRevenue.toLocaleString()}
               </p>
-              <p className="text-sm text-green-600 mt-1">+12.5% vs last year</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">+12.5% vs last year</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Expenses</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 ${financialSummary.totalExpenses.toLocaleString()}
               </p>
-              <p className="text-sm text-red-600 mt-1">+3.2% vs last year</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">+3.2% vs last year</p>
             </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <TrendingDown className="w-6 h-6 text-red-600" />
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+              <TrendingDown className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Net Income</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Net Income</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 ${financialSummary.netIncome.toLocaleString()}
               </p>
-              <p className="text-sm text-green-600 mt-1">+18.7% vs last year</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">+18.7% vs last year</p>
             </div>
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-6 h-6 text-green-600" />
@@ -876,32 +876,32 @@ const Financials: React.FC = () => {
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Profit Margin</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Profit Margin</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {financialSummary.profitMargin}%
               </p>
-              <p className="text-sm text-green-600 mt-1">+2.1% vs last year</p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1">+2.1% vs last year</p>
             </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Percent className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+                  <Percent className="w-6 h-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
         </div>
 
-        <div className="metric-card">
+        <div className="metric-card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Average</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Monthly Average</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 ${financialSummary.monthlyAverage.toLocaleString()}
               </p>
-              <p className="text-sm text-gray-500 mt-1">Revenue per month</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Revenue per month</p>
             </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ import CSVs from './components/CSVs';
 import LandingPage from './components/LandingPage';
 import OrganizationSetup from './components/OrganizationSetup';
 import Pricing from './components/Pricing';
+import DarkModeToggle from './components/DarkModeToggle';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -152,7 +153,7 @@ function AppContent() {
 
   // Show dashboard if user is signed in and has organization
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
       <Sidebar 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
@@ -164,6 +165,7 @@ function AppContent() {
           {renderPage()}
         </div>
       </main>
+      <DarkModeToggle />
     </div>
   );
 }

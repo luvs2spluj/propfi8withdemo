@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import { FieldSuggestion } from "./HeaderMapper";
-import { saveCSVData, getAILearning, saveAILearning, getCSVData, deleteCSVData } from "../lib/supabase";
+import { getAILearning, saveAILearning, getCSVData } from "../lib/supabase";
 import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
 // import { userAuthService } from '../services/userAuthService';
 
@@ -155,7 +155,6 @@ export default function CSVImportFlow() {
   const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
   const [aiLearningData, setAiLearningData] = useState<any[]>([]);
   const [includedItems, setIncludedItems] = useState<Record<string, boolean>>({});
   const [bucketAssignments, setBucketAssignments] = useState<Record<string, string>>({});
@@ -169,20 +168,18 @@ export default function CSVImportFlow() {
   // CSV Management state
   const [savedCSVs, setSavedCSVs] = useState<any[]>([]);
   const [selectedCSV, setSelectedCSV] = useState<any | null>(null);
+  const [managementPreviewMode, setManagementPreviewMode] = useState(false);
+  const [managementLoading, setManagementLoading] = useState(false);
+  const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({});
+  const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({});
+  const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
   const [editingCategories, setEditingCategories] = useState<Record<string, string>>({});
   const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({});
   const [editingTags, setEditingTags] = useState<Record<string, string[]>>({});
-  const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({});
-  const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({});
-  const [managementLoading, setManagementLoading] = useState(false);
-  const [managementSaving] = useState(false);
   const [showManagementPreview, setShowManagementPreview] = useState(false);
-  const [managementPreviewMode, setManagementPreviewMode] = useState(false);
   
   // Bucket Management state
   const [bucketTerms, setBucketTerms] = useState<Record<string, string[]>>({});
-  const [editingBucket] = useState<string | null>(null);
-  const [newTerm, setNewTerm] = useState<string>('');
   const [showBucketManagement, setShowBucketManagement] = useState(false);
   const [customBuckets, setCustomBuckets] = useState<Record<string, any>>({});
   const [showAddBucket, setShowAddBucket] = useState(false);
@@ -191,6 +188,7 @@ export default function CSVImportFlow() {
   const [newBucketDescription, setNewBucketDescription] = useState<string>('');
   const [newBucketCategory, setNewBucketCategory] = useState<string>('income');
   const [bucketCategories, setBucketCategories] = useState<Record<string, string>>({});
+  const [newTerm, setNewTerm] = useState<string>('');
 
   // Load AI learning data when file type changes
   useEffect(() => {
@@ -1817,12 +1815,12 @@ export default function CSVImportFlow() {
   const allBucketTotals = React.useMemo(() => {
     console.log('🔄 Recalculating allBucketTotals due to state change');
     return calculateCombinedBucketTotals();
-  }, [savedCSVs, preview, selectedCSV, accountCategories, bucketAssignments, includedItems, calculateCombinedBucketTotals]);
+  }, [savedCSVs, preview, selectedCSV, bucketAssignments, includedItems, calculateCombinedBucketTotals]);
 
   const currentSessionTotals = React.useMemo(() => {
     console.log('🔄 Recalculating currentSessionTotals');
     return calculateCurrentSessionTotals();
-  }, [preview, accountCategories, bucketAssignments, includedItems, calculateCurrentSessionTotals]);
+  }, [preview, bucketAssignments, includedItems, calculateCurrentSessionTotals]);
 
   // Bucket Management Functions
   const addTermToBucket = (bucketKey: string, term: string) => {
@@ -2102,15 +2100,15 @@ export default function CSVImportFlow() {
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full text-left px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 flex items-center justify-between whitespace-nowrap ${
-            selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white'
-          } ${isFromAILearning ? 'ring-2 ring-blue-300' : ''}`}
+          className={`w-full text-left px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 flex items-center justify-between whitespace-nowrap bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+            selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white dark:bg-gray-700'
+          } ${isFromAILearning ? 'ring-2 ring-blue-300 dark:ring-blue-600' : ''}`}
         >
           <span className="truncate flex items-center">
             {selectedOption ? `${selectedOption.bucket.icon} ${selectedOption.bucket.label}` : 'Select bucket...'}
-            {isFromAILearning && <span className="ml-1 text-blue-500" title="Auto-categorized from previous uploads">🧠</span>}
+            {isFromAILearning && <span className="ml-1 text-blue-500 dark:text-blue-400" title="Auto-categorized from previous uploads">🧠</span>}
           </span>
-          <span className="text-gray-400 flex-shrink-0 ml-2">⌄</span>
+          <span className="text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">⌄</span>
         </button>
 
         {isOpen && (
@@ -2121,7 +2119,7 @@ export default function CSVImportFlow() {
                 placeholder="Search buckets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
@@ -2138,12 +2136,12 @@ export default function CSVImportFlow() {
                     setIsOpen(false);
                     setSearchTerm('');
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 flex items-center justify-between whitespace-nowrap ${getDropdownOptionStyle(bucketCategory)}`}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between whitespace-nowrap ${getDropdownOptionStyle(bucketCategory)}`}
                 >
                   <span className="truncate">
                     {bucket.icon} {bucket.label}
                   </span>
-                  {isSuggested && <span className="text-yellow-500 flex-shrink-0 ml-2">✨</span>}
+                  {isSuggested && <span className="text-yellow-500 dark:text-yellow-400 flex-shrink-0 ml-2">✨</span>}
                 </button>
               );
             })}
@@ -2203,15 +2201,15 @@ export default function CSVImportFlow() {
   return (
     <div className="space-y-6">
       {/* CSV Import with AI Parser */}
-    <div className="space-y-4 p-4 border rounded-lg">
-      <h3 className="text-lg font-semibold">CSV Import with AI Parser</h3>
+    <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">CSV Import with AI Parser</h3>
       
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4">
           <div className="flex">
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-300">Error</h3>
+              <div className="mt-2 text-sm text-red-700 dark:text-red-400">
                 <p>{error}</p>
               </div>
             </div>
@@ -2222,13 +2220,13 @@ export default function CSVImportFlow() {
       <div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               File Type
             </label>
             <select 
               value={fileType} 
               onChange={e => setFileType(e.target.value as FileType)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="general">General CSV</option>
               <option value="cash_flow">Cash Flow Statement</option>
@@ -2237,13 +2235,13 @@ export default function CSVImportFlow() {
               <option value="income_statement">Income Statement</option>
               <option value="pdf">PDF Document</option>
             </select>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Select the type of financial document to get better AI mapping suggestions
             </p>
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               CSV or PDF File
             </label>
             <input 
@@ -2256,7 +2254,7 @@ export default function CSVImportFlow() {
                   handleFile(selectedFile);
                 }
               }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/20 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/30"
             />
           </div>
         </div>
@@ -2265,7 +2263,7 @@ export default function CSVImportFlow() {
       {!!headers.length && (
         <div className="flex gap-3">
           <button 
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" 
+            className="px-4 py-2 rounded bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50" 
             onClick={previewImport}
             disabled={loading}
           >
@@ -2275,7 +2273,7 @@ export default function CSVImportFlow() {
           {hasPreviewed && (
             <button 
               className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
-                loading ? 'bg-gray-400 cursor-not-allowed' : saved ? 'bg-green-600 hover:bg-green-700' : 'bg-green-600 hover:bg-green-700'
+                loading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : saved ? 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600' : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600'
               }`}
               onClick={saveToDatabase}
               disabled={loading}
@@ -2288,31 +2286,31 @@ export default function CSVImportFlow() {
       
       {!!preview.length && (
         <div>
-          <h4 className="text-md font-medium mb-2">CSV Data Preview</h4>
-          <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-800">
+          <h4 className="text-md font-medium mb-2 text-gray-900 dark:text-white">CSV Data Preview</h4>
+          <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-md">
+            <p className="text-sm text-green-800 dark:text-green-300">
               <strong>✅ Auto-Processed:</strong> {preview.length} records loaded and analyzed automatically. 
               Review the AI categorization below and click "Save to Database" when ready.
             </p>
           </div>
           
           {/* CSV Data Table with Categorization */}
-          <div className="border rounded-lg overflow-hidden bg-white">
-            <div className="bg-blue-50 px-4 py-3 border-b">
-              <h5 className="font-medium text-blue-900">📊 CSV Data with Categorization v.1 beta</h5>
-              <p className="text-sm text-blue-700 mt-1">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+            <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h5 className="font-medium text-blue-900 dark:text-blue-300">📊 CSV Data with Categorization v.1 beta</h5>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 The AI Parser this tool uses isnt yet perfect. Please help by selecting and categorizing line items as "Income" or "Expense".
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Look for Total Income, Total Expense, and Net Operating Income. Deselect all other Total Items.
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Keep adjusting the income/expense column until the summed total of items matches the selected total.
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Income/Expense items should match Total Income/Expense by the end to correctly populate the data page.
               </p>
-              <p className="text-sm text-blue-700 mt-1">
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
                 Income/Expense will indicate a "Match" in the Income/Expense Summary Section once the total line items match the user's selected line item nominated as the Total Income/Expense line.
               </p>
               
@@ -2320,40 +2318,40 @@ export default function CSVImportFlow() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   onClick={selectAllItems}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
                 >
                   ✅ Select All
                 </button>
                 <button
                   onClick={deselectAllItems}
-                  className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
                   ❌ Deselect All
                 </button>
                 <button
                   onClick={() => selectByCategory('income')}
-                  className="px-3 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
                 >
                   💰 Select Income Only
                 </button>
                 <button
                   onClick={() => selectByCategory('expense')}
-                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors"
+                  className="px-3 py-1 text-xs bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-900/30 transition-colors"
                 >
                   💸 Select Expense Only
                 </button>
                 
                 {/* Multi-Select Controls */}
-                <div className="ml-4 pl-4 border-l border-blue-200">
+                <div className="ml-4 pl-4 border-l border-blue-200 dark:border-blue-700">
                   <button
                     onClick={selectAllRows}
-                    className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                    className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
                   >
                     📋 Select All Rows
                   </button>
                   <button
                     onClick={clearSelection}
-                    className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors ml-2"
+                    className="px-3 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ml-2"
                   >
                     🚫 Clear Selection
                 </button>
@@ -2393,24 +2391,24 @@ export default function CSVImportFlow() {
             
             <div className="overflow-x-auto max-h-[36rem]">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-50 sticky top-0">
+                <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
                   <tr>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b sticky left-0 bg-gray-50 z-10">Include</th>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b sticky left-12 bg-gray-50 z-10">Select</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-700 border-b sticky left-24 bg-gray-50 z-10">Account Name</th>
-                    <th className="px-3 py-2 text-center font-medium text-gray-700 border-b">Dashboard Bucket</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 sticky left-0 bg-gray-50 dark:bg-gray-700 z-10">Include</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 sticky left-12 bg-gray-50 dark:bg-gray-700 z-10">Select</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 sticky left-24 bg-gray-50 dark:bg-gray-700 z-10">Account Name</th>
+                    <th className="px-3 py-2 text-center font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">Dashboard Bucket</th>
                     {(() => {
                       // Find the first row with time_series data to generate headers
                       const headerRow = preview.find(row => row.time_series && Object.keys(row.time_series).length > 0);
                       return headerRow?.time_series ? Object.keys(headerRow.time_series).map((key) => (
-                        <th key={key} className="px-3 py-2 text-right font-medium text-gray-700 border-b">
+                        <th key={key} className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600">
                           {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                         </th>
                       )) : [];
                     })()}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                   {preview.map((row: any, index: number) => {
                     const accountName = row.account_name;
                     const timeSeries = row.time_series || {};
@@ -2422,8 +2420,8 @@ export default function CSVImportFlow() {
                     }
                     
                     return (
-                      <tr key={index} className={`hover:bg-gray-50 ${!isIncluded ? 'opacity-50 bg-gray-100' : ''}`}>
-                        <td className="px-3 py-2 text-center border-b sticky left-0 bg-white z-10">
+                      <tr key={index} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${!isIncluded ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}>
+                        <td className="px-3 py-2 text-center border-b border-gray-200 dark:border-gray-600 sticky left-0 bg-white dark:bg-gray-800 z-10">
                           <input
                             type="checkbox"
                             checked={isIncluded}
@@ -2433,23 +2431,23 @@ export default function CSVImportFlow() {
                                 [accountName]: e.target.checked
                               }));
                             }}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            className="w-4 h-4 text-blue-600 dark:text-blue-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-2"
                           />
                         </td>
-                        <td className="px-3 py-2 text-center border-b sticky left-12 bg-white z-10">
+                        <td className="px-3 py-2 text-center border-b border-gray-200 dark:border-gray-600 sticky left-12 bg-white dark:bg-gray-800 z-10">
                           <input
                             type="checkbox"
                             checked={selectedRows.has(accountName)}
                             onChange={() => toggleRowSelection(accountName)}
-                            className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                            className="w-4 h-4 text-purple-600 dark:text-purple-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400 focus:ring-2"
                           />
                         </td>
-                        <td className="px-3 py-2 text-gray-900 border-b sticky left-24 bg-white z-10">
+                        <td className="px-3 py-2 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 sticky left-24 bg-white dark:bg-gray-800 z-10">
                           <div className="max-w-xs truncate font-medium" title={String(accountName)}>
                             {accountName || '-'}
                           </div>
                         </td>
-                        <td className="px-3 py-2 border-b">
+                        <td className="px-3 py-2 border-b border-gray-200 dark:border-gray-600">
                           <div className="space-y-1">
                             {/* Bucket Selection Dropdown */}
                             {(() => {
@@ -2488,7 +2486,7 @@ export default function CSVImportFlow() {
                           const headerKeys = headerRow?.time_series ? Object.keys(headerRow.time_series) : [];
                           
                           return headerKeys.map((month, cellIndex) => (
-                            <td key={cellIndex} className="px-3 py-2 text-gray-900 border-b text-right">
+                            <td key={cellIndex} className="px-3 py-2 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 text-right">
                               <div className="max-w-xs truncate font-mono text-xs" title={String(timeSeries[month] || 0)}>
                                 {timeSeries[month] !== null && timeSeries[month] !== undefined ? 
                                   new Intl.NumberFormat('en-US', {
@@ -3267,7 +3265,7 @@ export default function CSVImportFlow() {
                           })()}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
                         {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
                           const timeSeries = row.time_series || {};
                           return (

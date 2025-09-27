@@ -155,41 +155,41 @@ const Reports: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
-          <p className="text-gray-600 mt-1">Generate and manage your property reports</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Reports</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Generate and manage your property reports</p>
         </div>
-        <button className="btn-primary flex items-center space-x-2">
+        <button className="btn-primary flex items-center space-x-2 dark:bg-blue-700 dark:hover:bg-blue-600">
           <Plus className="w-4 h-4" />
           <span>New Report</span>
         </button>
       </div>
 
       {/* Report Templates */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Report Templates</h3>
+      <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Report Templates</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {reportTemplates.map((template, index) => {
             const Icon = template.icon;
             return (
               <button
                 key={index}
-                className="p-4 border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-colors duration-200 text-left"
+                className="p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors duration-200 text-left bg-gray-50 dark:bg-gray-700"
               >
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${
-                  template.color === 'green' ? 'bg-green-100' :
-                  template.color === 'blue' ? 'bg-blue-100' :
-                  template.color === 'orange' ? 'bg-orange-100' :
-                  'bg-purple-100'
+                  template.color === 'green' ? 'bg-green-100 dark:bg-green-900/20' :
+                  template.color === 'blue' ? 'bg-blue-100 dark:bg-blue-900/20' :
+                  template.color === 'orange' ? 'bg-orange-100 dark:bg-orange-900/20' :
+                  'bg-purple-100 dark:bg-purple-900/20'
                 }`}>
                   <Icon className={`w-5 h-5 ${
-                    template.color === 'green' ? 'text-green-600' :
-                    template.color === 'blue' ? 'text-blue-600' :
-                    template.color === 'orange' ? 'text-orange-600' :
-                    'text-purple-600'
+                    template.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                    template.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                    template.color === 'orange' ? 'text-orange-600 dark:text-orange-400' :
+                    'text-purple-600 dark:text-purple-400'
                   }`} />
                 </div>
-                <h4 className="font-medium text-gray-900 mb-1">{template.name}</h4>
-                <p className="text-sm text-gray-500">{template.description}</p>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-1">{template.name}</h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{template.description}</p>
               </button>
             );
           })}
@@ -197,14 +197,14 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="card">
+      <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-400" />
+            <Filter className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="all">All Types</option>
               <option value="financial">Financial</option>
@@ -214,11 +214,11 @@ const Reports: React.FC = () => {
             </select>
           </div>
           <div className="flex items-center space-x-2">
-            <FileText className="w-4 h-4 text-gray-400" />
+            <FileText className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             <select
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="all">All Formats</option>
               <option value="PDF">PDF</option>
@@ -230,28 +230,28 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Reports List */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reports</h3>
+      <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Reports</h3>
         <div className="space-y-4">
           {filteredReports.map((report) => {
             const TypeIcon = getTypeIcon(report.type);
             return (
-              <div key={report.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+              <div key={report.id} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 bg-gray-50 dark:bg-gray-700">
                 <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <TypeIcon className="w-5 h-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                    <TypeIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{report.title}</h4>
-                    <p className="text-sm text-gray-500">{report.description}</p>
+                    <h4 className="font-medium text-gray-900 dark:text-white">{report.title}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{report.description}</p>
                     <div className="flex items-center space-x-4 mt-1">
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         Created: {new Date(report.createdDate).toLocaleDateString()}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         Size: {report.size}
                       </span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         Format: {report.format}
                       </span>
                     </div>
@@ -262,11 +262,11 @@ const Reports: React.FC = () => {
                     {report.status}
                   </span>
                   <div className="flex space-x-1">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                    <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200">
                       <Eye className="w-4 h-4" />
                     </button>
                     <button 
-                      className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
                       disabled={report.status !== 'ready'}
                     >
                       <Download className="w-4 h-4" />

@@ -16,10 +16,10 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
   fallbackSrcs
 }) => {
   const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-12 h-12',
-    lg: 'w-16 h-16',
-    xl: 'w-20 h-20'
+    sm: 'w-10 h-10',
+    md: 'w-14 h-14',
+    lg: 'w-20 h-20',
+    xl: 'w-24 h-24'
   };
 
   const textSizeClasses = {
@@ -29,7 +29,9 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
     xl: 'text-2xl'
   };
 
-  const initialSrc = useMemo(() => imageSrc, [imageSrc]);
+  // Use the new PropFi SVG logo as the primary source
+  const svgSrc = process.env.PUBLIC_URL + '/propfi logo copy.svg';
+  const initialSrc = useMemo(() => imageSrc || svgSrc, [imageSrc, svgSrc]);
   const [activeSrc, setActiveSrc] = useState<string | undefined>(initialSrc);
   const [fallbackIndex, setFallbackIndex] = useState<number>(0);
 
@@ -44,14 +46,14 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Logo Graphic */}
-      <div className={`${sizeClasses[size]} relative`}>
+      {/* Logo Graphic with Blue Border */}
+      <div className={`${sizeClasses[size]} relative border-2 border-blue-500 rounded-lg p-1 bg-white shadow-sm`}>
         {activeSrc ? (
-          <img src={activeSrc} onError={handleImgError} alt="PropFi" className="w-full h-full object-contain" />
+          <img src={activeSrc} onError={handleImgError} alt="PropFi" className="w-full h-full object-contain rounded" />
         ) : (
         <svg
           viewBox="0 0 100 100"
-          className="w-full h-full"
+          className="w-full h-full rounded"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -112,11 +114,11 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
       </div>
 
       {/* Text */}
-              {showText && (
-                <span className={`font-bold text-gray-900 ${textSizeClasses[size]}`}>
-                  PropFi
-                </span>
-              )}
+      {showText && (
+        <span className={`font-bold text-gray-900 ${textSizeClasses[size]}`}>
+          PropFi
+        </span>
+      )}
     </div>
   );
 };

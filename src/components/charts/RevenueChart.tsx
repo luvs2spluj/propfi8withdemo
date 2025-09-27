@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -163,13 +163,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
     return chartData;
   };
 
-  useEffect(() => {
-    if (properties.length > 0) {
-      loadChartData();
-    }
-  }, [properties]);
-
-  const loadChartData = async () => {
+  const loadChartData = useCallback(async () => {
     try {
       setIsLoading(true);
       console.log('Loading chart data from ACTIVE CSVs only:', properties);
@@ -234,7 +228,13 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
       setChartData([]);
       setIsLoading(false);
     }
-  };
+  }, [properties]);
+
+  useEffect(() => {
+    if (properties.length > 0) {
+      loadChartData();
+    }
+  }, [properties, loadChartData]);
 
   // Listen for data updates to refresh chart
   useEffect(() => {
@@ -245,7 +245,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
 
     window.addEventListener('dataUpdated', handleDataUpdate);
     return () => window.removeEventListener('dataUpdated', handleDataUpdate);
-  }, [properties]);
+  }, [loadChartData]);
 
   // Filter data based on selected property
   const filteredData = selectedProperty === 'all' 

@@ -2,7 +2,6 @@ import React from 'react';
 import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/clerk-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
 import PropifyLogo from './PropifyLogo';
 import { 
   Building2, 
@@ -10,9 +9,10 @@ import {
   FileText, 
   TrendingUp, 
   Shield, 
-  Zap,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  MapPin,
+  Printer
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
@@ -30,9 +30,9 @@ const LandingPage: React.FC = () => {
       description: "Live dashboards with interactive charts and comprehensive financial insights"
     },
     {
-      icon: <Building2 className="h-6 w-6" />,
-      title: "Property Management",
-      description: "Track multiple properties with detailed cash flow analysis and performance metrics"
+      icon: <MapPin className="h-6 w-6" />,
+      title: "AI Powered Metric Benchmarking",
+      description: "Compare your property performance against local market averages with AI-driven insights tailored to your specific geographic area and property type"
     },
     {
       icon: <TrendingUp className="h-6 w-6" />,
@@ -45,9 +45,9 @@ const LandingPage: React.FC = () => {
       description: "Enterprise-grade security with data encryption and secure cloud storage"
     },
     {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Lightning Fast",
-      description: "Optimized performance with real-time updates and instant data processing"
+      icon: <Printer className="h-6 w-6" />,
+      title: "Generate and Print Reports",
+      description: "Create professional financial reports, cash flow statements, and property performance summaries with customizable templates and one-click printing"
     }
   ];
 
@@ -61,11 +61,6 @@ const LandingPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <PropifyLogo 
               size="md" 
-              imageSrc={process.env.PUBLIC_URL + '/propify-logo.png'}
-              fallbackSrcs={[
-                process.env.PUBLIC_URL + '/propify-logo.jpeg',
-                process.env.PUBLIC_URL + '/propify-logo.jpg'
-              ]}
             />
             
             <div className="flex items-center space-x-4">
@@ -99,18 +94,11 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
-          <Badge variant="secondary" className="mb-4">
-            🚀 Now with AI-Powered CSV Processing
-          </Badge>
           
           <div className="flex justify-center mb-6">
             <PropifyLogo 
               size="xl" 
-              imageSrc={process.env.PUBLIC_URL + '/propify-logo.png'}
-              fallbackSrcs={[
-                process.env.PUBLIC_URL + '/propify-logo.jpeg',
-                process.env.PUBLIC_URL + '/propify-logo.jpg'
-              ]}
+              showText={false}
             />
           </div>
           

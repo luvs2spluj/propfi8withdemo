@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Force light mode for Organization Setup */
+.light-mode-only {
+  color-scheme: light !important;
+}
+
+.light-mode-only * {
+  color-scheme: light !important;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

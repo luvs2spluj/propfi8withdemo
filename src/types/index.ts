@@ -12,6 +12,7 @@ export type Page =
   | 'properties' 
   | 'csvs'
   | 'reports'
+  | 'team-management'
   | 'pricing';
 
 export interface NavigationProps {

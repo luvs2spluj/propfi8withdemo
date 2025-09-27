@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
@@ -22,13 +22,7 @@ const SubscriptionManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadSubscriptionStatus();
-    }
-  }, [user]);
-
-  const loadSubscriptionStatus = async () => {
+  const loadSubscriptionStatus = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -41,7 +35,13 @@ const SubscriptionManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      loadSubscriptionStatus();
+    }
+  }, [user, loadSubscriptionStatus]);
 
   const handleManageSubscription = async () => {
     if (!subscription?.customerId) return;
@@ -132,8 +132,8 @@ const SubscriptionManagement: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Subscription Management</h2>
-        <p className="text-gray-600">Manage your PropFi subscription and billing</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Subscription & Pricing</h2>
+        <p className="text-gray-600">Manage your PropFi subscription, billing, and pricing</p>
       </div>
 
       {/* Current Subscription Status */}
@@ -269,6 +269,59 @@ const SubscriptionManagement: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Pricing Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Building2 className="w-5 h-5" />
+            <span>Pricing Plans</span>
+          </CardTitle>
+          <CardDescription>Current PropFi pricing structure</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">PropFi Pro</h3>
+                <Badge className="bg-blue-100 text-blue-800">Current Plan</Badge>
+              </div>
+              <div className="text-2xl font-bold text-gray-900 mb-2">
+                $20 <span className="text-sm font-normal text-gray-600">per property per month</span>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Start with a 1-month free trial, then pay only for what you need.
+              </p>
+              <div className="space-y-2">
+                {[
+                  'Unlimited CSV uploads',
+                  'AI-powered categorization',
+                  'Real-time analytics dashboard',
+                  'Team collaboration',
+                  'Data export capabilities',
+                  'Priority support',
+                  'Secure cloud storage'
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-green-500" />
+                    <span className="text-sm text-gray-600">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <Button 
+                onClick={() => window.dispatchEvent(new CustomEvent('navigateToPage', { detail: { page: 'pricing' } }))}
+                variant="outline"
+                className="w-full"
+              >
+                View Full Pricing Details
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
