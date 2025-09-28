@@ -194,14 +194,15 @@ function AppContent() {
   }
 
   // Show organization setup if user is signed in but hasn't set up organization
-  if (showOrganizationSetup) {
-    return (
-      <OrganizationSetup
-        onComplete={handleOrganizationComplete}
-        onSkip={handleOrganizationSkip}
-      />
-    );
-  }
+  // Commented out to show landing page instead
+  // if (showOrganizationSetup) {
+  //   return (
+  //     <OrganizationSetup
+  //       onComplete={handleOrganizationComplete}
+  //       onSkip={handleOrganizationSkip}
+  //     />
+  //   );
+  // }
 
   // Show dashboard if user is signed in and has organization
   return (

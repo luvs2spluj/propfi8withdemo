@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import { FieldSuggestion } from "./HeaderMapper";
-import { getAILearning, saveAILearning, getCSVData } from "../lib/supabase";
+import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/supabase";
 import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
-// import { userAuthService } from '../services/userAuthService';
+import { userAuthService } from '../services/userAuthService';
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5002";
 
@@ -180,7 +180,7 @@ export default function CSVImportFlow() {
   
   // Bucket Management state
   const [bucketTerms, setBucketTerms] = useState<Record<string, string[]>>({});
-  const [showBucketManagement, setShowBucketManagement] = useState(false);
+  const [showBucketManagement, setShowBucketManagement] = useState(true);
   const [customBuckets, setCustomBuckets] = useState<Record<string, any>>({});
   const [showAddBucket, setShowAddBucket] = useState(false);
   const [showBucketPreview, setShowBucketPreview] = useState(false);
@@ -446,7 +446,32 @@ export default function CSVImportFlow() {
   };
 
   // Multi-select functionality
-  const toggleRowSelection = (accountName: string) => {
+  const toggleRowSelection = (accountName: string, event?: React.MouseEvent) => {
+    const isShiftClick = event?.shiftKey;
+    
+    if (isShiftClick && selectedRows.size > 0) {
+      // Shift+click: select range from last selected to current
+      const previewAccountNames = preview.map((row: any) => row.account_name).filter(Boolean);
+      const lastSelectedIndex = previewAccountNames.findIndex(name => selectedRows.has(name));
+      const currentIndex = previewAccountNames.indexOf(accountName);
+      
+      if (lastSelectedIndex !== -1 && currentIndex !== -1) {
+        const startIndex = Math.min(lastSelectedIndex, currentIndex);
+        const endIndex = Math.max(lastSelectedIndex, currentIndex);
+        
+        setSelectedRows(prev => {
+          const newSet = new Set(prev);
+          for (let i = startIndex; i <= endIndex; i++) {
+            newSet.add(previewAccountNames[i]);
+          }
+          setShowBulkToolbar(newSet.size > 0);
+          return newSet;
+        });
+        return;
+      }
+    }
+    
+    // Regular click: toggle single selection
     setSelectedRows(prev => {
       const newSet = new Set(prev);
       if (newSet.has(accountName)) {
@@ -1263,16 +1288,12 @@ export default function CSVImportFlow() {
         }));
       }
 
-      // Filter out excluded items
-      const includedPreviewData = preview.filter((row: any) => 
-        includedItems[row.account_name] === true
-      );
+      // Keep all items for edit mode, but filter for preview mode
+      const includedPreviewData = preview; // Keep all items
       
       const includedAccountCategories: Record<string, string> = {};
       Object.entries(accountCategories).forEach(([accountName, category]) => {
-        if (includedItems[accountName] === true) {
-          includedAccountCategories[accountName] = category;
-        }
+        includedAccountCategories[accountName] = category; // Keep all categories
       });
 
       let csvRecord: any;
@@ -1281,7 +1302,7 @@ export default function CSVImportFlow() {
         // Update existing CSV record
         csvRecord = {
           ...selectedCSV,
-          totalRecords: includedPreviewData.length,
+          totalRecords: preview.length, // Use original preview length
           accountCategories: includedAccountCategories,
           bucketAssignments: generateBucketAssignments(),
           includedItems: includedItems,
@@ -1295,7 +1316,7 @@ export default function CSVImportFlow() {
         fileName: file.name,
         fileType: fileType,
         uploadedAt: new Date().toISOString(),
-        totalRecords: includedPreviewData.length,
+        totalRecords: preview.length, // Use original preview length
         accountCategories: includedAccountCategories,
         bucketAssignments: generateBucketAssignments(),
         includedItems: includedItems,
@@ -1315,19 +1336,30 @@ export default function CSVImportFlow() {
       });
 
       // Save to Supabase first
-      // const supabaseResult = await saveCSVData({
-      //   id: csvRecord.id,
-      //   file_name: csvRecord.fileName,
-      //   file_type: csvRecord.fileType,
-      //   uploaded_at: csvRecord.uploadedAt,
-      //   total_records: csvRecord.totalRecords,
-      //   account_categories: csvRecord.accountCategories,
-      //   bucket_assignments: csvRecord.bucketAssignments,
-      //   included_items: csvRecord.includedItems,
-      //   tags: csvRecord.tags,
-      //   is_active: csvRecord.isActive,
-      //   preview_data: csvRecord.previewData
-      // });
+      try {
+        const currentUser = userAuthService.getCurrentUser();
+        if (currentUser) {
+      const supabaseResult = await saveCSVData({
+        id: csvRecord.id,
+        file_name: csvRecord.fileName,
+        file_type: csvRecord.fileType,
+        uploaded_at: csvRecord.uploadedAt,
+        total_records: csvRecord.totalRecords,
+        account_categories: csvRecord.accountCategories,
+        bucket_assignments: csvRecord.bucketAssignments,
+        included_items: csvRecord.includedItems,
+        tags: csvRecord.tags,
+        is_active: csvRecord.isActive,
+        preview_data: csvRecord.previewData
+          }, currentUser.id);
+          
+          if (supabaseResult) {
+            console.log('✅ CSV data saved to Supabase successfully');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Failed to save to Supabase, using localStorage only:', error);
+      }
 
       // Update localStorage
       const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
@@ -1404,15 +1436,42 @@ export default function CSVImportFlow() {
   };
 
   const handlePreviewCSV = (csv: any) => {
+    // Filter out excluded items for preview mode
+    const includedPreviewData = (csv.previewData || csv.preview_data || []).filter((row: any) => 
+      (csv.includedItems || csv.included_items || {})[row.account_name] === true
+    );
+    
+    const includedAccountCategories: Record<string, string> = {};
+    Object.entries(csv.accountCategories || csv.account_categories || {}).forEach(([accountName, category]) => {
+      if ((csv.includedItems || csv.included_items || {})[accountName] === true) {
+        includedAccountCategories[accountName] = category as string;
+      }
+    });
+    
+    const includedBucketAssignments: Record<string, string> = {};
+    Object.entries(csv.bucketAssignments || csv.bucket_assignments || {}).forEach(([accountName, bucket]) => {
+      if ((csv.includedItems || csv.included_items || {})[accountName] === true) {
+        includedBucketAssignments[accountName] = bucket as string;
+      }
+    });
+    
     setSelectedCSV(csv);
-    setEditingCategories(csv.accountCategories || {});
-    setEditingBuckets(csv.bucketAssignments || {});
-    setManagementBucketAssignments(csv.bucketAssignments || {});
+    setEditingCategories(includedAccountCategories);
+    setEditingBuckets(includedBucketAssignments);
+    setManagementBucketAssignments(includedBucketAssignments);
     setEditingTags(csv.tags || {});
     setManagementIncludedItems(csv.includedItems || {});
     setManagementPreviewMode(true);
     setShowManagementPreview(true);
-    console.log('👁️ Previewing CSV:', csv.fileName);
+    
+    // Load the filtered data into the main preview interface
+    setPreview(includedPreviewData);
+    setAccountCategories(includedAccountCategories);
+    setBucketAssignments(includedBucketAssignments);
+    setIncludedItems(csv.includedItems || {});
+    setHasPreviewed(true);
+    
+    console.log('👁️ Previewing CSV (filtered):', csv.fileName, 'with', includedPreviewData.length, 'included records');
   };
 
   const handleEditCSV = async (csv: any) => {
@@ -1424,7 +1483,11 @@ export default function CSVImportFlow() {
       previewDataCount: (csv.previewData || csv.preview_data || []).length,
       sampleAccountCategories: Object.keys(csv.accountCategories || csv.account_categories || {}).slice(0, 3),
       sampleBucketAssignments: Object.keys(csv.bucketAssignments || csv.bucket_assignments || {}).slice(0, 3),
-      sampleIncludedItems: Object.keys(csv.includedItems || csv.included_items || {}).slice(0, 3)
+      sampleIncludedItems: Object.keys(csv.includedItems || csv.included_items || {}).slice(0, 3),
+      // Debug: Show actual bucket assignments data
+      bucketAssignmentsData: csv.bucketAssignments || csv.bucket_assignments || {},
+      bucketAssignmentsKeys: Object.keys(csv.bucketAssignments || csv.bucket_assignments || {}),
+      bucketAssignmentsValues: Object.values(csv.bucketAssignments || csv.bucket_assignments || {})
     });
     
     // Load AI learning data for this file type
@@ -1454,7 +1517,16 @@ export default function CSVImportFlow() {
     // Load the CSV data into the main preview interface for editing
     setPreview(csv.previewData || csv.preview_data || []);
     setAccountCategories(csv.accountCategories || csv.account_categories || {});
-    setBucketAssignments(csv.bucketAssignments || csv.bucket_assignments || {});
+    
+    // Debug: Log bucket assignments before setting
+    const bucketAssignmentsToLoad = csv.bucketAssignments || csv.bucket_assignments || {};
+    console.log('🪣 Loading bucket assignments:', {
+      source: csv.bucketAssignments ? 'bucketAssignments' : 'bucket_assignments',
+      count: Object.keys(bucketAssignmentsToLoad).length,
+      assignments: bucketAssignmentsToLoad
+    });
+    
+    setBucketAssignments(bucketAssignmentsToLoad);
     setIncludedItems(csv.includedItems || csv.included_items || {});
     setHasPreviewed(true);
     
@@ -2060,13 +2132,14 @@ export default function CSVImportFlow() {
     }
   };
 
-  const ColorCodedDropdown = ({ value, onChange, options, suggestions, className, isFromAILearning }: {
+  const ColorCodedDropdown = ({ value, onChange, options, suggestions, className, isFromAILearning, disabled }: {
     value: string;
     onChange: (value: string) => void;
     options: Array<{ key: string; bucket: any }>;
     suggestions: string[];
     className?: string;
     isFromAILearning?: boolean;
+    disabled?: boolean;
   }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -2099,10 +2172,13 @@ export default function CSVImportFlow() {
       <div className={`relative ${className}`} ref={dropdownRef}>
         <button
           type="button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
           className={`w-full text-left px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400 flex items-center justify-between whitespace-nowrap bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
             selectedOption ? getDropdownOptionStyle(selectedOption.bucket.category) : 'bg-white dark:bg-gray-700'
-          } ${isFromAILearning ? 'ring-2 ring-blue-300 dark:ring-blue-600' : ''}`}
+          } ${isFromAILearning ? 'ring-2 ring-blue-300 dark:ring-blue-600' : ''} ${
+            disabled ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''
+          }`}
         >
           <span className="truncate flex items-center">
             {selectedOption ? `${selectedOption.bucket.icon} ${selectedOption.bucket.label}` : 'Select bucket...'}
@@ -2155,22 +2231,24 @@ export default function CSVImportFlow() {
     const assignments: Record<string, string> = {};
     
     console.log('🔧 Generating bucket assignments for accounts:', Object.keys(accountCategories));
+    console.log('🔧 Current bucket assignments:', bucketAssignments);
     
-    // Use manual bucket assignments first, then fall back to auto-generation
+    // Use existing bucket assignments first, then fall back to auto-generation
     for (const [accountName, category] of Object.entries(accountCategories)) {
       // Check if user has manually assigned a bucket
       if (bucketAssignments[accountName]) {
         assignments[accountName] = bucketAssignments[accountName];
-        console.log(`🪣 ${accountName} → ${bucketAssignments[accountName]} (manual assignment)`);
+        console.log(`🪣 ${accountName} → ${bucketAssignments[accountName]} (existing assignment)`);
         continue;
       }
       
-      // Auto-generate bucket assignment
+      // Auto-generate bucket assignment for new accounts only
       const suggestedBucket = getSuggestedBucket(accountName, category);
       assignments[accountName] = suggestedBucket;
-      console.log(`🤖 ${accountName} → ${suggestedBucket} (auto-generated)`);
+      console.log(`🤖 ${accountName} → ${suggestedBucket} (auto-generated for new account)`);
     }
     
+    console.log('🔧 Final bucket assignments:', assignments);
     return assignments;
   };
 
@@ -2269,18 +2347,6 @@ export default function CSVImportFlow() {
           >
             {loading ? "Processing..." : "🔄 Refresh Preview"}
           </button>
-          
-          {hasPreviewed && (
-            <button 
-              className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
-                loading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : saved ? 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600' : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600'
-              }`}
-              onClick={saveToDatabase}
-              disabled={loading}
-            >
-              {loading ? "Saving..." : saved ? "✅ Saved!" : "💾 Save to Database"}
-            </button>
-          )}
         </div>
       )}
       
@@ -2293,6 +2359,29 @@ export default function CSVImportFlow() {
               Review the AI categorization below and click "Save to Database" when ready.
             </p>
           </div>
+          
+          {/* Save Button - Right after CSV data preview */}
+          {hasPreviewed && !managementPreviewMode && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-300">Ready to Save?</h3>
+                  <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                    Review your bucket assignments below and save your CSV data to the database.
+                  </p>
+                </div>
+            <button 
+                  className={`px-6 py-3 rounded-lg text-white font-semibold transition-colors text-lg ${
+                    loading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : saved ? 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600' : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600'
+              }`}
+              onClick={saveToDatabase}
+              disabled={loading}
+            >
+              {loading ? "Saving..." : saved ? "✅ Saved!" : "💾 Save to Database"}
+            </button>
+              </div>
+        </div>
+          )}
           
           {/* CSV Data Table with Categorization */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
@@ -2328,6 +2417,9 @@ export default function CSVImportFlow() {
                 >
                   ❌ Deselect All
                 </button>
+                <div className="px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded">
+                  💡 Tip: Hold Shift + click to select ranges
+                </div>
                 <button
                   onClick={() => selectByCategory('income')}
                   className="px-3 py-1 text-xs bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-900/30 transition-colors"
@@ -2425,21 +2517,33 @@ export default function CSVImportFlow() {
                           <input
                             type="checkbox"
                             checked={isIncluded}
+                            disabled={managementPreviewMode}
                             onChange={(e) => {
-                              setIncludedItems(prev => ({
-                                ...prev,
-                                [accountName]: e.target.checked
-                              }));
+                              if (!managementPreviewMode) {
+                                setIncludedItems(prev => ({
+                                  ...prev,
+                                  [accountName]: e.target.checked
+                                }));
+                              }
                             }}
-                            className="w-4 h-4 text-blue-600 dark:text-blue-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-2"
+                            className={`w-4 h-4 text-blue-600 dark:text-blue-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-2 ${
+                              managementPreviewMode ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           />
                         </td>
                         <td className="px-3 py-2 text-center border-b border-gray-200 dark:border-gray-600 sticky left-12 bg-white dark:bg-gray-800 z-10">
                           <input
                             type="checkbox"
                             checked={selectedRows.has(accountName)}
-                            onChange={() => toggleRowSelection(accountName)}
-                            className="w-4 h-4 text-purple-600 dark:text-purple-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400 focus:ring-2"
+                            disabled={managementPreviewMode}
+                            onChange={(e) => {
+                              if (!managementPreviewMode) {
+                                toggleRowSelection(accountName, e as any);
+                              }
+                            }}
+                            className={`w-4 h-4 text-purple-600 dark:text-purple-400 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400 focus:ring-2 ${
+                              managementPreviewMode ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
                           />
                         </td>
                         <td className="px-3 py-2 text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-600 sticky left-24 bg-white dark:bg-gray-800 z-10">
@@ -2453,6 +2557,11 @@ export default function CSVImportFlow() {
                             {(() => {
                               const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
                                   const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  
+                                  // Debug: Log bucket assignment for this account
+                                  if (accountName && bucketAssignments[accountName]) {
+                                    console.log(`🪣 Found bucket assignment for ${accountName}:`, bucketAssignments[accountName]);
+                                  }
                               const allBuckets = getAllBuckets();
                               const options = Object.entries(allBuckets).map(([bucketKey, bucket]) => ({
                                 key: bucketKey,
@@ -2475,6 +2584,7 @@ export default function CSVImportFlow() {
                                   suggestions={suggestions}
                                   className="w-full"
                                   isFromAILearning={isFromAILearning}
+                                  disabled={managementPreviewMode}
                                 />
                               );
                             })()}
@@ -2505,8 +2615,19 @@ export default function CSVImportFlow() {
                 </tbody>
               </table>
             </div>
-            <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 border-t">
-              Showing all {preview.length} records
+            <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 border-t flex items-center justify-between">
+              <span>Showing all {preview.length} records</span>
+              {hasPreviewed && !managementPreviewMode && (
+                <button 
+                  className={`px-4 py-2 rounded text-white font-semibold transition-colors text-sm ${
+                    loading ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed' : saved ? 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600' : 'bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600'
+                  }`}
+                  onClick={saveToDatabase}
+                  disabled={loading}
+                >
+                  {loading ? "Saving..." : saved ? "✅ Saved!" : "💾 Save to Database"}
+                </button>
+              )}
             </div>
           </div>
           
@@ -2617,21 +2738,21 @@ export default function CSVImportFlow() {
                                   </div>
                                 </div>
                               </div>
-                                
+                              
                               {incomeMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
                                     <span className="font-medium text-xs">Income Mismatch Detected</span>
                                   </div>
-                                <p className="text-xs text-amber-700 mt-1">
-                                  Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
+                                  <p className="text-xs text-amber-700 mt-1">
+                                    Income Total (${incomeTotal.toLocaleString()}) doesn't match Income Items (${incomeItems.toLocaleString()}). 
                                   Please edit your {fileType === 'cash_flow' ? 'Cash Flow' : 
                                   fileType === 'balance_sheet' ? 'Balance Sheet' : 
                                   fileType === 'rent_roll' ? 'Rent Roll' : 
                                   fileType === 'maintenance_log' ? 'Maintenance Log' : 
                                   'CSV'} data categorization to ensure totals match.
-                                </p>
+                                  </p>
                                 </div>
                               ) : (
                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
@@ -2702,21 +2823,21 @@ export default function CSVImportFlow() {
                                   </div>
                                 </div>
                               </div>
-                                
+                              
                               {expenseMismatch ? (
                                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                                   <div className="flex items-center gap-1 text-amber-800">
                                     <span className="text-amber-600 text-xs">⚠️</span>
                                     <span className="font-medium text-xs">Expense Mismatch Detected</span>
                                   </div>
-                                <p className="text-xs text-amber-700 mt-1">
-                                  Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
+                                  <p className="text-xs text-amber-700 mt-1">
+                                    Expense Total (${expenseTotal.toLocaleString()}) doesn't match Expense Items (${expenseItems.toLocaleString()}). 
                                   Please edit your {fileType === 'cash_flow' ? 'Cash Flow' : 
                                   fileType === 'balance_sheet' ? 'Balance Sheet' : 
                                   fileType === 'rent_roll' ? 'Rent Roll' : 
                                   fileType === 'maintenance_log' ? 'Maintenance Log' : 
                                   'CSV'} data categorization to ensure totals match.
-                                </p>
+                                  </p>
                                 </div>
                               ) : (
                                 <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
@@ -2763,15 +2884,15 @@ export default function CSVImportFlow() {
                                     ${(combinedTotals['cash_amount'] || 0).toLocaleString()}
                                   </div>
                                   <div className="text-xs text-purple-700 mt-1">Cash and cash equivalents</div>
-                                </div>
                               </div>
-                              
-                              {/* Live Updates Notice */}
+                            </div>
+                            
+                            {/* Live Updates Notice */}
                               <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                                <div className="flex items-center gap-2 text-blue-800">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                              <div className="flex items-center gap-2 text-blue-800">
+                                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                                   <span className="text-xs font-medium">Live Updates</span>
-                                </div>
+                              </div>
                                 <p className="text-xs text-blue-700 mt-1">
                                   These totals update automatically as you change bucket assignments or include/exclude items from your {fileType === 'cash_flow' ? 'Cash Flow' : 
                                   fileType === 'balance_sheet' ? 'Balance Sheet' : 
@@ -2789,8 +2910,131 @@ export default function CSVImportFlow() {
                 )}
           
           
-          {/* AI Bucket Management */}
-          <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200">
+
+      {/* CSV Editor Section */}
+      {selectedCSV && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {managementPreviewMode ? '👁️ Preview Mode' : '✏️ Edit Mode'}: {selectedCSV.fileName}
+                </h3>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getFileTypeColor(selectedCSV.fileType)}`}>
+                  {selectedCSV.fileType.replace('_', ' ')}
+                </span>
+                <span className="text-sm text-gray-500">{selectedCSV.totalRecords} records</span>
+            </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedCSV(null)}
+                  className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
+                >
+                  Close
+                </button>
+                {!managementPreviewMode && (
+                  <button
+                    onClick={() => {
+                      // Save changes logic here
+                      console.log('💾 Saving changes for:', selectedCSV.fileName);
+                    }}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
+                  >
+                    Save Changes
+                  </button>
+                )}
+              </div>
+            </div>
+              </div>
+
+          <div className="p-6">
+            {/* Show different content based on mode */}
+            {managementPreviewMode ? (
+              // Preview Mode - Visual Spreadsheet
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">📋 Spreadsheet Preview</h4>
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto max-h-96">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
+                          {(() => {
+                            // Get headers from the first row with time_series data
+                            const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
+                            return headerRow?.time_series ? Object.keys(headerRow.time_series).map((key) => (
+                              <th key={key} className="px-3 py-2 text-right font-medium text-gray-700 border-b">
+                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </th>
+                            )) : [];
+                          })()}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                        {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
+                          const timeSeries = row.time_series || {};
+                          return (
+                            <tr key={index} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 text-gray-900 border-b font-medium">
+                                {row.account_name || '-'}
+                              </td>
+                              {(() => {
+                                const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
+                                const headerKeys = headerRow?.time_series ? Object.keys(headerRow.time_series) : [];
+                                
+                                return headerKeys.map((month, cellIndex) => (
+                                  <td key={cellIndex} className="px-3 py-2 text-gray-900 border-b text-right font-mono text-xs">
+                                    {timeSeries[month] !== null && timeSeries[month] !== undefined ? 
+                                      new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD',
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                      }).format(timeSeries[month]) : '-'}
+                                  </td>
+                                ));
+                              })()}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+            </div>
+                  {selectedCSV.previewData.length > 20 && (
+                    <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 border-t">
+                      Showing first 20 rows of {selectedCSV.previewData.length} total records
+              </div>
+                  )}
+            </div>
+              </div>
+            ) : (
+              // Edit Mode - Show message that data is being edited in main interface
+              <div className="text-center py-8">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <div className="text-blue-600 mb-4">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+            </div>
+                  <h4 className="text-lg font-semibold text-blue-900 mb-2">✏️ Editing in Main Interface</h4>
+                  <p className="text-blue-700 mb-4">
+                    The CSV data with categorization interface is now active above. You can edit bucket assignments, 
+                    include/exclude items, and make changes directly in the main categorization table.
+                  </p>
+                  <div className="text-sm text-blue-600">
+                    <p>• Use the categorization table above to edit your data</p>
+                    <p>• Changes will be saved when you click "Save to Database"</p>
+                    <p>• Close this panel when you're done editing</p>
+          </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AI Bucket Management - Under CSV Management */}
+      <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
                 <div>
@@ -3058,123 +3302,63 @@ export default function CSVImportFlow() {
         </div>
       )}
 
-      {/* CSV Files Management */}
-      <div className="space-y-4 p-4 border rounded-lg">
-          <div className="flex items-center justify-between">
-                <div>
-              <h3 className="text-lg font-semibold">CSV Files Management</h3>
-              <p className="text-gray-600 text-sm">Edit categorizations and manage individual CSV files</p>
-                  </div>
-            <div className="flex gap-2">
+      {/* CSV Files Management - Compact */}
+      <div className="p-3 border rounded-lg bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">📁 CSV Files ({savedCSVs.length})</h3>
+            <div className="flex gap-1">
               <button
                 onClick={loadCSVs}
                 disabled={managementLoading}
-                className="px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-xs font-medium flex items-center gap-1"
-                title="Refresh CSV list from backend"
+                className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-xs flex items-center gap-1"
+                title="Refresh CSV list"
               >
                 <RefreshCw className={`w-3 h-3 ${managementLoading ? 'animate-spin' : ''}`} />
-                Refresh
               </button>
-              <button
-                onClick={() => {
-                  console.log('🔍 DEBUG: Current savedCSVs state:', savedCSVs);
-                  console.log('🔍 DEBUG: LocalStorage savedCSVs:', JSON.parse(localStorage.getItem('savedCSVs') || '[]'));
-                  console.log('🔍 DEBUG: All bucket totals:', calculateCombinedBucketTotals());
-                }}
-                className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
-                title="Debug CSV data"
-              >
-                Debug
-              </button>
-                </div>
+            </div>
           </div>
           
-          {/* CSV List */}
-          <div className="space-y-3">
-            <h4 className="text-md font-medium">Saved CSVs ({savedCSVs.length})</h4>
-            
-            {managementLoading ? (
-              <div className="text-center py-8">
-                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">Loading CSVs...</p>
-              </div>
-            ) : savedCSVs.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                <Database className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 mb-1">No CSV files found</p>
-                <p className="text-xs text-gray-400">Upload a CSV file above to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {savedCSVs.map((csv) => (
-                <div key={csv.id} className={`p-3 border rounded-lg ${csv.isActive ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Database className="w-4 h-4 text-gray-500" />
-                <div>
-                        <h5 className="font-medium text-gray-900 text-sm">{csv.fileName}</h5>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getFileTypeColor(csv.fileType)}`}>
-                            {csv.fileType.replace('_', ' ')}
-                          </span>
-                          <span className="text-xs text-gray-500">{csv.totalRecords} records</span>
-                          <span className={`w-2 h-2 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-                </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handlePreviewCSV(csv)}
-                        className={`p-2 rounded-md transition-colors ${
-                          selectedCSV?.id === csv.id && managementPreviewMode 
-                            ? 'bg-purple-100 text-purple-700 border border-purple-200' 
-                            : 'text-purple-600 hover:bg-purple-100'
-                        }`}
-                        title="Preview spreadsheet data"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleEditCSV(csv)}
-                        className={`p-2 rounded-md transition-colors ${
-                          selectedCSV?.id === csv.id && !managementPreviewMode 
-                            ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                            : 'text-blue-600 hover:bg-blue-100'
-                        }`}
-                        title="Edit categorizations and buckets"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => toggleCSVActive(csv.id)}
-                        className={`p-2 rounded-md transition-colors ${
-                          csv.isActive 
-                            ? 'text-green-600 hover:bg-green-100' 
-                            : 'text-gray-400 hover:bg-gray-100'
-                        }`}
-                        disabled={managementLoading}
-                        title={csv.isActive ? 'Deactivate CSV' : 'Activate CSV'}
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteCSV(csv.id)}
-                        className="p-2 rounded-md text-red-600 hover:bg-red-100 transition-colors"
-                        disabled={managementLoading}
-                        title="Delete CSV"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+          {savedCSVs.length === 0 ? (
+            <p className="text-xs text-gray-500">No CSV files found</p>
+          ) : (
+            <div className="space-y-1">
+              {savedCSVs.slice(0, 3).map((csv) => (
+                <div key={csv.id} className="flex items-center justify-between p-2 bg-white rounded border text-xs">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-3 h-3 text-gray-400" />
+                    <span className="font-medium text-gray-700 truncate max-w-32">{csv.fileName}</span>
+                    <span className={`w-1.5 h-1.5 rounded-full ${csv.isActive ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    Uploaded: {new Date(csv.uploadedAt).toLocaleDateString()}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePreviewCSV(csv)}
+                      className="p-1 text-purple-600 hover:bg-purple-100 rounded"
+                      title="Preview CSV (excludes deselected items)"
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => handleEditCSV(csv)}
+                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                      title="Edit CSV (shows all items)"
+                    >
+                      <Edit3 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => deleteCSV(csv.id)}
+                      className="p-1 text-red-600 hover:bg-red-100 rounded"
+                      title="Delete CSV"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
-                ))}
-              </div>
-            )}
-          </div>
+              ))}
+              {savedCSVs.length > 3 && (
+                <p className="text-xs text-gray-500 text-center">+{savedCSVs.length - 3} more files</p>
+              )}
+            </div>
+          )}
         </div>
 
       {/* Compact Header Mapping */}
@@ -3206,167 +3390,47 @@ export default function CSVImportFlow() {
         </div>
       )}
 
-      {/* CSV Editor Section */}
-      {selectedCSV && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {managementPreviewMode ? '👁️ Preview Mode' : '✏️ Edit Mode'}: {selectedCSV.fileName}
-                </h3>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getFileTypeColor(selectedCSV.fileType)}`}>
-                  {selectedCSV.fileType.replace('_', ' ')}
-                </span>
-                <span className="text-sm text-gray-500">{selectedCSV.totalRecords} records</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedCSV(null)}
-                  className="px-3 py-1.5 bg-gray-600 text-white rounded hover:bg-gray-700 text-xs font-medium"
-                >
-                  Close
-                </button>
-                {!managementPreviewMode && (
-                  <button
-                    onClick={() => {
-                      // Save changes logic here
-                      console.log('💾 Saving changes for:', selectedCSV.fileName);
-                    }}
-                    className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-xs font-medium"
-                  >
-                    Save Changes
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {/* Show different content based on mode */}
-            {managementPreviewMode ? (
-              // Preview Mode - Visual Spreadsheet
-              <div className="mb-6">
-                <h4 className="text-lg font-semibold text-gray-900 mb-4">📋 Spreadsheet Preview</h4>
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <div className="overflow-x-auto max-h-96">
-                    <table className="min-w-full text-sm">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left font-medium text-gray-700 border-b">Account Name</th>
-                          {(() => {
-                            // Get headers from the first row with time_series data
-                            const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
-                            return headerRow?.time_series ? Object.keys(headerRow.time_series).map((key) => (
-                              <th key={key} className="px-3 py-2 text-right font-medium text-gray-700 border-b">
-                                {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                              </th>
-                            )) : [];
-                          })()}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                        {selectedCSV.previewData.slice(0, 20).map((row: any, index: number) => {
-                          const timeSeries = row.time_series || {};
-                          return (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-3 py-2 text-gray-900 border-b font-medium">
-                                {row.account_name || '-'}
-                              </td>
-                              {(() => {
-                                const headerRow = selectedCSV.previewData.find((row: any) => row.time_series && Object.keys(row.time_series).length > 0);
-                                const headerKeys = headerRow?.time_series ? Object.keys(headerRow.time_series) : [];
-                                
-                                return headerKeys.map((month, cellIndex) => (
-                                  <td key={cellIndex} className="px-3 py-2 text-gray-900 border-b text-right font-mono text-xs">
-                                    {timeSeries[month] !== null && timeSeries[month] !== undefined ? 
-                                      new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: 'USD',
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0
-                                      }).format(timeSeries[month]) : '-'}
-                                  </td>
-                                ));
-                              })()}
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {selectedCSV.previewData.length > 20 && (
-                    <div className="px-3 py-2 bg-gray-50 text-sm text-gray-600 border-t">
-                      Showing first 20 rows of {selectedCSV.previewData.length} total records
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              // Edit Mode - Show message that data is being edited in main interface
-              <div className="text-center py-8">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <div className="text-blue-600 mb-4">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                  <h4 className="text-lg font-semibold text-blue-900 mb-2">✏️ Editing in Main Interface</h4>
-                  <p className="text-blue-700 mb-4">
-                    The CSV data with categorization interface is now active above. You can edit bucket assignments, 
-                    include/exclude items, and make changes directly in the main categorization table.
-                  </p>
-                  <div className="text-sm text-blue-600">
-                    <p>• Use the categorization table above to edit your data</p>
-                    <p>• Changes will be saved when you click "Save to Database"</p>
-                    <p>• Close this panel when you're done editing</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Full-width sections below */}
       <div className="space-y-6">
 
-      </div>
+                </div>
       
+
       {/* Data Selection Summary - Moved to bottom */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
           <div className="text-sm font-medium text-blue-800">Total Records</div>
           <div className="text-lg font-bold text-blue-900">{preview.length}</div>
-        </div>
+                        </div>
         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
           <div className="text-sm font-medium text-green-800">✅ Included</div>
           <div className="text-lg font-bold text-green-900">
             {Object.values(includedItems).filter(included => included === true).length}
-          </div>
-        </div>
+                        </div>
+                      </div>
         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
           <div className="text-sm font-medium text-gray-800">❌ Excluded</div>
           <div className="text-lg font-bold text-gray-900">
             {Object.values(includedItems).filter(included => included === false).length}
-          </div>
-        </div>
+                      </div>
+                      </div>
         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
           <div className="text-sm font-medium text-green-800">💰 Income</div>
           <div className="text-lg font-bold text-green-900">
             {Object.entries(accountCategories).filter(([name, cat]) => 
               cat === 'income' && includedItems[name] === true
             ).length}
-          </div>
-        </div>
+                          </div>
+                      </div>
         <div className="bg-red-50 p-3 rounded-lg border border-red-200">
           <div className="text-sm font-medium text-red-800">💸 Expense</div>
           <div className="text-lg font-bold text-red-900">
             {Object.entries(accountCategories).filter(([name, cat]) => 
               cat === 'expense' && includedItems[name] === true
             ).length}
-          </div>
-        </div>
+                    </div>
+                </div>
       </div>
     </div>
     </div>

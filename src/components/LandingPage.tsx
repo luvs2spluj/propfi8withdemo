@@ -135,7 +135,7 @@ const LandingPage: React.FC = () => {
                 </Button>
               </>
             ) : (
-              <Button size="lg" className="text-lg px-8 py-6" onClick={() => window.location.href = '/dashboard'}>
+              <Button size="lg" className="text-lg px-8 py-6" onClick={() => window.dispatchEvent(new CustomEvent('navigateToPage', { detail: { page: 'dashboard' } }))}>
                 Go to Dashboard
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -209,7 +209,7 @@ const LandingPage: React.FC = () => {
               </Button>
             </div>
           ) : (
-            <Button size="lg" variant="secondary" className="text-lg px-8 py-6" onClick={() => window.location.href = '/dashboard'}>
+            <Button size="lg" variant="secondary" className="text-lg px-8 py-6" onClick={() => window.dispatchEvent(new CustomEvent('navigateToPage', { detail: { page: 'dashboard' } }))}>
               Access Dashboard
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
