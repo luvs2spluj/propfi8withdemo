@@ -114,12 +114,12 @@ export const ChartBucketHeader: React.FC<ChartBucketHeaderProps> = ({
       <h3 className="text-lg font-semibold text-gray-900">{chartName}</h3>
       
       <div className="flex items-center space-x-2">
-        {buckets.map((bucketId) => (
+        {buckets.map((bucketId: string) => (
           <BucketIcon
             key={bucketId}
             bucketId={bucketId}
             size="sm"
-            showLabel={false}
+            showLabel={true}
             className={bucketId === primaryBucket ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}
           />
         ))}

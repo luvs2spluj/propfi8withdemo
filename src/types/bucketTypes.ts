@@ -186,6 +186,17 @@ export const BUCKET_DEFINITIONS: Record<string, BucketDefinition> = {
   },
 
   // Key Metrics
+  'occupancy_rate': {
+    id: 'occupancy_rate',
+    name: 'Occupancy Rate',
+    label: 'Occupancy Rate',
+    description: 'Percentage of occupied units',
+    category: 'metric',
+    color: 'bg-blue-100 text-blue-800',
+    icon: '🏠',
+    emoji: '🏠',
+    calculation: 'Occupied Units / Total Units * 100'
+  },
   'net_operating_income': {
     id: 'net_operating_income',
     name: 'Net Operating Income',
@@ -215,31 +226,31 @@ export const CHART_BUCKET_MAPPINGS: ChartBucketMapping[] = [
   {
     chartId: 'revenue-chart',
     chartName: 'Revenue Trend',
-    buckets: ['income_item', 'rental_income', 'other_income', 'total_income'],
+    buckets: ['total_income'],
     primaryBucket: 'total_income'
   },
   {
     chartId: 'occupancy-chart',
     chartName: 'Occupancy Rate',
-    buckets: ['rental_income'], // Occupancy is derived from rental income
-    primaryBucket: 'rental_income'
+    buckets: ['occupancy_rate'],
+    primaryBucket: 'occupancy_rate'
   },
   {
     chartId: 'cash-flow-chart',
     chartName: 'Cash Flow',
-    buckets: ['total_operating_income', 'total_operating_expense', 'net_operating_income'],
+    buckets: ['net_operating_income'],
     primaryBucket: 'net_operating_income'
   },
   {
     chartId: 'property-performance-chart',
     chartName: 'Property Performance',
-    buckets: ['income_item', 'expense_item', 'maintenance_cost', 'utilities_cost', 'insurance_cost', 'property_tax'],
+    buckets: ['income_item'],
     primaryBucket: 'income_item'
   },
   {
     chartId: 'impact-trend-chart',
     chartName: 'Impact Trend',
-    buckets: ['income_item', 'expense_item'],
+    buckets: ['income_item'],
     primaryBucket: 'income_item'
   }
 ];

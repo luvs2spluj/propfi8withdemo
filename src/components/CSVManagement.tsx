@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Database, Edit3, Trash2, Save, RefreshCw, Eye } from 'lucide-react';
 import { getCSVData, deleteCSVData } from '../lib/supabase';
+import { userAuthService } from '../services/userAuthService';
 
 interface CSVRecord {
   id: string;
@@ -176,8 +177,10 @@ export default function CSVManagement() {
   useEffect(() => {
     const loadCSVs = async () => {
       try {
-        // Try to get data from Supabase first
-        const supabaseCSVs = await getCSVData();
+        // Try to get data from Supabase first, filtered by current user
+        const currentUser = userAuthService.getCurrentUser();
+        const userId = currentUser?.id;
+        const supabaseCSVs = await getCSVData(userId);
         
         if (supabaseCSVs.length > 0) {
           // Convert Supabase format to CSVRecord format
@@ -421,8 +424,10 @@ export default function CSVManagement() {
     
     setLoading(true);
     try {
-      // Delete from Supabase first
-      const supabaseResult = await deleteCSVData(csvId);
+      // Delete from Supabase first, with user ID for security
+      const currentUser = userAuthService.getCurrentUser();
+      const userId = currentUser?.id;
+      const supabaseResult = await deleteCSVData(csvId, userId);
       if (supabaseResult) {
         console.log('✅ CSV deleted from Supabase');
       }

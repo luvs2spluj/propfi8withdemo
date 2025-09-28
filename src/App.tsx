@@ -24,6 +24,8 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [showOrganizationSetup, setShowOrganizationSetup] = useState(false);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isSignedIn, isLoaded, user } = useUser();
   const { signOut } = useClerk();
 
@@ -31,18 +33,43 @@ function AppContent() {
   useEffect(() => {
     if (isSignedIn && user) {
       const initializeUser = async () => {
-        await userAuthService.setCurrentUser(user);
-        
-        // Check if user has an organization in the database
-        const hasOrganization = userAuthService.hasOrganization();
-        
-        if (!hasOrganization) {
-          setShowOrganizationSetup(true);
-        } else {
-          // Get organization name from database
-          const organization = await userAuthService.getUserOrganization();
-          if (organization) {
-            setOrganizationName(organization.name);
+        try {
+          await userAuthService.setCurrentUser(user);
+          
+          // Check if user has an organization in the database
+          const hasOrganization = userAuthService.hasOrganization();
+          
+          if (!hasOrganization) {
+            // Check localStorage for existing organization name
+            const savedOrgName = localStorage.getItem('organizationName');
+            if (savedOrgName) {
+              // User has organization name in localStorage but not in database
+              // This could happen if database was reset or user data was lost
+              setOrganizationName(savedOrgName);
+              setShowOrganizationSetup(false);
+            } else {
+              // First time user - show organization setup
+              setShowOrganizationSetup(true);
+            }
+          } else {
+            // User has organization in database - get the name
+            const organization = await userAuthService.getUserOrganization();
+            if (organization) {
+              setOrganizationName(organization.name);
+              // Update localStorage to keep it in sync
+              localStorage.setItem('organizationName', organization.name);
+            }
+            setShowOrganizationSetup(false);
+          }
+        } catch (error) {
+          console.error('Error initializing user:', error);
+          // Fallback to localStorage if database fails
+          const savedOrgName = localStorage.getItem('organizationName');
+          if (savedOrgName) {
+            setOrganizationName(savedOrgName);
+            setShowOrganizationSetup(false);
+          } else {
+            setShowOrganizationSetup(true);
           }
         }
       };
@@ -88,6 +115,8 @@ function AppContent() {
       const organization = await userAuthService.createOrganization(name);
       setOrganizationName(organization.name);
       setShowOrganizationSetup(false);
+      // Update localStorage to keep it in sync
+      localStorage.setItem('organizationName', organization.name);
     } catch (error) {
       console.error('Error creating organization:', error);
       // Fallback to localStorage if database fails
@@ -102,6 +131,8 @@ function AppContent() {
     setShowOrganizationSetup(false);
     setOrganizationName('My Organization');
     localStorage.setItem('organizationName', 'My Organization');
+    // Note: We don't create the organization in the database when skipping
+    // This allows the user to set it up later if they want
   };
 
   // Handle subscription
@@ -180,8 +211,10 @@ function AppContent() {
         setCurrentPage={setCurrentPage} 
         onLogout={handleLogout}
         organizationName={organizationName}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      <main className="flex-1 overflow-y-auto">
+      <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : ''}`}>
         <div className="p-6 pb-12">
           {renderPage()}
         </div>

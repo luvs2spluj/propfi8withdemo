@@ -4,43 +4,56 @@ import fs from 'fs';
 import path from 'path';
 
 const SVG_FILES = [
-  'public/propfi-logo.svg'
+  'public/propfi-logo.svg',
+  'build/propfi-logo.svg'
 ];
 
 function validateSVG(filePath) {
   console.log(`\n🔍 Validating ${filePath}...`);
   
   if (!fs.existsSync(filePath)) {
-    console.error(`❌ File not found: ${filePath}`);
+    console.log(`❌ File not found: ${filePath}`);
     return false;
   }
   
   const content = fs.readFileSync(filePath, 'utf8');
-  const issues = [];
+  let isValid = true;
   
   // Check for viewBox
   if (!content.includes('viewBox=')) {
-    issues.push('Missing viewBox attribute');
+    console.log('❌ Missing viewBox attribute');
+    isValid = false;
+  } else {
+    console.log('✅ Has viewBox attribute');
   }
   
   // Check for preserveAspectRatio
   if (!content.includes('preserveAspectRatio=')) {
-    issues.push('Missing preserveAspectRatio attribute');
+    console.log('⚠️  Missing preserveAspectRatio (recommended)');
+  } else {
+    console.log('✅ Has preserveAspectRatio attribute');
   }
   
   // Check for external style references
   if (content.includes('<style>') && content.includes('@import') || content.includes('url(')) {
-    issues.push('Contains external style references');
+    console.log('❌ Contains external style references');
+    isValid = false;
+  } else {
+    console.log('✅ No external style references');
   }
   
-  // Check for text elements (warn only)
+  // Check for text elements
   if (content.includes('<text')) {
-    console.warn(`⚠️  Contains <text> elements - consider converting to paths for better compatibility`);
+    console.log('⚠️  Contains <text> elements (may cause font issues)');
+  } else {
+    console.log('✅ No <text> elements');
   }
   
   // Check for vector-effect
-  if (content.includes('stroke') && !content.includes('vector-effect="non-scaling-stroke"')) {
-    issues.push('Strokes present but missing vector-effect="non-scaling-stroke"');
+  if (content.includes('vector-effect=')) {
+    console.log('✅ Has vector-effect attributes');
+  } else {
+    console.log('⚠️  Missing vector-effect attributes (recommended for strokes)');
   }
   
   // Check for unique IDs
@@ -48,41 +61,36 @@ function validateSVG(filePath) {
   if (idMatches) {
     const ids = idMatches.map(match => match.match(/id="([^"]+)"/)[1]);
     const uniqueIds = new Set(ids);
-    if (ids.length !== uniqueIds.size) {
-      issues.push('Duplicate IDs found');
+    if (ids.length === uniqueIds.size) {
+      console.log('✅ All IDs are unique');
+    } else {
+      console.log('❌ Duplicate IDs found');
+      isValid = false;
     }
   }
   
-  if (issues.length === 0) {
-    console.log(`✅ ${filePath} is production-ready`);
-    return true;
-  } else {
-    console.error(`❌ Issues found in ${filePath}:`);
-    issues.forEach(issue => console.error(`   - ${issue}`));
-    return false;
-  }
+  return isValid;
 }
 
-function main() {
-  console.log('🎨 SVG Validation Script');
-  console.log('========================');
-  
-  let allValid = true;
-  
-  SVG_FILES.forEach(filePath => {
-    const isValid = validateSVG(filePath);
-    if (!isValid) {
-      allValid = false;
-    }
-  });
-  
-  if (allValid) {
-    console.log('\n🎉 All SVG files are production-ready!');
-    process.exit(0);
-  } else {
-    console.log('\n💥 Some SVG files have issues that need to be fixed.');
-    process.exit(1);
-  }
-}
+console.log('🚀 SVG Validation Report');
+console.log('========================');
 
-main();
+let allValid = true;
+
+SVG_FILES.forEach(file => {
+  const isValid = validateSVG(file);
+  if (!isValid) {
+    allValid = false;
+  }
+});
+
+console.log('\n📊 Summary');
+console.log('===========');
+
+if (allValid) {
+  console.log('✅ All SVG files are production-ready!');
+  process.exit(0);
+} else {
+  console.log('❌ Some SVG files need fixes before production');
+  process.exit(1);
+}

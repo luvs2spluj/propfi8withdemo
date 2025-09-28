@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SignInButton, SignUpButton, UserButton, useUser } from '@clerk/clerk-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import PropifyLogo from './PropifyLogo';
+import DemoGallery from './DemoGallery';
 import { 
   Building2, 
   BarChart3, 
@@ -17,6 +18,7 @@ import {
 
 const LandingPage: React.FC = () => {
   const { isSignedIn, user } = useUser();
+  const [showDemo, setShowDemo] = useState(false);
 
   const features = [
     {
@@ -80,6 +82,7 @@ const LandingPage: React.FC = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => window.dispatchEvent(new CustomEvent('navigateToPage', { detail: { page: 'pricing' } }))}
+                    title="1-month free demo, then $29/month for unlimited properties and features"
                   >
                     <CreditCard className="w-4 h-4 mr-2" />
                     Pricing
@@ -103,8 +106,8 @@ const LandingPage: React.FC = () => {
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Transform Your
-            <span className="text-primary"> Property Management</span>
+            Visualize Your Property's
+            <span className="text-primary"> Financial Data</span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
@@ -118,12 +121,17 @@ const LandingPage: React.FC = () => {
               <>
                 <SignUpButton mode="modal">
                   <Button size="lg" className="text-lg px-8 py-6">
-                    Start Free Trial
+                    Get Started
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </SignUpButton>
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  Watch Demo
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="text-lg px-8 py-6"
+                  onClick={() => setShowDemo(true)}
+                >
+                  Try Demo
                 </Button>
               </>
             ) : (
@@ -141,9 +149,6 @@ const LandingPage: React.FC = () => {
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Financial Visualization for Your Property
-            </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               From AI-powered data import to real-time analytics, PropFi provides 
               all the tools you need for successful property management.
@@ -177,7 +182,7 @@ const LandingPage: React.FC = () => {
       <section className="py-20 px-4 bg-primary">
         <div className="container mx-auto text-center">
           <h2 className="text-4xl font-bold text-white mb-4">
-            Ready to Transform Your Property Management?
+            Ready to Visualize Your Property's Financial Data?
           </h2>
           <p className="text-xl text-primary-foreground mb-8 max-w-2xl mx-auto">
             Join thousands of property professionals who trust PropFi to manage 
@@ -192,11 +197,12 @@ const LandingPage: React.FC = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </SignUpButton>
-              <Button 
-                size="lg" 
-                variant="outline" 
+              <Button
+                size="lg"
+                variant="outline"
                 className="text-lg px-8 py-6 bg-white/10 border-white/20 text-white hover:bg-white/20"
                 onClick={() => window.dispatchEvent(new CustomEvent('navigateToPage', { detail: { page: 'pricing' } }))}
+                title="1-month free demo, then $29/month for unlimited properties and features"
               >
                 <CreditCard className="mr-2 h-5 w-5" />
                 View Pricing
@@ -262,6 +268,11 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Demo Gallery Modal */}
+      {showDemo && (
+        <DemoGallery onClose={() => setShowDemo(false)} />
+      )}
     </div>
   );
 };

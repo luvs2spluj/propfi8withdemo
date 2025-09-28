@@ -25,6 +25,7 @@ import {
   MonthlyTrend
 } from '../types/impactAnalysis';
 import { impactAnalysisService } from '../services/impactAnalysisService';
+import { userAuthService } from '../services/userAuthService';
 import ImpactTrendChart from './charts/ImpactTrendChart';
 
 interface ImpactAnalysisProps {
@@ -70,9 +71,15 @@ const ImpactAnalysisComponent: React.FC<ImpactAnalysisProps> = ({
         minAmount: 0
       } : undefined;
       
+      // Get current user ID from userAuthService
+      const currentUser = userAuthService.getCurrentUser();
+      const userId = currentUser?.id;
+      
       const analysis = await impactAnalysisService.generateImpactAnalysis(
         propertyId,
-        filters
+        filters,
+        undefined,
+        userId
       );
       
       setImpactAnalysis(analysis);
@@ -307,6 +314,11 @@ const ImpactBucket: React.FC<ImpactBucketProps> = ({
   icon
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  const handleItemClick = (item: LineItem) => {
+    // This will be handled by the parent component
+    console.log('Item clicked:', item);
+  };
 
   if (items.length === 0) {
     return null;

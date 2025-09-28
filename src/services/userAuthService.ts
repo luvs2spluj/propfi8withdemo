@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { encryptionService } from './encryptionService';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL!;
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY!;
@@ -388,10 +389,13 @@ class UserAuthService {
     }
 
     try {
+      // Encrypt organization name before saving
+      const encryptedOrgData = encryptionService.encryptOrganizationData({ name: organizationName });
+      
       // Create the organization
       const { data: orgData, error: orgError } = await supabase
         .from('organizations')
-        .insert([{ name: organizationName }])
+        .insert([encryptedOrgData])
         .select()
         .single();
 
@@ -411,11 +415,14 @@ class UserAuthService {
         throw userError;
       }
 
+      // Decrypt organization data for current user
+      const decryptedOrgData = encryptionService.decryptOrganizationData(orgData);
+      
       // Update current user data
       this.currentUser.organization_id = orgData.id;
-      this.currentUser.organizations = orgData;
+      this.currentUser.organizations = decryptedOrgData;
 
-      return orgData;
+      return decryptedOrgData;
     } catch (error) {
       console.error('Error creating organization:', error);
       throw error;
@@ -440,7 +447,9 @@ class UserAuthService {
         return null;
       }
 
-      return data;
+      // Decrypt organization data
+      const decryptedData = encryptionService.decryptOrganizationData(data);
+      return decryptedData;
     }
 
     return null;
@@ -449,6 +458,14 @@ class UserAuthService {
   // Check if user has an organization
   hasOrganization(): boolean {
     return !!(this.currentUser && this.currentUser.organization_id);
+  }
+
+  // Get user's organization name (for display purposes)
+  getOrganizationName(): string | null {
+    if (this.currentUser && this.currentUser.organizations) {
+      return this.currentUser.organizations.name;
+    }
+    return null;
   }
 
   // Clear user data (for logout)

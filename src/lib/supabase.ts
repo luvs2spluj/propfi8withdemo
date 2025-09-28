@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { encryptionService } from '../services/encryptionService';
+import { auditService } from '../services/auditService';
 
 // Use REACT_APP_ prefixed environment variables for frontend
 const url = process.env.REACT_APP_SUPABASE_URL;
@@ -25,16 +27,22 @@ export async function uploadRawCSV(path: string, buf: Buffer, contentType = "tex
   return { path };
 }
 
-export async function saveCSVData(csvData: any) {
+export async function saveCSVData(csvData: any, userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, saving to localStorage only');
     return null;
   }
   
   try {
+    // Encrypt sensitive data before saving
+    const encryptedData = encryptionService.encryptCSVData(csvData);
+    
+    // Add user_id to the CSV data if provided
+    const dataToSave = userId ? { ...encryptedData, user_id: userId } : encryptedData;
+    
     const { data, error } = await supabase
       .from('csv_data')
-      .insert([csvData])
+      .insert([dataToSave])
       .select();
     
     if (error) {
@@ -42,7 +50,14 @@ export async function saveCSVData(csvData: any) {
       return null;
     }
     
-    console.log('CSV data saved to Supabase:', data);
+    // Log the data modification
+    auditService.logDataModification('CSV_DATA', data[0]?.id, {
+      fileName: csvData.file_name,
+      fileType: csvData.file_type,
+      recordCount: csvData.total_records
+    });
+    
+    console.log('CSV data saved to Supabase (encrypted)');
     return data[0];
   } catch (error) {
     console.error('Error saving CSV data:', error);
@@ -50,48 +65,77 @@ export async function saveCSVData(csvData: any) {
   }
 }
 
-export async function getCSVData() {
+export async function getCSVData(userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, reading from localStorage only');
     return [];
   }
   
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('csv_data')
       .select('*')
       .order('uploaded_at', { ascending: false });
+    
+    // Filter by user_id if provided
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error fetching CSV data from Supabase:', error);
       return [];
     }
     
-    console.log('CSV data fetched from Supabase:', data);
-    return data || [];
+    // Decrypt sensitive data after retrieval
+    const decryptedData = (data || []).map(item => 
+      encryptionService.decryptCSVData(item)
+    );
+    
+    // Log the data access
+    auditService.logDataAccess('CSV_DATA', undefined, {
+      recordCount: decryptedData.length,
+      userId: userId
+    });
+    
+    console.log('CSV data fetched from Supabase (decrypted)');
+    return decryptedData;
   } catch (error) {
     console.error('Error fetching CSV data:', error);
     return [];
   }
 }
 
-export async function deleteCSVData(csvId: string) {
+export async function deleteCSVData(csvId: string, userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, deleting from localStorage only');
     return null;
   }
   
   try {
-    // Actually delete the record instead of just marking as inactive
-    const { error } = await supabase
+    let query = supabase
       .from('csv_data')
       .delete()
       .eq('id', csvId);
+    
+    // Add user_id filter if provided to ensure user can only delete their own data
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { error } = await query;
     
     if (error) {
       console.error('Error deleting CSV data from Supabase:', error);
       return null;
     }
+    
+    // Log the data deletion
+    auditService.logDataDeletion('CSV_DATA', csvId, {
+      userId: userId
+    });
     
     console.log('CSV data deleted from Supabase:', csvId);
     return true;
@@ -102,24 +146,27 @@ export async function deleteCSVData(csvId: string) {
 }
 
 // AI Learning Functions
-export async function saveAILearning(fileType: string, accountName: string, userCategory: string) {
+export async function saveAILearning(fileType: string, accountName: string, userCategory: string, userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, cannot save AI learning');
     return null;
   }
   
   try {
+    const learningData = {
+      file_type: fileType,
+      account_name: accountName,
+      user_category: userCategory,
+      confidence_score: 1.0,
+      usage_count: 1,
+      updated_at: new Date().toISOString(),
+      ...(userId && { user_id: userId })
+    };
+    
     const { error } = await supabase
       .from('ai_learning')
-      .upsert({
-        file_type: fileType,
-        account_name: accountName,
-        user_category: userCategory,
-        confidence_score: 1.0,
-        usage_count: 1,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'file_type,account_name'
+      .upsert(learningData, {
+        onConflict: userId ? 'file_type,account_name,user_id' : 'file_type,account_name'
       });
     
     if (error) {
@@ -127,7 +174,7 @@ export async function saveAILearning(fileType: string, accountName: string, user
       return null;
     }
     
-    console.log('✅ AI learning saved:', { fileType, accountName, userCategory });
+    console.log('✅ AI learning saved:', { fileType, accountName, userCategory, userId });
     return true;
   } catch (error) {
     console.error('Error saving AI learning:', error);
@@ -135,17 +182,24 @@ export async function saveAILearning(fileType: string, accountName: string, user
   }
 }
 
-export async function getAILearning(fileType: string) {
+export async function getAILearning(fileType: string, userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, cannot get AI learning');
     return {};
   }
   
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('ai_learning')
       .select('account_name, user_category, confidence_score, usage_count')
       .eq('file_type', fileType);
+    
+    // Filter by user_id if provided
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error getting AI learning:', error);
@@ -166,7 +220,7 @@ export async function getAILearning(fileType: string) {
   }
 }
 
-export async function updateAILearningUsage(fileType: string, accountName: string) {
+export async function updateAILearningUsage(fileType: string, accountName: string, userId?: string) {
   if (!supabase) {
     console.log('Supabase not available, cannot update AI learning usage');
     return null;
@@ -174,12 +228,17 @@ export async function updateAILearningUsage(fileType: string, accountName: strin
   
   try {
     // First, get the current usage count
-    const { data: currentData, error: fetchError } = await supabase
+    let query = supabase
       .from('ai_learning')
       .select('usage_count')
       .eq('file_type', fileType)
-      .eq('account_name', accountName)
-      .single();
+      .eq('account_name', accountName);
+    
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data: currentData, error: fetchError } = await query.single();
     
     if (fetchError) {
       console.error('Error fetching current usage count:', fetchError);
@@ -187,7 +246,7 @@ export async function updateAILearningUsage(fileType: string, accountName: strin
     }
     
     // Then update with the incremented value
-    const { error } = await supabase
+    let updateQuery = supabase
       .from('ai_learning')
       .update({ 
         usage_count: (currentData?.usage_count || 0) + 1,
@@ -195,6 +254,12 @@ export async function updateAILearningUsage(fileType: string, accountName: strin
       })
       .eq('file_type', fileType)
       .eq('account_name', accountName);
+    
+    if (userId) {
+      updateQuery = updateQuery.eq('user_id', userId);
+    }
+    
+    const { error } = await updateQuery;
     
     if (error) {
       console.error('Error updating AI learning usage:', error);

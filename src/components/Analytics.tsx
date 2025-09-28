@@ -47,7 +47,24 @@ const Analytics: React.FC = () => {
         propertyTax: 15000,
         insurance: 8000,
         utilities: 10000,
-        managementFees: 5000
+        managementFees: 5000,
+        // Add missing properties that are referenced in the component
+        expenseRatio: 0.68, // 85000 / 125000
+        avgMaintenance: 12000,
+        avgUtilities: 10000,
+        avgInsurance: 8000,
+        avgPropertyTax: 15000,
+        avgOtherExpenses: 40000, // netIncome + managementFees
+        revenueTrend: 5000,
+        monthlyData: [
+          { Date: '2024-01', 'Monthly Revenue': 10000, 'Occupancy Rate': 95 },
+          { Date: '2024-02', 'Monthly Revenue': 10500, 'Occupancy Rate': 96 },
+          { Date: '2024-03', 'Monthly Revenue': 11000, 'Occupancy Rate': 98 }
+        ],
+        totalMonths: 12,
+        avgOccupancy: 96,
+        occupancyTrend: 2.5,
+        profitMargin: 32 // (40000 / 125000) * 100
       });
     }, 1000);
   }, [timeRange]);

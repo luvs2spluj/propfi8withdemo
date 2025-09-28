@@ -11,6 +11,7 @@ import {
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 import CashFlowChart from './charts/CashFlowChart';
+import MultiBucketChart from './charts/MultiBucketChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { getCSVData } from '../lib/supabase';
 
@@ -580,19 +581,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Charts Section */}
-      {(hasCashFlowData || activeCSVsCount > 0) ? (
-        // Show Cash Flow Chart when cash flow data is available OR when we have any CSV data
-        <div className="grid grid-cols-1 gap-6">
-          <div className="bg-blue-50 p-2 rounded mb-2 text-sm">
-            💡 Showing CashFlowChart (hasCashFlowData: {hasCashFlowData.toString()}, CSVs: {activeCSVsCount})
-          </div>
-          <div className="card">
-            <CashFlowChart properties={properties} />
-          </div>
-        </div>
-      ) : (
-        // Show regular charts when no cash flow data
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Trend</h3>
           <RevenueChart properties={properties} />
@@ -602,7 +591,11 @@ const Dashboard: React.FC = () => {
           <OccupancyChart properties={properties} />
         </div>
       </div>
-      )}
+
+      {/* Multi-Bucket Analysis Chart */}
+      <div className="mt-6">
+        <MultiBucketChart properties={properties} />
+      </div>
 
       <div className="grid grid-cols-1 gap-6">
         <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">

@@ -30,13 +30,14 @@ export class ImpactAnalysisService {
   async generateImpactAnalysis(
     propertyId: string,
     filters?: ImpactAnalysisFilters,
-    config?: Partial<ImpactAnalysisConfig>
+    config?: Partial<ImpactAnalysisConfig>,
+    userId?: string
   ): Promise<ImpactAnalysis> {
     const finalConfig = { ...this.defaultConfig, ...config };
     
     try {
-      // Get CSV data from Supabase
-      const csvData = await getCSVData(propertyId);
+      // Get CSV data from Supabase filtered by user
+      const csvData = await getCSVData(userId);
       
       if (!csvData || csvData.length === 0) {
         throw new Error('No CSV data found for property');
