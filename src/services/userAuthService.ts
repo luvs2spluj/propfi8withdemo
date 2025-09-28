@@ -11,6 +11,16 @@ export interface User {
   email?: string;
   first_name?: string;
   last_name?: string;
+  organization_id?: string;
+  role?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  clerk_organization_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -108,7 +118,23 @@ class UserAuthService {
         return;
       }
 
-      this.currentUser = { id: data, clerk_user_id: clerkUser.id };
+      // Get the full user data including organization
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select(`
+          *,
+          organizations (*)
+        `)
+        .eq('clerk_user_id', clerkUser.id)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        this.currentUser = { id: data, clerk_user_id: clerkUser.id };
+        return;
+      }
+
+      this.currentUser = userData;
     } catch (error) {
       console.error('Error setting current user:', error);
     }
@@ -353,6 +379,76 @@ class UserAuthService {
         throw error;
       }
     }
+  }
+
+  // Create organization and associate with current user
+  async createOrganization(organizationName: string): Promise<Organization> {
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    try {
+      // Create the organization
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .insert([{ name: organizationName }])
+        .select()
+        .single();
+
+      if (orgError) {
+        console.error('Error creating organization:', orgError);
+        throw orgError;
+      }
+
+      // Update the user to associate with the organization
+      const { error: userError } = await supabase
+        .from('users')
+        .update({ organization_id: orgData.id })
+        .eq('id', this.currentUser.id);
+
+      if (userError) {
+        console.error('Error updating user with organization:', userError);
+        throw userError;
+      }
+
+      // Update current user data
+      this.currentUser.organization_id = orgData.id;
+      this.currentUser.organizations = orgData;
+
+      return orgData;
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      throw error;
+    }
+  }
+
+  // Get user's organization
+  async getUserOrganization(): Promise<Organization | null> {
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    if (this.currentUser.organization_id) {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', this.currentUser.organization_id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching organization:', error);
+        return null;
+      }
+
+      return data;
+    }
+
+    return null;
+  }
+
+  // Check if user has an organization
+  hasOrganization(): boolean {
+    return !!(this.currentUser && this.currentUser.organization_id);
   }
 
   // Clear user data (for logout)

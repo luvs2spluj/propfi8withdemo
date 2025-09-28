@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import ApiService from '../services/api';
 import { getCSVData } from '../lib/supabase';
+import ImpactAnalysisComponent from './ImpactAnalysis';
 
 interface PropertyData {
   id: string;
@@ -973,6 +974,15 @@ const Financials: React.FC = () => {
             ))}
         </div>
       </div>
+
+      {/* Line Item Impact Analysis */}
+      <ImpactAnalysisComponent 
+        propertyId={selectedProperty} 
+        dateRange={{
+          start: `${selectedPeriod}-01-01`,
+          end: `${selectedPeriod}-12-31`
+        }}
+      />
         </>
       )}
     </div>

@@ -13,7 +13,8 @@ export type Page =
   | 'csvs'
   | 'reports'
   | 'team-management'
-  | 'pricing';
+  | 'pricing'
+  | 'logo-test';
 
 export interface NavigationProps {
   currentPage: Page;

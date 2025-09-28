@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { getCSVData } from '../../lib/supabase';
+import { ChartBucketHeader } from '../BucketIcon';
 
 ChartJS.register(
   CategoryScale,
@@ -250,7 +251,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
 
   return (
     <div className="bg-white p-8 rounded-lg shadow-sm border">
-      <h3 className="text-2xl font-semibold text-gray-900 mb-6">Property Performance</h3>
+      <ChartBucketHeader
+        chartId="cash-flow-chart"
+        chartName="Property Performance"
+        className="mb-6"
+      />
       <div className="h-96">
         <Line data={data} options={options} />
       </div>

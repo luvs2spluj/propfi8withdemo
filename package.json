@@ -61,7 +61,8 @@
     "dev:ai-parser": "REACT_APP_AI_PARSER_ENABLED=true npm start",
     "train:headers": "tsx scripts/train-headers.ts",
     "watch:uploads": "tsx scripts/auto-upload.ts",
-    "server": "tsx src/server.ts"
+    "server": "tsx src/server.ts",
+    "validate:svg": "node scripts/validate-svg.mjs"
   },
   "eslintConfig": {
     "extends": [

@@ -11,6 +11,7 @@ import LandingPage from './components/LandingPage';
 import OrganizationSetup from './components/OrganizationSetup';
 import Pricing from './components/Pricing';
 import DarkModeToggle from './components/DarkModeToggle';
+import LogoTest from './components/LogoTest';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -29,15 +30,24 @@ function AppContent() {
   // Initialize user authentication when user signs in
   useEffect(() => {
     if (isSignedIn && user) {
-      userAuthService.setCurrentUser(user);
-      // Check if user has an organization
-      // For now, we'll show the setup for new users
-      const hasOrganization = localStorage.getItem('organizationName');
-      if (!hasOrganization) {
-        setShowOrganizationSetup(true);
-      } else {
-        setOrganizationName(hasOrganization);
-      }
+      const initializeUser = async () => {
+        await userAuthService.setCurrentUser(user);
+        
+        // Check if user has an organization in the database
+        const hasOrganization = userAuthService.hasOrganization();
+        
+        if (!hasOrganization) {
+          setShowOrganizationSetup(true);
+        } else {
+          // Get organization name from database
+          const organization = await userAuthService.getUserOrganization();
+          if (organization) {
+            setOrganizationName(organization.name);
+          }
+        }
+      };
+      
+      initializeUser();
     } else if (!isSignedIn) {
       userAuthService.clearUser();
       setShowOrganizationSetup(false);
@@ -72,10 +82,19 @@ function AppContent() {
   };
 
   // Handle organization setup completion
-  const handleOrganizationComplete = (name: string) => {
-    setOrganizationName(name);
-    setShowOrganizationSetup(false);
-    localStorage.setItem('organizationName', name);
+  const handleOrganizationComplete = async (name: string) => {
+    try {
+      // Create organization in database
+      const organization = await userAuthService.createOrganization(name);
+      setOrganizationName(organization.name);
+      setShowOrganizationSetup(false);
+    } catch (error) {
+      console.error('Error creating organization:', error);
+      // Fallback to localStorage if database fails
+      setOrganizationName(name);
+      setShowOrganizationSetup(false);
+      localStorage.setItem('organizationName', name);
+    }
   };
 
   // Handle organization setup skip
@@ -122,6 +141,8 @@ function AppContent() {
         return <Reports />;
       case 'pricing':
         return <Pricing onSubscribe={handleSubscribe} />;
+      case 'logo-test':
+        return <LogoTest />;
       default:
         return <Dashboard />;
     }

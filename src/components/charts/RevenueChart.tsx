@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { getCSVData } from '../../lib/supabase';
+import { ChartBucketHeader } from '../BucketIcon';
 
 ChartJS.register(
   CategoryScale,
@@ -356,10 +357,12 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">
-          {metricType === 'revenue' ? 'Revenue Trend' : 'Occupancy Rate'}
-        </h3>
+      <ChartBucketHeader
+        chartId="revenue-chart"
+        chartName={metricType === 'revenue' ? 'Revenue Trend' : 'Occupancy Rate'}
+        className="mb-4"
+      />
+      <div className="flex items-center justify-end mb-4">
         <select
           value={selectedProperty}
           onChange={(e) => setSelectedProperty(e.target.value)}

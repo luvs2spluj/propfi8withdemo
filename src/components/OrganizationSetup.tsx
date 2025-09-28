@@ -21,8 +21,7 @@ const OrganizationSetup: React.FC<OrganizationSetupProps> = ({ onComplete, onSki
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the onComplete callback which will handle database creation
       onComplete(organizationName.trim());
     } catch (error) {
       console.error('Error creating organization:', error);

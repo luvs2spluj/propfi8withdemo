@@ -12,6 +12,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 // import ApiService from '../../services/api';
+import { ChartBucketHeader } from '../BucketIcon';
 
 ChartJS.register(
   CategoryScale,
@@ -250,8 +251,12 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Occupancy Rate</h3>
+      <ChartBucketHeader
+        chartId="occupancy-chart"
+        chartName="Occupancy Rate"
+        className="mb-4"
+      />
+      <div className="flex items-center justify-end mb-4">
         <select
           value={selectedProperty}
           onChange={(e) => setSelectedProperty(e.target.value)}

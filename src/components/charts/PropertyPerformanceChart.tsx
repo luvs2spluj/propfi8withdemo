@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { ChartBucketHeader } from '../BucketIcon';
 
 ChartJS.register(
   CategoryScale,
@@ -340,9 +341,11 @@ const PropertyPerformanceChart: React.FC<PropertyPerformanceChartProps> = ({ pro
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Property Performance</h3>
-      </div>
+      <ChartBucketHeader
+        chartId="property-performance-chart"
+        chartName="Property Performance"
+        className="mb-4"
+      />
       
       {/* Chart */}
       <div className="h-64">
