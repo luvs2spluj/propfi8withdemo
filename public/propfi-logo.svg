@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 110 100" preserveAspectRatio="xMidYMid meet">
   <defs>
     <linearGradient id="logo-propfi-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" style="stop-color:#1E3A8A;stop-opacity:1" />
@@ -55,12 +55,23 @@
   <!-- Base line -->
   <line x1="30" y1="80" x2="95" y2="80" stroke="#1E3A8A" stroke-width="3" vector-effect="non-scaling-stroke"/>
   
-  <!-- PropFi text - converted to path to avoid font issues -->
+  <!-- PropFi text - larger and better positioned -->
   <g id="logo-propfi-text">
-    <path d="M 35 90 L 35 85 L 40 85 L 40 87 L 37 87 L 37 90 Z" fill="#1E3A8A"/>
-    <path d="M 42 90 L 42 85 L 47 85 L 47 87 L 44 87 L 44 90 Z" fill="#1E3A8A"/>
-    <path d="M 49 90 L 49 85 L 54 85 L 54 87 L 51 87 L 51 90 Z" fill="#1E3A8A"/>
-    <path d="M 56 90 L 56 85 L 61 85 L 61 87 L 58 87 L 58 90 Z" fill="#1E3A8A"/>
-    <path d="M 63 90 L 63 85 L 68 85 L 68 87 L 65 87 L 65 90 Z" fill="#1E3A8A"/>
+    <!-- P -->
+    <path d="M 30 85 L 30 75 L 38 75 L 38 80 L 33 80 L 33 85 Z" fill="#1E3A8A"/>
+    <path d="M 38 75 L 42 75 L 42 80 L 38 80 Z" fill="#1E3A8A"/>
+    <!-- r -->
+    <path d="M 46 85 L 46 75 L 52 75 L 52 80 L 48 80 L 48 85 Z" fill="#1E3A8A"/>
+    <!-- o -->
+    <path d="M 56 80 L 56 75 L 64 75 L 64 80 L 56 80 Z" fill="#1E3A8A"/>
+    <!-- p -->
+    <path d="M 68 85 L 68 75 L 78 75 L 78 80 L 71 80 L 71 85 Z" fill="#1E3A8A"/>
+    <path d="M 78 75 L 82 75 L 82 80 L 78 80 Z" fill="#1E3A8A"/>
+    <!-- F -->
+    <path d="M 86 85 L 86 75 L 96 75 L 96 80 L 89 80 L 89 85 Z" fill="#1E3A8A"/>
+    <path d="M 89 80 L 96 80 L 96 82.5 L 89 82.5 Z" fill="#1E3A8A"/>
+    <!-- i -->
+    <path d="M 100 85 L 100 75 L 104 75 L 104 85 Z" fill="#1E3A8A"/>
+    <path d="M 100 73 L 100 71 L 104 71 L 104 73 Z" fill="#1E3A8A"/>
   </g>
 </svg>

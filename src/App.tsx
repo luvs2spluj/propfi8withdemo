@@ -215,6 +215,7 @@ function AppContent() {
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
       <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : ''}`}>
+        
         <div className="p-6 pb-12">
           {renderPage()}
         </div>

@@ -62,22 +62,22 @@ const Sidebar: React.FC<SidebarProps> = ({
       <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen transition-all duration-300 ease-in-out ${isCollapsed ? 'fixed lg:relative z-50' : 'relative'}`}>
         {/* Header */}
         <div className="p-6">
-          <div className="flex items-center justify-between">
+          {!isCollapsed && (
             <div className="flex items-center space-x-3">
               <PropifyLogo 
-                size={isCollapsed ? "sm" : "lg"} 
+                size="lg" 
                 showText={false} 
               />
-              {!isCollapsed && (
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {organizationName || 'Property Management'}
-                  </h1>
-                </div>
-              )}
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {organizationName || 'Property Management'}
+                </h1>
+              </div>
             </div>
-            
-            {/* Toggle Button */}
+          )}
+          
+          {/* Toggle Button */}
+          <div className={`${isCollapsed ? 'flex justify-center' : 'flex justify-end mt-4'}`}>
             <button
               onClick={onToggleCollapse}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -85,7 +85,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               {isCollapsed ? (
                 <Menu className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               ) : (
-                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <div className="flex items-center space-x-1">
+                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </div>
               )}
             </button>
           </div>
