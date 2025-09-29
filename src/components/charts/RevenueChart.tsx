@@ -13,6 +13,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { getCSVData } from '../../lib/supabase';
 import { ChartBucketHeader } from '../BucketIcon';
+import { userAuthService } from '../../services/userAuthService';
 
 ChartJS.register(
   CategoryScale,
@@ -177,18 +178,15 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
         let chartData = null;
         
         try {
-          // Try to get data from Supabase first
-          const supabaseCSVs = await getCSVData();
+          // Get data from Supabase (with localStorage fallback in development)
+          const currentUser = userAuthService.getCurrentUser();
+          const userId = currentUser?.id;
+          const supabaseCSVs = await getCSVData(userId);
           let activeCSVs = supabaseCSVs;
           
-          // If no Supabase data, fall back to localStorage
-          if (supabaseCSVs.length === 0) {
-            const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-            activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-            console.log('📊 No Supabase data, using localStorage for chart:', activeCSVs.length, 'active CSVs');
-          } else {
-            console.log('📊 Using Supabase data for chart:', activeCSVs.length, 'active CSVs');
-          }
+          // Filter for active CSVs only
+          activeCSVs = activeCSVs.filter((csv: any) => csv.isActive || csv.is_active);
+          console.log('📊 Active CSVs for chart:', activeCSVs.length, 'CSVs');
           
           console.log('📊 Active CSVs for chart data:', activeCSVs.length);
           

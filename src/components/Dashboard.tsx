@@ -14,6 +14,7 @@ import CashFlowChart from './charts/CashFlowChart';
 import MultiBucketChart from './charts/MultiBucketChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { getCSVData } from '../lib/supabase';
+import { userAuthService } from '../services/userAuthService';
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<any[]>([]);
@@ -206,7 +207,9 @@ const Dashboard: React.FC = () => {
   const calculateCSVMetrics = async () => {
     try {
       // Try to get data from Supabase first
-      const supabaseCSVs = await getCSVData();
+      const currentUser = userAuthService.getCurrentUser();
+      const userId = currentUser?.id;
+      const supabaseCSVs = await getCSVData(userId);
       let activeCSVs = supabaseCSVs;
       
       // If no Supabase data, fall back to localStorage

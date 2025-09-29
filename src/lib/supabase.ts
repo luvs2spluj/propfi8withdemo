@@ -66,8 +66,17 @@ export async function saveCSVData(csvData: any, userId?: string) {
 }
 
 export async function getCSVData(userId?: string) {
+  // Check if we're in development or production
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
   if (!supabase) {
     console.log('Supabase not available, reading from localStorage only');
+    // In development, fall back to localStorage
+    if (isDevelopment) {
+      const localCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      console.log('📊 Development mode: Using localStorage data:', localCSVs.length, 'CSVs');
+      return localCSVs;
+    }
     return [];
   }
   
@@ -86,6 +95,12 @@ export async function getCSVData(userId?: string) {
     
     if (error) {
       console.error('Error fetching CSV data from Supabase:', error);
+      // In development, fall back to localStorage on error
+      if (isDevelopment) {
+        const localCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+        console.log('📊 Development mode: Supabase error, using localStorage:', localCSVs.length, 'CSVs');
+        return localCSVs;
+      }
       return [];
     }
     
@@ -94,16 +109,29 @@ export async function getCSVData(userId?: string) {
       encryptionService.decryptCSVData(item)
     );
     
+    // In development, if no Supabase data, fall back to localStorage
+    if (isDevelopment && decryptedData.length === 0) {
+      const localCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      console.log('📊 Development mode: No Supabase data, using localStorage:', localCSVs.length, 'CSVs');
+      return localCSVs;
+    }
+    
     // Log the data access
     auditService.logDataAccess('CSV_DATA', undefined, {
       recordCount: decryptedData.length,
       userId: userId
     });
     
-    console.log('CSV data fetched from Supabase (decrypted)');
+    console.log('CSV data fetched from Supabase (decrypted):', decryptedData.length, 'CSVs');
     return decryptedData;
   } catch (error) {
     console.error('Error fetching CSV data:', error);
+    // In development, fall back to localStorage on error
+    if (isDevelopment) {
+      const localCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+      console.log('📊 Development mode: Exception, using localStorage:', localCSVs.length, 'CSVs');
+      return localCSVs;
+    }
     return [];
   }
 }
