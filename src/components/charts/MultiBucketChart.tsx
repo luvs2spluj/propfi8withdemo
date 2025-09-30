@@ -45,16 +45,76 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
   const [csvData, setCsvData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Enhanced bucket matching logic based on account categories and names
+  const matchesBucket = (accountName: string, bucketId: string): boolean => {
+    const name = accountName.toLowerCase();
+    
+    switch (bucketId) {
+      case 'total_income':
+        return name.includes('income') || name.includes('revenue') || name.includes('rent') || 
+               name.includes('rental') || name.includes('lease') || name.includes('gross') ||
+               name.includes('total operating income') || name.includes('monthly revenue');
+      case 'total_expense':
+        return name.includes('expense') || name.includes('cost') || name.includes('maintenance') || 
+               name.includes('utilities') || name.includes('insurance') || name.includes('tax') ||
+               name.includes('operating expense') || name.includes('total operating expense');
+      case 'net_operating_income':
+        return name.includes('net') || name.includes('operating') || name.includes('noi') ||
+               name.includes('net operating income');
+      case 'maintenance_cost':
+        return name.includes('maintenance') || name.includes('repair') || name.includes('repairs');
+      case 'utilities_cost':
+        return name.includes('utilities') || name.includes('electric') || name.includes('water') || 
+               name.includes('gas') || name.includes('power') || name.includes('sewer');
+      case 'insurance_cost':
+        return name.includes('insurance') || name.includes('liability') || name.includes('property insurance');
+      case 'property_tax':
+        return name.includes('tax') || name.includes('property') || name.includes('property tax');
+      default:
+        return false;
+    }
+  };
+
   // Load CSV data
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('📊 Multi-Bucket Chart: Starting data load...');
+        
+        // Try Supabase first
         const currentUser = userAuthService.getCurrentUser();
         const userId = currentUser?.id;
-        const data = await getCSVData(userId);
+        console.log('📊 Multi-Bucket Chart: Current user:', currentUser);
+        
+        let data = await getCSVData(userId);
+        console.log('📊 Multi-Bucket Chart: Supabase data:', data);
+        
+        // If no Supabase data, try localStorage
+        if (!data || data.length === 0) {
+          console.log('📊 Multi-Bucket Chart: No Supabase data, trying localStorage...');
+          const localData = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+          console.log('📊 Multi-Bucket Chart: LocalStorage data:', localData);
+          
+          // Convert localStorage format to match expected structure
+          data = localData.map((csv: any) => ({
+            id: csv.id,
+            file_name: csv.fileName,
+            file_type: csv.fileType,
+            uploaded_at: csv.uploadedAt,
+            total_records: csv.totalRecords,
+            account_categories: csv.accountCategories,
+            bucket_assignments: csv.bucketAssignments,
+            is_active: csv.isActive,
+            preview_data: csv.previewData
+          }));
+        }
+        
+        console.log('📊 Multi-Bucket Chart: Final data:', data);
+        console.log('📊 Multi-Bucket Chart: Data structure sample:', data[0]);
         setCsvData(data || []);
       } catch (error) {
         console.error('Error loading CSV data:', error);
+        setCsvData([]);
       } finally {
         setIsLoading(false);
       }
@@ -64,27 +124,49 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
 
   // Process data for selected buckets
   const chartData = useMemo(() => {
-    if (!csvData.length) return { labels: [], datasets: [] };
+    console.log('📊 Multi-Bucket Chart: Processing chart data with', csvData.length, 'CSV files');
+    
+    if (!csvData.length) {
+      console.log('📊 Multi-Bucket Chart: No CSV data available');
+      return { labels: [], datasets: [] };
+    }
 
-    // Get all unique months from CSV data
+    // Get all unique months from CSV data using time_series structure
     const months = new Set<string>();
-    csvData.forEach(csv => {
+    csvData.forEach((csv, csvIndex) => {
+      console.log(`📊 Multi-Bucket Chart: Processing CSV ${csvIndex}:`, csv.file_name || csv.fileName);
+      
       if (csv.preview_data) {
-        csv.preview_data.forEach((row: any) => {
-          if (row.Date) {
-            months.add(row.Date);
+        csv.preview_data.forEach((row: any, rowIndex: number) => {
+          if (row.time_series) {
+            console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} has time_series:`, Object.keys(row.time_series));
+            Object.keys(row.time_series).forEach(month => {
+              // Skip non-monthly entries like "Total"
+              if (month.toLowerCase() !== 'total' && month.toLowerCase() !== 'sum' && month.toLowerCase() !== 'grand total') {
+                months.add(month);
+              }
+            });
+          } else {
+            console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} missing time_series:`, row);
           }
         });
+      } else {
+        console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} missing preview_data:`, csv);
       }
     });
 
     const sortedMonths = Array.from(months).sort();
+    console.log('📊 Multi-Bucket Chart: Found months:', sortedMonths);
 
     // Process each selected bucket
     const datasets = selectedBuckets.map(bucketId => {
       const bucket = BUCKET_DEFINITIONS[bucketId];
-      if (!bucket) return null;
+      if (!bucket) {
+        console.log(`📊 Multi-Bucket Chart: Bucket ${bucketId} not found in definitions`);
+        return null;
+      }
 
+      console.log(`📊 Multi-Bucket Chart: Processing bucket ${bucket.label} (${bucketId})`);
       const data: number[] = [];
       
       sortedMonths.forEach(month => {
@@ -93,12 +175,13 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
         csvData.forEach(csv => {
           if (csv.preview_data) {
             csv.preview_data.forEach((row: any) => {
-              if (row.Date === month) {
+              if (row.time_series && row.time_series[month]) {
                 // Check if this row matches the bucket
-                const accountName = row.accountName || row.Account || '';
-                const amount = parseFloat(row.amount || row.Amount || 0);
+                const accountName = row.account_name || row.accountName || '';
+                const amount = parseFloat(row.time_series[month]) || 0;
                 
                 if (matchesBucket(accountName, bucketId)) {
+                  console.log(`📊 Multi-Bucket Chart: Match found - ${accountName} (${amount}) for ${bucket.label} in ${month}`);
                   total += amount;
                 }
               }
@@ -108,6 +191,8 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
         
         data.push(total);
       });
+
+      console.log(`📊 Multi-Bucket Chart: ${bucket.label} data:`, data);
 
       return {
         label: bucket.label,
@@ -130,31 +215,6 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
       datasets
     };
   }, [csvData, selectedBuckets]);
-
-  // Simple bucket matching logic
-  const matchesBucket = (accountName: string, bucketId: string): boolean => {
-    const name = accountName.toLowerCase();
-    
-    switch (bucketId) {
-      case 'total_income':
-        return name.includes('income') || name.includes('revenue') || name.includes('rent');
-      case 'total_expense':
-        return name.includes('expense') || name.includes('cost') || name.includes('maintenance') || 
-               name.includes('utilities') || name.includes('insurance') || name.includes('tax');
-      case 'net_operating_income':
-        return name.includes('net') || name.includes('operating');
-      case 'maintenance_cost':
-        return name.includes('maintenance') || name.includes('repair');
-      case 'utilities_cost':
-        return name.includes('utilities') || name.includes('electric') || name.includes('water') || name.includes('gas');
-      case 'insurance_cost':
-        return name.includes('insurance');
-      case 'property_tax':
-        return name.includes('tax') || name.includes('property');
-      default:
-        return false;
-    }
-  };
 
   // Available buckets for selection
   const availableBuckets = Object.entries(BUCKET_DEFINITIONS)
