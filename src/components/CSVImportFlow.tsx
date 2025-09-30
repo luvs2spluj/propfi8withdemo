@@ -5,7 +5,7 @@ import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/s
 import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 
-const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5002";
+const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5001";
 
 type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'maintenance_log' | 'general' | 'pdf';
 
@@ -749,11 +749,11 @@ export default function CSVImportFlow() {
               
               // Try to get AI categorization in the background
               try {
-                const response = await fetch(`${API}/categorize`, {
+                const response = await fetch(`${API}/api/categorize`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    data: processedData,
+                    csv_data: processedData,
                     file_type: fileType
                   })
                 });

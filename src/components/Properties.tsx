@@ -54,7 +54,7 @@ const Properties: React.FC = () => {
       let allProperties: Property[] = [];
       
       try {
-        const localDataResponse = await fetch('http://localhost:5000/api/processed-data');
+        const localDataResponse = await fetch('http://localhost:5002/api/processed-data');
         if (localDataResponse.ok) {
           const localData = await localDataResponse.json();
           console.log('🏠 Local properties data loaded:', localData);

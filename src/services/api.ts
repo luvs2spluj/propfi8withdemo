@@ -2,7 +2,7 @@ import { supabaseApiService } from './supabaseClient';
 
 // Backend URLs
 const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5001/api';
-const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5000/api';
+const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5002/api';
 
 // Default to Supabase backend for most operations
 const API_BASE_URL = process.env.REACT_APP_API_URL || SUPABASE_BACKEND_URL;
