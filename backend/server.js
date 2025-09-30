@@ -500,12 +500,12 @@ async function startServer() {
     // Test database connection
     const dbConnected = await testConnection();
     if (!dbConnected) {
-      console.error('❌ Failed to connect to database. Please check your configuration.');
-      process.exit(1);
+      console.warn('⚠️  Supabase connection failed. Running in limited mode without database.');
+      console.warn('⚠️  Some features may not work properly.');
+    } else {
+      // Initialize database schema only if connected
+      await initializeDatabase();
     }
-
-    // Initialize database schema
-    await initializeDatabase();
 
     // Start server
     app.listen(PORT, () => {

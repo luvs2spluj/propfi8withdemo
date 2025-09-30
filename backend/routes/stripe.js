@@ -1,9 +1,20 @@
 const express = require('express');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
+
+// Initialize Stripe only if the secret key is available
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('STRIPE_SECRET_KEY not found. Stripe functionality will be disabled.');
+}
 
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Stripe service not available' });
+  }
+  
   try {
     const { plan, properties, userId, userEmail, organizationId } = req.body;
 
