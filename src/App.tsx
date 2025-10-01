@@ -12,6 +12,7 @@ import LandingPage from './components/LandingPage';
 import Pricing from './components/Pricing';
 import DarkModeToggle from './components/DarkModeToggle';
 import LogoTest from './components/LogoTest';
+import LocalFirstApp from './components/LocalFirstApp';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -195,6 +196,8 @@ function AppContent() {
         return <Pricing onSubscribe={handleSubscribe} />;
       case 'logo-test':
         return <LogoTest />;
+      case 'local-first':
+        return <LocalFirstApp />;
       default:
         return <LandingPage />;
     }
