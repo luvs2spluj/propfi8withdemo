@@ -1,5 +1,5 @@
 import { readOutbox, clearOutbox, removeOutboxItem, incrementOutboxRetries, OutboxItem } from '../storage/localStore';
-import { upsertDataset, upsertDatasetSample, deleteDataset, deleteDatasetSample, isAuthenticated } from '../storage/cloudStore';
+import { upsertDataset, upsertDatasetSample, deleteDataset, deleteCloudDatasetSample, isAuthenticated } from '../storage/cloudStore';
 import { isSupabaseConfigured } from '../supabaseClient';
 
 export interface SyncResult {

@@ -102,7 +102,7 @@ export async function getCSVFilesFromDirectory(
   const csvFiles: File[] = [];
   
   try {
-    for await (const [name, handle] of directory.entries()) {
+    for await (const [name, handle] of directory as any) {
       if (handle.kind === 'file' && name.toLowerCase().endsWith('.csv')) {
         const file = await handle.getFile();
         csvFiles.push(file);

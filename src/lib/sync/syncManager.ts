@@ -134,7 +134,7 @@ class SyncManager {
       return {
         success: false,
         processed: 0,
-        errors: [{ item: null, error }],
+        errors: [{ item: null as any, error }],
         retryable: []
       };
     } finally {

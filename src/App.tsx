@@ -48,10 +48,9 @@ function AppContent() {
               // User has organization name in localStorage but not in database
               // This could happen if database was reset or user data was lost
               setOrganizationName(savedOrgName);
-              // setShowOrganizationSetup(false);
             } else {
-              // First time user - show organization setup
-              // setShowOrganizationSetup(true);
+              // Set a default organization name for authenticated users
+              setOrganizationName('My Organization');
             }
           } else {
             // User has organization in database - get the name
@@ -61,7 +60,6 @@ function AppContent() {
               // Update localStorage to keep it in sync
               localStorage.setItem('organizationName', organization.name);
             }
-            // setShowOrganizationSetup(false);
           }
           
           // Redirect logged-in users to dashboard after initialization
@@ -73,9 +71,8 @@ function AppContent() {
           const savedOrgName = localStorage.getItem('organizationName');
           if (savedOrgName) {
             setOrganizationName(savedOrgName);
-            // setShowOrganizationSetup(false);
           } else {
-            // setShowOrganizationSetup(true);
+            setOrganizationName('My Organization');
           }
           
           // Still redirect to dashboard even if there's an error
@@ -87,7 +84,6 @@ function AppContent() {
       initializeUser();
     } else if (!isSignedIn) {
       userAuthService.clearUser();
-      // setShowOrganizationSetup(false);
       setOrganizationName(null);
       // Show landing page for non-authenticated users
       setShowLandingPage(true);
@@ -212,7 +208,7 @@ function AppContent() {
     );
   }
 
-  // Always show landing page first, then redirect logged-in users
+  // Show landing page if not signed in
   if (showLandingPage || !isSignedIn) {
     return <LandingPage />;
   }

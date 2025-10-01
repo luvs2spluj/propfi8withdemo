@@ -177,7 +177,7 @@ export async function getDatasetSample(datasetId: string): Promise<{ data: Supab
   }
 }
 
-export async function deleteDatasetSample(datasetId: string): Promise<{ error: any }> {
+export async function deleteCloudDatasetSample(datasetId: string): Promise<{ error: any }> {
   if (!isSupabaseConfigured()) {
     return { error: new Error('Supabase not configured') };
   }
