@@ -2,9 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { encryptionService } from '../services/encryptionService';
 import { auditService } from '../services/auditService';
 
-// Use REACT_APP_ prefixed environment variables for frontend
-const url = process.env.REACT_APP_SUPABASE_URL;
-const key = process.env.REACT_APP_SUPABASE_ANON_KEY;
+// Use VITE_ prefixed environment variables for frontend
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = (url && key) 
   ? createClient(url, key, { auth: { persistSession: false } }) 

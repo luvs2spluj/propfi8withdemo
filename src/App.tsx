@@ -248,7 +248,7 @@ function AppContent() {
 }
 
 function App() {
-  const clerkKey = process.env.REACT_APP_CLERK_PUBLISHABLE_KEY;
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
   
   if (!clerkKey) {
     return (

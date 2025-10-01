@@ -1,7 +1,7 @@
 import { loadStripe } from '@stripe/stripe-js';
 
 // Initialize Stripe with your publishable key
-const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_live_51QqScaHDhcVKRRbwKUmZ9DGrIAUb7aFxwIm1rS6RFZxOjlm3B9vGkG1CPGUe3J5fMh5VAE9cD7fp40bpZRgAc1Gl00rg9q88z1');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51QqScaHDhcVKRRbwKUmZ9DGrIAUb7aFxwIm1rS6RFZxOjlm3B9vGkG1CPGUe3J5fMh5VAE9cD7fp40bpZRgAc1Gl00rg9q88z1');
 
 export interface SubscriptionData {
   plan: string;

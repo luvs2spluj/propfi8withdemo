@@ -34,7 +34,7 @@ class CSVETLService {
 
   constructor() {
     // Use Vercel API routes if deployed, otherwise local
-    this.baseUrl = process.env.NODE_ENV === 'production' 
+    this.baseUrl = import.meta.env.PROD 
       ? '/api' 
       : 'http://localhost:3000/api';
   }

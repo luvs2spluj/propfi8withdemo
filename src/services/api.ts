@@ -1,11 +1,11 @@
 import { supabaseApiService } from './supabaseClient';
 
 // Backend URLs
-const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5003/api';
-const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5003/api';
+const SUPABASE_BACKEND_URL = import.meta.env.VITE_SUPABASE_API_URL || 'http://localhost:5003/api';
+const LOCAL_BACKEND_URL = import.meta.env.VITE_LOCAL_API_URL || 'http://localhost:5003/api';
 
 // Default to Supabase backend for most operations
-const API_BASE_URL = process.env.REACT_APP_API_URL || SUPABASE_BACKEND_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || SUPABASE_BACKEND_URL;
 
 // Check if we're in a browser environment (unused but kept for future use)
 // const isBrowser = typeof window !== 'undefined';

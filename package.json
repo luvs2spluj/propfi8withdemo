@@ -1,8 +1,9 @@
 {
-  "name": "horton-properties-dashboard",
+  "name": "propfi7vite",
   "version": "1.0.0",
-  "description": "Data dashboard for Horton Properties analytics",
+  "description": "PropFi Property Management Dashboard with Vite",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@clerk/clerk-react": "^5.48.1",
     "@radix-ui/react-label": "^2.1.7",
@@ -33,11 +34,10 @@
     "react": "^18.2.0",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
     "stripe": "^18.5.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^4.9.5",
+    "typescript": "^5.0.0",
     "uuid": "^13.0.0",
     "yaml": "^2.8.1"
   },
@@ -47,32 +47,33 @@
     "@types/multer": "^2.0.0",
     "@types/node-fetch": "^2.6.13",
     "@types/papaparse": "^5.3.16",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.0",
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.32.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.0",
     "postcss": "^8.4.0",
     "supabase": "^2.40.7",
     "tailwindcss": "^3.3.0",
-    "tsx": "^4.20.5"
+    "tsx": "^4.20.5",
+    "vite": "^4.4.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "start:log": "react-scripts start 2>&1 | tee -a logs/dev-server.log",
-    "build": "CI=false react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "dev": "npm start",
-    "dev:log": "npm run start:log",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "start": "vite",
+    "start:log": "vite 2>&1 | tee -a logs/dev-server.log",
+    "test": "vitest",
     "setup-ai-parser": "node setup-ai-parser.js",
-    "dev:ai-parser": "REACT_APP_AI_PARSER_ENABLED=true npm start",
+    "dev:ai-parser": "VITE_AI_PARSER_ENABLED=true vite",
     "train:headers": "tsx scripts/train-headers.ts",
     "watch:uploads": "tsx scripts/auto-upload.ts",
     "server": "tsx src/server.ts",
     "validate:svg": "node scripts/validate-svg.mjs"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [
