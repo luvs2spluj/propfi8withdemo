@@ -120,9 +120,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
       } else {
         // For other file types, use the original logic
         Object.entries(accountCategories).forEach(([accountName, category]) => {
-          const accountData = previewData.find((item: any) => 
+          const accountData = Array.isArray(previewData) ? previewData.find((item: any) => 
             item.account_name?.trim() === accountName
-          );
+          ) : null;
           
           if (accountData && accountData.time_series && category === 'income') {
             // Process time series data for income accounts

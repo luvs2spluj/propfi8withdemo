@@ -239,7 +239,7 @@ const Dashboard: React.FC = () => {
         const fileType = csv.file_type;
         
         console.log(`📁 Processing CSV: ${csv.file_name} (${totalRecords} records)`);
-        console.log('📋 CSV Preview Data Sample:', previewData.slice(0, 3));
+        console.log('📋 CSV Preview Data Sample:', Array.isArray(previewData) ? previewData.slice(0, 3) : previewData);
         
         // For cash flow CSVs, prioritize the THREE KEY METRICS for dashboard population
         if (fileType === 'cash_flow') {
@@ -255,10 +255,10 @@ const Dashboard: React.FC = () => {
           let foundKeyMetrics = false;
           
           primaryMetrics.forEach(metric => {
-            const accountData = previewData.find((item: any) => {
+            const accountData = Array.isArray(previewData) ? previewData.find((item: any) => {
               const accountName = item.account_name?.trim().toLowerCase() || '';
               return accountName.includes(metric.name.toLowerCase());
-            });
+            }) : null;
             
             if (accountData && accountData.time_series) {
               foundKeyMetrics = true;
