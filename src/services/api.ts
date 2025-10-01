@@ -1,8 +1,8 @@
 import { supabaseApiService } from './supabaseClient';
 
 // Backend URLs
-const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5001/api';
-const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5002/api';
+const SUPABASE_BACKEND_URL = process.env.REACT_APP_SUPABASE_API_URL || 'http://localhost:5003/api';
+const LOCAL_BACKEND_URL = process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:5003/api';
 
 // Default to Supabase backend for most operations
 const API_BASE_URL = process.env.REACT_APP_API_URL || SUPABASE_BACKEND_URL;
@@ -32,7 +32,7 @@ class ApiService {
 
     try {
       // Skip API calls if no backend server is available
-      if (API_BASE_URL.includes('localhost:5000') || API_BASE_URL.includes('localhost:5001')) {
+      if (API_BASE_URL.includes('localhost:5000') || API_BASE_URL.includes('localhost:5001') || API_BASE_URL.includes('localhost:5002')) {
         console.warn('Backend server not available, skipping API call to:', endpoint);
         throw new Error('Backend server not available - using Supabase directly');
       }
