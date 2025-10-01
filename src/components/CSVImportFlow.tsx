@@ -5,7 +5,7 @@ import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/s
 import { Database, Edit3, Trash2, RefreshCw, Eye, CheckCircle, X } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 
-const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5001";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 type FileType = 'cash_flow' | 'balance_sheet' | 'rent_roll' | 'income_statement' | 'maintenance_log' | 'general' | 'pdf';
 

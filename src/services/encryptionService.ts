@@ -5,7 +5,7 @@
  * Ensures data is encrypted before storage and decrypted on retrieval
  */
 
-const CryptoJS = require('crypto-js');
+import CryptoJS from 'crypto-js';
 
 export interface EncryptionConfig {
   key: string;
@@ -39,7 +39,7 @@ class EncryptionService {
    */
   private deriveKey(): string {
     // Use a combination of user ID and a system-wide secret
-    const userSecret = process.env.REACT_APP_ENCRYPTION_SECRET || 'default-secret';
+    const userSecret = import.meta.env.VITE_ENCRYPTION_SECRET || 'default-secret';
     const combinedSecret = `${userSecret}_${this.keyDerivationSalt}`;
     
     // Derive key using PBKDF2
