@@ -29,7 +29,7 @@ export async function uploadRawCSV(path: string, buf: Buffer, contentType = "tex
 
 export async function saveCSVData(csvData: any, userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, saving to localStorage only');
+    console.error('Supabase not available - cannot save data');
     return null;
   }
   
@@ -67,7 +67,7 @@ export async function saveCSVData(csvData: any, userId?: string) {
 
 export async function getCSVData(userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, reading from localStorage only');
+    console.error('Supabase not available - cannot load data');
     return [];
   }
   
@@ -100,7 +100,7 @@ export async function getCSVData(userId?: string) {
       userId: userId
     });
     
-    console.log('CSV data fetched from Supabase (decrypted)');
+    console.log('CSV data fetched from Supabase (decrypted):', decryptedData.length, 'records');
     return decryptedData;
   } catch (error) {
     console.error('Error fetching CSV data:', error);
@@ -110,7 +110,7 @@ export async function getCSVData(userId?: string) {
 
 export async function deleteCSVData(csvId: string, userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, deleting from localStorage only');
+    console.error('Supabase not available - cannot delete data');
     return null;
   }
   
@@ -148,7 +148,7 @@ export async function deleteCSVData(csvId: string, userId?: string) {
 // AI Learning Functions
 export async function saveAILearning(fileType: string, accountName: string, userCategory: string, userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, cannot save AI learning');
+    console.error('Supabase not available - cannot save AI learning');
     return null;
   }
   
@@ -184,7 +184,7 @@ export async function saveAILearning(fileType: string, accountName: string, user
 
 export async function getAILearning(fileType: string, userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, cannot get AI learning');
+    console.error('Supabase not available - cannot get AI learning');
     return {};
   }
   
@@ -222,7 +222,7 @@ export async function getAILearning(fileType: string, userId?: string) {
 
 export async function updateAILearningUsage(fileType: string, accountName: string, userId?: string) {
   if (!supabase) {
-    console.log('Supabase not available, cannot update AI learning usage');
+    console.error('Supabase not available - cannot update AI learning usage');
     return null;
   }
   
@@ -271,5 +271,78 @@ export async function updateAILearningUsage(fileType: string, accountName: strin
   } catch (error) {
     console.error('Error updating AI learning usage:', error);
     return null;
+  }
+}
+
+// Migration function to move localStorage data to Supabase
+export async function migrateLocalStorageToSupabase(userId?: string) {
+  if (!supabase) {
+    console.error('Supabase not available - cannot migrate data');
+    return { success: false, error: 'Supabase not available' };
+  }
+
+  try {
+    console.log('🔄 Starting localStorage to Supabase migration...');
+    
+    // Get localStorage data
+    const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+    console.log('📱 Found', savedCSVs.length, 'CSVs in localStorage');
+    
+    if (savedCSVs.length === 0) {
+      console.log('✅ No localStorage data to migrate');
+      return { success: true, migrated: 0 };
+    }
+
+    let migratedCount = 0;
+    let errorCount = 0;
+
+    for (const csv of savedCSVs) {
+      try {
+        // Convert localStorage format to Supabase format
+        const supabaseFormat = {
+          file_name: csv.fileName,
+          file_type: csv.fileType,
+          uploaded_at: csv.uploadedAt,
+          total_records: csv.totalRecords,
+          account_categories: csv.accountCategories,
+          bucket_assignments: csv.bucketAssignments,
+          is_active: csv.isActive,
+          preview_data: csv.previewData,
+          user_id: userId
+        };
+
+        // Save to Supabase
+        const result = await saveCSVData(supabaseFormat, userId);
+        
+        if (result) {
+          migratedCount++;
+          console.log(`✅ Migrated: ${csv.fileName}`);
+        } else {
+          errorCount++;
+          console.error(`❌ Failed to migrate: ${csv.fileName}`);
+        }
+      } catch (error) {
+        errorCount++;
+        console.error(`❌ Error migrating ${csv.fileName}:`, error);
+      }
+    }
+
+    // Clear localStorage after successful migration
+    if (migratedCount > 0) {
+      localStorage.removeItem('savedCSVs');
+      console.log('🗑️ Cleared localStorage after migration');
+    }
+
+    console.log(`🎉 Migration complete: ${migratedCount} migrated, ${errorCount} errors`);
+    
+    return {
+      success: true,
+      migrated: migratedCount,
+      errors: errorCount,
+      total: savedCSVs.length
+    };
+  } catch (error) {
+    console.error('Migration failed:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

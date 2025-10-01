@@ -8,7 +8,7 @@ import Financials from './components/Financials';
 import Reports from './components/Reports';
 import CSVs from './components/CSVs';
 import LandingPage from './components/LandingPage';
-import OrganizationSetup from './components/OrganizationSetup';
+// import OrganizationSetup from './components/OrganizationSetup';
 import Pricing from './components/Pricing';
 import DarkModeToggle from './components/DarkModeToggle';
 import LogoTest from './components/LogoTest';
@@ -22,9 +22,9 @@ import { userAuthService } from './services/userAuthService';
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [showOrganizationSetup, setShowOrganizationSetup] = useState(false);
+  // const [showOrganizationSetup, setShowOrganizationSetup] = useState(false);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  // const [isDemoMode, setIsDemoMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isSignedIn, isLoaded, user } = useUser();
   const { signOut } = useClerk();
@@ -46,10 +46,10 @@ function AppContent() {
               // User has organization name in localStorage but not in database
               // This could happen if database was reset or user data was lost
               setOrganizationName(savedOrgName);
-              setShowOrganizationSetup(false);
+              // setShowOrganizationSetup(false);
             } else {
               // First time user - show organization setup
-              setShowOrganizationSetup(true);
+              // setShowOrganizationSetup(true);
             }
           } else {
             // User has organization in database - get the name
@@ -59,7 +59,7 @@ function AppContent() {
               // Update localStorage to keep it in sync
               localStorage.setItem('organizationName', organization.name);
             }
-            setShowOrganizationSetup(false);
+            // setShowOrganizationSetup(false);
           }
         } catch (error) {
           console.error('Error initializing user:', error);
@@ -67,9 +67,9 @@ function AppContent() {
           const savedOrgName = localStorage.getItem('organizationName');
           if (savedOrgName) {
             setOrganizationName(savedOrgName);
-            setShowOrganizationSetup(false);
+            // setShowOrganizationSetup(false);
           } else {
-            setShowOrganizationSetup(true);
+            // setShowOrganizationSetup(true);
           }
         }
       };
@@ -77,7 +77,7 @@ function AppContent() {
       initializeUser();
     } else if (!isSignedIn) {
       userAuthService.clearUser();
-      setShowOrganizationSetup(false);
+      // setShowOrganizationSetup(false);
       setOrganizationName(null);
     }
   }, [isSignedIn, user]);
@@ -109,31 +109,31 @@ function AppContent() {
   };
 
   // Handle organization setup completion
-  const handleOrganizationComplete = async (name: string) => {
-    try {
-      // Create organization in database
-      const organization = await userAuthService.createOrganization(name);
-      setOrganizationName(organization.name);
-      setShowOrganizationSetup(false);
-      // Update localStorage to keep it in sync
-      localStorage.setItem('organizationName', organization.name);
-    } catch (error) {
-      console.error('Error creating organization:', error);
-      // Fallback to localStorage if database fails
-      setOrganizationName(name);
-      setShowOrganizationSetup(false);
-      localStorage.setItem('organizationName', name);
-    }
-  };
+  // const handleOrganizationComplete = async (name: string) => {
+  //   try {
+  //     // Create organization in database
+  //     const organization = await userAuthService.createOrganization(name);
+  //     setOrganizationName(organization.name);
+  //     setShowOrganizationSetup(false);
+  //     // Update localStorage to keep it in sync
+  //     localStorage.setItem('organizationName', organization.name);
+  //   } catch (error) {
+  //     console.error('Error creating organization:', error);
+  //     // Fallback to localStorage if database fails
+  //     setOrganizationName(name);
+  //     setShowOrganizationSetup(false);
+  //     localStorage.setItem('organizationName', name);
+  //   }
+  // };
 
   // Handle organization setup skip
-  const handleOrganizationSkip = () => {
-    setShowOrganizationSetup(false);
-    setOrganizationName('My Organization');
-    localStorage.setItem('organizationName', 'My Organization');
-    // Note: We don't create the organization in the database when skipping
-    // This allows the user to set it up later if they want
-  };
+  // const handleOrganizationSkip = () => {
+  //   setShowOrganizationSetup(false);
+  //   setOrganizationName('My Organization');
+  //   localStorage.setItem('organizationName', 'My Organization');
+  //   // Note: We don't create the organization in the database when skipping
+  //   // This allows the user to set it up later if they want
+  // };
 
   // Handle subscription
   const handleSubscribe = async (plan: string, properties: number) => {

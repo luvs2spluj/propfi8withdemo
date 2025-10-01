@@ -177,18 +177,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
         let chartData = null;
         
         try {
-          // Try to get data from Supabase first
-          const supabaseCSVs = await getCSVData();
-          let activeCSVs = supabaseCSVs;
-          
-          // If no Supabase data, fall back to localStorage
-          if (supabaseCSVs.length === 0) {
-            const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-            activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-            console.log('📊 No Supabase data, using localStorage for chart:', activeCSVs.length, 'active CSVs');
-          } else {
-            console.log('📊 Using Supabase data for chart:', activeCSVs.length, 'active CSVs');
-          }
+          // Get data from Supabase only
+          const activeCSVs = await getCSVData();
+          console.log('📊 Using Supabase data for chart:', activeCSVs.length, 'active CSVs');
           
           console.log('📊 Active CSVs for chart data:', activeCSVs.length);
           

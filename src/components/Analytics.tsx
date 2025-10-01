@@ -17,13 +17,13 @@ import {
 } from 'lucide-react';
 // import ApiService from '../services/api'; // Unused import
 
-interface Property {
-  id: string;
-  name: string;
-  address?: string;
-  type?: string;
-  total_units?: number;
-}
+// interface Property {
+//   id: string;
+//   name: string;
+//   address?: string;
+//   type?: string;
+//   total_units?: number;
+// }
 
 const Analytics: React.FC = () => {
   const [timeRange, setTimeRange] = useState('12m');
@@ -329,31 +329,31 @@ const Analytics: React.FC = () => {
   };
 
   // Function to filter data based on time range
-  const filterDataByTimeRange = (monthlyData: any[]) => {
-    // const now = new Date(); // Unused variable
-    let monthsToInclude = 12; // default
-    
-    switch (timeRange) {
-      case '1m':
-        monthsToInclude = 1;
-        break;
-      case '3m':
-        monthsToInclude = 3;
-        break;
-      case '6m':
-        monthsToInclude = 6;
-        break;
-      case '12m':
-        monthsToInclude = 12;
-        break;
-      case '24m':
-        monthsToInclude = 24;
-        break;
-    }
-    
-    // Return the last N months of data
-    return monthlyData.slice(-monthsToInclude);
-  };
+  // const filterDataByTimeRange = (monthlyData: any[]) => {
+  //   // const now = new Date(); // Unused variable
+  //   let monthsToInclude = 12; // default
+  //   
+  //   switch (timeRange) {
+  //     case '1m':
+  //       monthsToInclude = 1;
+  //       break;
+  //     case '3m':
+  //       monthsToInclude = 3;
+  //       break;
+  //     case '6m':
+  //       monthsToInclude = 6;
+  //       break;
+  //     case '12m':
+  //       monthsToInclude = 12;
+  //       break;
+  //     case '24m':
+  //       monthsToInclude = 24;
+  //       break;
+  //   }
+  //   
+  //   // Return the last N months of data
+  //   return monthlyData.slice(-monthsToInclude);
+  // };
 
   // Property Management Analytics Metrics
   const analyticsMetrics = analyticsData ? [

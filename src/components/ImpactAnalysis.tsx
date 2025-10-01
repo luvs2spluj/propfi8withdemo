@@ -5,7 +5,7 @@
  * by absolute dollar value to identify the most impactful items.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -13,16 +13,16 @@ import {
   ChevronRight,
   Download,
   BarChart3,
-  DollarSign,
-  Percent,
-  Calendar,
-  FileText
+  // DollarSign, // Unused
+  // Percent, // Unused
+  // Calendar, // Unused
+  // FileText // Unused
 } from 'lucide-react';
 import { 
   ImpactAnalysis, 
   LineItem, 
   ImpactSummary,
-  MonthlyTrend
+  // MonthlyTrend // Unused
 } from '../types/impactAnalysis';
 import { impactAnalysisService } from '../services/impactAnalysisService';
 import { userAuthService } from '../services/userAuthService';
@@ -57,11 +57,7 @@ const ImpactAnalysisComponent: React.FC<ImpactAnalysisProps> = ({
   const [selectedItem, setSelectedItem] = useState<LineItem | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    loadImpactAnalysis();
-  }, [propertyId, dateRange]);
-
-  const loadImpactAnalysis = async () => {
+  const loadImpactAnalysis = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -89,7 +85,11 @@ const ImpactAnalysisComponent: React.FC<ImpactAnalysisProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [propertyId, dateRange]);
+
+  useEffect(() => {
+    loadImpactAnalysis();
+  }, [loadImpactAnalysis]);
 
   const togglePercentileExpansion = (percentile: string) => {
     const newExpanded = new Set(expandedPercentiles);
@@ -101,10 +101,10 @@ const ImpactAnalysisComponent: React.FC<ImpactAnalysisProps> = ({
     setExpandedPercentiles(newExpanded);
   };
 
-  const handleItemClick = (item: LineItem) => {
-    setSelectedItem(item);
-    setShowModal(true);
-  };
+  // const handleItemClick = (item: LineItem) => { // Unused
+  //   setSelectedItem(item);
+  //   setShowModal(true);
+  // };
 
   const exportToCSV = () => {
     if (!impactAnalysis) return;

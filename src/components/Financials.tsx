@@ -119,26 +119,18 @@ const Financials: React.FC = () => {
       // Load data from CSV files instead of mock API
       let propertyDataArray: PropertyData[] = [];
       
-      // Get CSV data from Supabase first, fallback to localStorage
-      const supabaseCSVs = await getCSVData();
-      let activeCSVs = supabaseCSVs;
-      
-      if (supabaseCSVs.length === 0) {
-        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-        console.log('📊 No Supabase data, using localStorage for financials:', activeCSVs.length, 'active CSVs');
-      } else {
-        console.log('📊 Using Supabase data for financials:', activeCSVs.length, 'active CSVs');
-      }
+      // Get CSV data from Supabase only
+      const activeCSVs = await getCSVData();
+      console.log('📊 Using Supabase data for financials:', activeCSVs.length, 'active CSVs');
       
       if (activeCSVs.length > 0) {
-        console.log('📊 Processing CSV data for financials:', activeCSVs.map((csv: any) => csv.file_name || csv.fileName));
+        console.log('📊 Processing CSV data for financials:', activeCSVs.map((csv: any) => csv.file_name));
         
         // Process CSV data similar to Dashboard
         activeCSVs.forEach((csv: any) => {
-          const fileName = csv.file_name || csv.fileName;
-          const accountCategories = csv.account_categories || csv.accountCategories;
-          const previewData = csv.preview_data || csv.previewData;
+          const fileName = csv.file_name;
+          const accountCategories = csv.account_categories;
+          const previewData = csv.preview_data;
           
           console.log(`📁 Processing CSV: ${fileName} for financials`);
           

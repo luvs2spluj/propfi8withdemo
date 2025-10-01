@@ -128,19 +128,10 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ properties }) => {
   useEffect(() => {
     const loadChartData = async () => {
       setIsLoading(true);
-      try {
-        // Try to get data from Supabase first
-        const supabaseCSVs = await getCSVData();
-        let activeCSVs = supabaseCSVs;
-        
-        // If no Supabase data, fall back to localStorage
-        if (supabaseCSVs.length === 0) {
-          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-          activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-          console.log('📊 No Supabase data, using localStorage for cash flow chart:', activeCSVs.length, 'active CSVs');
-        } else {
+        try {
+          // Get data from Supabase only
+          const activeCSVs = await getCSVData();
           console.log('📊 Using Supabase data for cash flow chart:', activeCSVs.length, 'active CSVs');
-        }
         
         const processedData = processCSVDataForCashFlow(activeCSVs);
         setChartData(processedData);

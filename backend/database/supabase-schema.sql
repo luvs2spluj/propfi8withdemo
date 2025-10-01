@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS csv_uploads (
 
 -- Indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_property_data_property_id ON property_data(property_id);
-CREATE INDEX IF NOT EXISTS idx_property_data_date ON property_data(date);
+CREATE INDEX IF NOT EXISTS idx_property_data_date ON property_data("Date");
 CREATE INDEX IF NOT EXISTS idx_csv_uploads_property_id ON csv_uploads(property_id);
 CREATE INDEX IF NOT EXISTS idx_csv_uploads_uploaded_at ON csv_uploads(uploaded_at);
 

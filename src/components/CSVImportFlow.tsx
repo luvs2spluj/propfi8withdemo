@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import { FieldSuggestion } from "./HeaderMapper";
 import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/supabase";
-import { Database, Edit3, Trash2, RefreshCw, Eye } from 'lucide-react';
+import { Database, Edit3, Trash2, RefreshCw, Eye, CheckCircle, X } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
 
 const API = (process.env as any).REACT_APP_API_BASE || "http://localhost:5001";
@@ -150,7 +150,7 @@ export default function CSVImportFlow() {
   const [file, setFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<FileType>('general');
   const [headers, setHeaders] = useState<string[]>([]);
-  const [samples, setSamples] = useState<string[][]>([]);
+  // const [samples, setSamples] = useState<string[][]>([]); // Unused
   const [map, setMap] = useState<Record<string, FieldSuggestion>>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -170,13 +170,13 @@ export default function CSVImportFlow() {
   const [selectedCSV, setSelectedCSV] = useState<any | null>(null);
   const [managementPreviewMode, setManagementPreviewMode] = useState(false);
   const [managementLoading, setManagementLoading] = useState(false);
-  const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({});
-  const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({});
+  // const [managementIncludedItems, setManagementIncludedItems] = useState<Record<string, boolean>>({}); // Unused
+  // const [managementBucketAssignments, setManagementBucketAssignments] = useState<Record<string, string>>({}); // Unused
   const [accountCategories, setAccountCategories] = useState<Record<string, string>>({});
-  const [editingCategories, setEditingCategories] = useState<Record<string, string>>({});
-  const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({});
-  const [editingTags, setEditingTags] = useState<Record<string, string[]>>({});
-  const [showManagementPreview, setShowManagementPreview] = useState(false);
+  // const [editingCategories, setEditingCategories] = useState<Record<string, string>>({}); // Unused
+  // const [editingBuckets, setEditingBuckets] = useState<Record<string, string>>({}); // Unused
+  // const [editingTags, setEditingTags] = useState<Record<string, string[]>>({}); // Unused
+  // const [showManagementPreview, setShowManagementPreview] = useState(false); // Unused
   
   // Bucket Management state
   const [bucketTerms, setBucketTerms] = useState<Record<string, string[]>>({});
@@ -188,7 +188,11 @@ export default function CSVImportFlow() {
   const [newBucketDescription, setNewBucketDescription] = useState<string>('');
   const [newBucketCategory, setNewBucketCategory] = useState<string>('income');
   const [bucketCategories, setBucketCategories] = useState<Record<string, string>>({});
-  const [newTerm, setNewTerm] = useState<string>('');
+  // const [newTerm, setNewTerm] = useState<string>(''); // Unused
+  
+  // Success notification state
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   // Load AI learning data when file type changes
   useEffect(() => {
@@ -428,7 +432,7 @@ export default function CSVImportFlow() {
         setBucketCategories({});
       }
     }
-  }, []);
+  }, [fileType]);
 
   // Helper function to check if a line item has any non-zero values
   const hasNonZeroValues = (row: any): boolean => {
@@ -646,7 +650,7 @@ export default function CSVImportFlow() {
         const cols = r.meta.fields || [];
         const sampleRows = (r.data as any[]).slice(0, 5);
         setHeaders(cols);
-        setSamples(sampleRows.map((row: any) => cols.map((c: string) => row[c])));
+        // setSamples(sampleRows.map((row: any) => cols.map((c: string) => row[c]))); // Unused
         
         // Auto-generate mapping based on file type
         const autoMap: Record<string, FieldSuggestion> = {};
@@ -975,21 +979,25 @@ export default function CSVImportFlow() {
 
   const selectAllItems = () => {
     const allIncluded: Record<string, boolean> = {};
-    preview.forEach((row: any) => {
-      if (row.account_name) {
-        allIncluded[row.account_name] = true;
-      }
-    });
+    if (Array.isArray(preview)) {
+      preview.forEach((row: any) => {
+        if (row.account_name) {
+          allIncluded[row.account_name] = true;
+        }
+      });
+    }
     setIncludedItems(allIncluded);
   };
 
   const deselectAllItems = () => {
     const allExcluded: Record<string, boolean> = {};
-    preview.forEach((row: any) => {
-      if (row.account_name) {
-        allExcluded[row.account_name] = false; // Explicitly set to false
-      }
-    });
+    if (Array.isArray(preview)) {
+      preview.forEach((row: any) => {
+        if (row.account_name) {
+          allExcluded[row.account_name] = false; // Explicitly set to false
+        }
+      });
+    }
     setIncludedItems(allExcluded);
     console.log('❌ Deselected all items:', allExcluded);
   };
@@ -1393,10 +1401,14 @@ export default function CSVImportFlow() {
         // Refresh the CSV list to show updated data
         await loadCSVs();
         
-        // Show success message
+        // Show success notification
+        setSuccessMessage(`CSV "${csvRecord.fileName}" updated successfully!`);
+        setShowSuccessNotification(true);
+        
+        // Auto-hide notification after 3 seconds
         setTimeout(() => {
-          alert(`CSV "${csvRecord.fileName}" updated successfully!`);
-        }, 500);
+          setShowSuccessNotification(false);
+        }, 3000);
       } else {
         // Clear preview data for new uploads to prevent double-counting when returning to screen
         setPreview([]);
@@ -1409,10 +1421,14 @@ export default function CSVImportFlow() {
         // Refresh the CSV list to show the new CSV
         await loadCSVs();
         
-        // Show success message with link to management for new uploads
-      setTimeout(() => {
-        alert(`CSV saved successfully! Go to "CSV Management" tab to review and adjust categorizations.`);
-      }, 500);
+        // Show success notification with link to management for new uploads
+        setSuccessMessage(`CSV saved successfully! Go to "CSV Management" tab to review and adjust categorizations.`);
+        setShowSuccessNotification(true);
+        
+        // Auto-hide notification after 3 seconds
+        setTimeout(() => {
+          setShowSuccessNotification(false);
+        }, 3000);
       }
       
     } catch (error: any) {
@@ -1456,13 +1472,13 @@ export default function CSVImportFlow() {
     });
     
     setSelectedCSV(csv);
-    setEditingCategories(includedAccountCategories);
-    setEditingBuckets(includedBucketAssignments);
-    setManagementBucketAssignments(includedBucketAssignments);
-    setEditingTags(csv.tags || {});
-    setManagementIncludedItems(csv.includedItems || {});
+    // setEditingCategories(includedAccountCategories); // Unused
+    // setEditingBuckets(includedBucketAssignments); // Unused
+    // setManagementBucketAssignments(includedBucketAssignments); // Unused
+    // setEditingTags(csv.tags || {}); // Unused
+    // setManagementIncludedItems(csv.includedItems || {}); // Unused
     setManagementPreviewMode(true);
-    setShowManagementPreview(true);
+    // setShowManagementPreview(true); // Unused
     
     // Load the filtered data into the main preview interface
     setPreview(includedPreviewData);
@@ -1506,13 +1522,13 @@ export default function CSVImportFlow() {
     }
     
     setSelectedCSV(csv);
-    setEditingCategories(csv.accountCategories || csv.account_categories || {});
-    setEditingBuckets(csv.bucketAssignments || csv.bucket_assignments || {});
-    setManagementBucketAssignments(csv.bucketAssignments || csv.bucket_assignments || {});
-    setEditingTags(csv.tags || {});
-    setManagementIncludedItems(csv.includedItems || csv.included_items || {});
+    // setEditingCategories(csv.accountCategories || csv.account_categories || {}); // Unused
+    // setEditingBuckets(csv.bucketAssignments || csv.bucket_assignments || {}); // Unused
+    // setManagementBucketAssignments(csv.bucketAssignments || csv.bucket_assignments || {}); // Unused
+    // setEditingTags(csv.tags || {}); // Unused
+    // setManagementIncludedItems(csv.includedItems || csv.included_items || {}); // Unused
     setManagementPreviewMode(false);
-    setShowManagementPreview(false);
+    // setShowManagementPreview(false); // Unused
     
     // Load the CSV data into the main preview interface for editing
     setPreview(csv.previewData || csv.preview_data || []);
@@ -1533,31 +1549,31 @@ export default function CSVImportFlow() {
     console.log('✏️ Editing CSV:', csv.fileName || csv.file_name, 'with', (csv.previewData || csv.preview_data || []).length, 'records');
   };
 
-  const toggleCSVActive = async (csvId: string) => {
-    setManagementLoading(true);
-    try {
-      const updatedCSVs = savedCSVs.map(csv => 
-        csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
-      );
-      setSavedCSVs(updatedCSVs);
+  // const toggleCSVActive = async (csvId: string) => { // Unused
+  //   setManagementLoading(true);
+  //   try {
+  //     const updatedCSVs = savedCSVs.map(csv => 
+  //       csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
+  //     );
+  //     setSavedCSVs(updatedCSVs);
       
-      // Update in localStorage
-      const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-      const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
-        csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
-      );
-      localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
+  //     // Update in localStorage
+  //     const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
+  //     const updatedLocalCSVs = localSavedCSVs.map((csv: any) => 
+  //       csv.id === csvId ? { ...csv, isActive: !csv.isActive } : csv
+  //     );
+  //     localStorage.setItem('savedCSVs', JSON.stringify(updatedLocalCSVs));
       
-      // Trigger dashboard update
-      window.dispatchEvent(new CustomEvent('dataUpdated', { 
-        detail: { action: 'csv_toggled', csvId } 
-      }));
-    } catch (error) {
-      console.error('Error toggling CSV:', error);
-    } finally {
-      setManagementLoading(false);
-    }
-  };
+  //     // Trigger dashboard update
+  //     window.dispatchEvent(new CustomEvent('dataUpdated', { 
+  //       detail: { action: 'csv_toggled', csvId } 
+  //     }));
+  //   } catch (error) {
+  //     console.error('Error toggling CSV:', error);
+  //   } finally {
+  //     setManagementLoading(false);
+  //   }
+  // };
 
   const deleteCSV = async (csvId: string) => {
     const csvToDelete = savedCSVs.find(csv => csv.id === csvId);
@@ -1593,8 +1609,8 @@ export default function CSVImportFlow() {
       // Clear selection if deleted CSV was selected
       if (selectedCSV?.id === csvId) {
         setSelectedCSV(null);
-        setManagementBucketAssignments({});
-        setManagementIncludedItems({});
+        // setManagementBucketAssignments({}); // Unused
+        // setManagementIncludedItems({}); // Unused
       }
       
       // Trigger dashboard update to recalculate totals
@@ -1672,9 +1688,10 @@ export default function CSVImportFlow() {
     
     if (!preview || preview.length === 0) return bucketTotals;
     
-    console.log('🔍 Calculating current session totals for', preview.length, 'items');
+    console.log('🔍 Calculating current session totals for', Array.isArray(preview) ? preview.length : 0, 'items');
     
-    preview.forEach((item: any) => {
+    if (Array.isArray(preview)) {
+      preview.forEach((item: any) => {
       const accountName = item.account_name;
       const category = accountCategories[accountName];
       const bucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, category);
@@ -1720,7 +1737,8 @@ export default function CSVImportFlow() {
       if (bucket && bucket !== 'exclude') {
         bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
       }
-    });
+      });
+    }
     
     console.log('💰 Current session bucket totals:', bucketTotals);
     return bucketTotals;
@@ -1753,6 +1771,12 @@ export default function CSVImportFlow() {
       const accountCategories = csv.accountCategories || csv.account_categories || {};
       const bucketAssignments = csv.bucketAssignments || csv.bucket_assignments || {};
       const includedItems = csv.includedItems || csv.included_items || {};
+      
+      // Ensure previewData is an array before calling forEach
+      if (!Array.isArray(previewData)) {
+        console.log(`⚠️ CSV ${index + 1} previewData is not an array:`, typeof previewData, previewData);
+        return;
+      }
       
       previewData.forEach((item: any) => {
         const accountName = item.account_name;
@@ -1887,12 +1911,12 @@ export default function CSVImportFlow() {
   const allBucketTotals = React.useMemo(() => {
     console.log('🔄 Recalculating allBucketTotals due to state change');
     return calculateCombinedBucketTotals();
-  }, [savedCSVs, preview, selectedCSV, bucketAssignments, includedItems, calculateCombinedBucketTotals]);
+  }, [savedCSVs, selectedCSV, calculateCombinedBucketTotals]);
 
   const currentSessionTotals = React.useMemo(() => {
     console.log('🔄 Recalculating currentSessionTotals');
     return calculateCurrentSessionTotals();
-  }, [preview, bucketAssignments, includedItems, calculateCurrentSessionTotals]);
+  }, [calculateCurrentSessionTotals]);
 
   // Bucket Management Functions
   const addTermToBucket = (bucketKey: string, term: string) => {
@@ -1913,7 +1937,7 @@ export default function CSVImportFlow() {
       }
       return updated;
     });
-    setNewTerm('');
+    // setNewTerm(''); // Unused
   };
 
   // const removeTermFromBucket = (bucketKey: string, term: string) => {
@@ -3432,6 +3456,20 @@ export default function CSVImportFlow() {
                     </div>
                 </div>
       </div>
+
+      {/* Success Notification */}
+      {showSuccessNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-green-50 border border-green-200 rounded-md p-4 flex items-center space-x-2 shadow-lg">
+          <CheckCircle className="w-5 h-5 text-green-600" />
+          <span className="text-green-800 font-medium">{successMessage}</span>
+          <button
+            onClick={() => setShowSuccessNotification(false)}
+            className="ml-2 text-green-600 hover:text-green-800"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
     </div>
   );

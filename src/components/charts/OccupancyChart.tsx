@@ -13,6 +13,7 @@ import {
 import { Line } from 'react-chartjs-2';
 // import ApiService from '../../services/api';
 import { ChartBucketHeader } from '../BucketIcon';
+import { getCSVData } from '../../lib/supabase';
 
 ChartJS.register(
   CategoryScale,
@@ -96,9 +97,8 @@ const OccupancyChart: React.FC<OccupancyChartProps> = ({ properties }) => {
         let chartData = null;
         
         try {
-          // Load data from active CSVs in localStorage
-          const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-          const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+          // Get data from Supabase only
+          const activeCSVs = await getCSVData();
           
           console.log('📊 Active CSVs for occupancy chart data:', activeCSVs.length);
           

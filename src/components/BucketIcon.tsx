@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { getBucketDefinition, getBucketIcon, getBucketColor } from '../types/bucketTypes';
+import { getBucketDefinition } from '../types/bucketTypes'; // getBucketIcon, getBucketColor unused
 
 interface BucketIconProps {
   bucketId: string;

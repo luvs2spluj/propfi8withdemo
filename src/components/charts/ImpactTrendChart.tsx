@@ -17,7 +17,7 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { LineItem, MonthlyTrend } from '../../types/impactAnalysis';
+import { LineItem } from '../../types/impactAnalysis'; // MonthlyTrend unused
 import { ChartBucketHeader } from '../BucketIcon';
 
 ChartJS.register(

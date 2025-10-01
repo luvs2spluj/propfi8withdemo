@@ -32,12 +32,12 @@ interface MultiBucketChartProps {
   properties?: any[];
 }
 
-interface BucketData {
-  bucketId: string;
-  label: string;
-  color: string;
-  data: number[];
-}
+// interface BucketData { // Unused
+//   bucketId: string;
+//   label: string;
+//   color: string;
+//   data: number[];
+// }
 
 const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) => {
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>(['total_income', 'total_expense', 'net_operating_income']);
@@ -81,33 +81,13 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
       try {
         console.log('📊 Multi-Bucket Chart: Starting data load...');
         
-        // Try Supabase first
+        // Get data from Supabase only
         const currentUser = userAuthService.getCurrentUser();
         const userId = currentUser?.id;
         console.log('📊 Multi-Bucket Chart: Current user:', currentUser);
         
-        let data = await getCSVData(userId);
+        const data = await getCSVData(userId);
         console.log('📊 Multi-Bucket Chart: Supabase data:', data);
-        
-        // If no Supabase data, try localStorage
-        if (!data || data.length === 0) {
-          console.log('📊 Multi-Bucket Chart: No Supabase data, trying localStorage...');
-          const localData = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-          console.log('📊 Multi-Bucket Chart: LocalStorage data:', localData);
-          
-          // Convert localStorage format to match expected structure
-          data = localData.map((csv: any) => ({
-            id: csv.id,
-            file_name: csv.fileName,
-            file_type: csv.fileType,
-            uploaded_at: csv.uploadedAt,
-            total_records: csv.totalRecords,
-            account_categories: csv.accountCategories,
-            bucket_assignments: csv.bucketAssignments,
-            is_active: csv.isActive,
-            preview_data: csv.previewData
-          }));
-        }
         
         console.log('📊 Multi-Bucket Chart: Final data:', data);
         console.log('📊 Multi-Bucket Chart: Data structure sample:', data[0]);
@@ -137,26 +117,46 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
       console.log(`📊 Multi-Bucket Chart: Processing CSV ${csvIndex}:`, csv.file_name || csv.fileName);
       
       if (csv.preview_data) {
-        csv.preview_data.forEach((row: any, rowIndex: number) => {
-          if (row.time_series) {
-            console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} has time_series:`, Object.keys(row.time_series));
-            Object.keys(row.time_series).forEach(month => {
-              // Skip non-monthly entries like "Total"
-              if (month.toLowerCase() !== 'total' && month.toLowerCase() !== 'sum' && month.toLowerCase() !== 'grand total') {
-                months.add(month);
-              }
-            });
-          } else {
-            console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} missing time_series:`, row);
-          }
-        });
+        if (Array.isArray(csv.preview_data)) {
+          // Handle array format (expected format)
+          csv.preview_data.forEach((row: any, rowIndex: number) => {
+            if (row.time_series) {
+              console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} has time_series:`, Object.keys(row.time_series));
+              Object.keys(row.time_series).forEach(month => {
+                // Skip non-monthly entries like "Total"
+                if (month.toLowerCase() !== 'total' && month.toLowerCase() !== 'sum' && month.toLowerCase() !== 'grand total') {
+                  months.add(month);
+                }
+              });
+            } else {
+              console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} missing time_series:`, row);
+            }
+          });
+        } else if (typeof csv.preview_data === 'object') {
+          // Handle object format (current Supabase data)
+          console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} has object preview_data, skipping time_series extraction`);
+          // For now, we'll skip this CSV as it doesn't have the expected array format
+        } else {
+          console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} has unexpected preview_data type:`, typeof csv.preview_data);
+        }
       } else {
-        console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} missing preview_data:`, csv);
+        console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} missing preview_data:`, {
+          fileName: csv.file_name || csv.fileName
+        });
       }
     });
 
     const sortedMonths = Array.from(months).sort();
     console.log('📊 Multi-Bucket Chart: Found months:', sortedMonths);
+    
+    // If no months found, return empty chart data
+    if (sortedMonths.length === 0) {
+      console.log('📊 Multi-Bucket Chart: No valid time series data found, returning empty chart');
+      return {
+        labels: [],
+        datasets: []
+      };
+    }
 
     // Process each selected bucket
     const datasets = selectedBuckets.map(bucketId => {
@@ -173,7 +173,7 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
         let total = 0;
         
         csvData.forEach(csv => {
-          if (csv.preview_data) {
+          if (csv.preview_data && Array.isArray(csv.preview_data)) {
             csv.preview_data.forEach((row: any) => {
               if (row.time_series && row.time_series[month]) {
                 // Check if this row matches the bucket

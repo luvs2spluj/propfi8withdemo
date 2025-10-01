@@ -427,7 +427,7 @@ export default function CSVManagement() {
       // Delete from Supabase first, with user ID for security
       const currentUser = userAuthService.getCurrentUser();
       const userId = currentUser?.id;
-      const supabaseResult = await deleteCSVData(csvId, userId);
+      const supabaseResult = await deleteCSVData(csvId);
       if (supabaseResult) {
         console.log('✅ CSV deleted from Supabase');
       }

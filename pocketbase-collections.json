@@ -1,0 +1,198 @@
+{
+  "collections": [
+    {
+      "name": "users",
+      "type": "auth",
+      "schema": [
+        {
+          "name": "email",
+          "type": "email",
+          "required": true,
+          "unique": true
+        },
+        {
+          "name": "first_name",
+          "type": "text"
+        },
+        {
+          "name": "last_name",
+          "type": "text"
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "options": {
+            "values": ["admin", "member", "viewer"]
+          },
+          "default": "member"
+        }
+      ]
+    },
+    {
+      "name": "properties",
+      "type": "base",
+      "schema": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "address",
+          "type": "text"
+        },
+        {
+          "name": "property_type",
+          "type": "text"
+        },
+        {
+          "name": "total_units",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "owner",
+          "type": "relation",
+          "options": {
+            "collectionId": "users",
+            "cascadeDelete": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "csv_data",
+      "type": "base",
+      "schema": [
+        {
+          "name": "file_name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "file_type",
+          "type": "text",
+          "required": true
+        },
+        {
+          "name": "total_records",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "account_categories",
+          "type": "json",
+          "default": "{}"
+        },
+        {
+          "name": "bucket_assignments",
+          "type": "json",
+          "default": "{}"
+        },
+        {
+          "name": "tags",
+          "type": "json",
+          "default": "[]"
+        },
+        {
+          "name": "is_active",
+          "type": "bool",
+          "default": true
+        },
+        {
+          "name": "preview_data",
+          "type": "json",
+          "default": "[]"
+        },
+        {
+          "name": "time_series",
+          "type": "json",
+          "default": "[]"
+        },
+        {
+          "name": "data_date",
+          "type": "date"
+        },
+        {
+          "name": "owner",
+          "type": "relation",
+          "options": {
+            "collectionId": "users",
+            "cascadeDelete": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "property_data",
+      "type": "base",
+      "schema": [
+        {
+          "name": "property",
+          "type": "relation",
+          "options": {
+            "collectionId": "properties",
+            "cascadeDelete": true
+          }
+        },
+        {
+          "name": "date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "name": "monthly_revenue",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "occupancy_rate",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "total_units",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "maintenance_cost",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "utilities_cost",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "insurance_cost",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "property_tax",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "other_expenses",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "net_income",
+          "type": "number",
+          "default": 0
+        },
+        {
+          "name": "notes",
+          "type": "text"
+        }
+      ]
+    }
+  ]
+}
+
+
+

@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
+// import { Card, CardContent } from './ui/card'; // Unused
 import { X, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { SignUpButton } from '@clerk/clerk-react';
 

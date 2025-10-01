@@ -10,35 +10,34 @@ import {
 } from 'lucide-react';
 import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
-import CashFlowChart from './charts/CashFlowChart';
+// import CashFlowChart from './charts/CashFlowChart';
 import MultiBucketChart from './charts/MultiBucketChart';
 import unifiedPropertyService from '../services/unifiedPropertyService';
-import { getCSVData } from '../lib/supabase';
+import { getCSVData, deleteCSVData, migrateLocalStorageToSupabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
   const [properties, setProperties] = useState<any[]>([]);
   const [financialData, setFinancialData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasCashFlowData, setHasCashFlowData] = useState(false);
-  const [activeCSVsCount, setActiveCSVsCount] = useState(0);
+  // const [hasCashFlowData, setHasCashFlowData] = useState(false);
+  // const [activeCSVsCount, setActiveCSVsCount] = useState(0);
 
-  const checkForDuplicateCSVs = useCallback(() => {
+  const checkForDuplicateCSVs = useCallback(async () => {
     try {
-      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-      const activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
+      const activeCSVs = await getCSVData();
       
       // Group CSVs by filename
       const csvGroups = activeCSVs.reduce((groups: any, csv: any) => {
-        if (!groups[csv.fileName]) {
-          groups[csv.fileName] = [];
+        if (!groups[csv.file_name]) {
+          groups[csv.file_name] = [];
         }
-        groups[csv.fileName].push(csv);
+        groups[csv.file_name].push(csv);
         return groups;
       }, {});
       
       // Find duplicates
-      const duplicates = Object.entries(csvGroups).filter(([name, csvs]: [string, any]) => csvs.length > 1);
+      const duplicates = Object.entries(csvGroups).filter(([name, csvs]) => (csvs as any[]).length > 1);
       
       if (duplicates.length > 0) {
         console.warn('⚠️ DUPLICATE CSVs detected:', duplicates);
@@ -55,7 +54,7 @@ const Dashboard: React.FC = () => {
         );
         
         if (confirmed) {
-          cleanupDuplicateCSVs(duplicates);
+          await cleanupDuplicateCSVs(duplicates);
         }
       }
     } catch (error) {
@@ -155,28 +154,26 @@ const Dashboard: React.FC = () => {
   }, [checkForDuplicateCSVs, loadDashboardData]);
 
 
-  const cleanupDuplicateCSVs = (duplicates: any[]) => {
+  const cleanupDuplicateCSVs = async (duplicates: any[]) => {
     try {
-      const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-      let cleanedCSVs = [...savedCSVs];
       let removedCount = 0;
       
-      duplicates.forEach(([fileName, csvList]: [string, any]) => {
+      for (const [, csvList] of duplicates) {
         // Sort by upload date (most recent first)
         const sortedCSVs = csvList.sort((a: any, b: any) => 
-          new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+          new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
         );
         
         // Keep the most recent, remove the rest
         const toRemove = sortedCSVs.slice(1);
-        toRemove.forEach((csvToRemove: any) => {
-          cleanedCSVs = cleanedCSVs.filter(csv => csv.id !== csvToRemove.id);
-          removedCount++;
-          console.log(`🗑️ Removed duplicate CSV: ${csvToRemove.fileName} (${csvToRemove.uploadedAt})`);
-        });
-      });
-      
-      localStorage.setItem('savedCSVs', JSON.stringify(cleanedCSVs));
+        for (const csvToRemove of toRemove) {
+          const result = await deleteCSVData(csvToRemove.id);
+          if (result) {
+            removedCount++;
+            console.log(`🗑️ Removed duplicate CSV: ${csvToRemove.file_name} (${csvToRemove.uploaded_at})`);
+          }
+        }
+      }
       
       // Trigger dashboard update
       window.dispatchEvent(new CustomEvent('dataUpdated', { 
@@ -196,6 +193,12 @@ const Dashboard: React.FC = () => {
 
   const initializeUnifiedService = async () => {
     try {
+      // First, migrate any localStorage data to Supabase
+      const migrationResult = await migrateLocalStorageToSupabase();
+      if (migrationResult.success && migrationResult.migrated && migrationResult.migrated > 0) {
+        console.log(`🔄 Migrated ${migrationResult.migrated} CSVs from localStorage to Supabase`);
+      }
+      
       await unifiedPropertyService.initialize();
       console.log('🏢 Dashboard: Unified service initialized');
     } catch (error) {
@@ -205,31 +208,22 @@ const Dashboard: React.FC = () => {
 
   const calculateCSVMetrics = async () => {
     try {
-      // Try to get data from Supabase first
-      const supabaseCSVs = await getCSVData();
-      let activeCSVs = supabaseCSVs;
-      
-      // If no Supabase data, fall back to localStorage
-      if (supabaseCSVs.length === 0) {
-        const savedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
-        activeCSVs = savedCSVs.filter((csv: any) => csv.isActive);
-        console.log('📊 No Supabase data, using localStorage:', activeCSVs.length, 'active CSVs');
-      } else {
-        console.log('📊 Using Supabase data:', activeCSVs.length, 'active CSVs');
-      }
+      // Get data from Supabase only
+      const activeCSVs = await getCSVData();
+      console.log('📊 Using Supabase data:', activeCSVs.length, 'active CSVs');
       
       let totalIncome = 0;
       let totalExpense = 0;
       let recordCount = 0;
       
       console.log('📋 Active CSVs:', activeCSVs.map((csv: any) => ({ 
-        fileName: csv.file_name || csv.fileName, 
-        isActive: csv.is_active || csv.isActive, 
-        totalRecords: csv.total_records || csv.totalRecords 
+        fileName: csv.file_name, 
+        isActive: csv.is_active, 
+        totalRecords: csv.total_records 
       })));
       
       // Check for duplicate CSVs and warn user
-      const csvNames = activeCSVs.map((csv: any) => csv.file_name || csv.fileName);
+      const csvNames = activeCSVs.map((csv: any) => csv.file_name);
       const duplicateNames = csvNames.filter((name: string, index: number) => csvNames.indexOf(name) !== index);
       
       if (duplicateNames.length > 0) {
@@ -238,13 +232,13 @@ const Dashboard: React.FC = () => {
       }
       
       activeCSVs.forEach((csv: any) => {
-        const fileName = csv.file_name || csv.fileName;
-        const totalRecords = csv.total_records || csv.totalRecords;
-        const accountCategories = csv.account_categories || csv.accountCategories;
-        const previewData = csv.preview_data || csv.previewData;
-        const fileType = csv.file_type || csv.fileType;
+        // const fileName = csv.file_name;
+        const totalRecords = csv.total_records;
+        const accountCategories = csv.account_categories;
+        const previewData = csv.preview_data;
+        const fileType = csv.file_type;
         
-        console.log(`📁 Processing CSV: ${fileName} (${totalRecords} records)`);
+        console.log(`📁 Processing CSV: ${csv.file_name} (${totalRecords} records)`);
         console.log('📋 CSV Preview Data Sample:', previewData.slice(0, 3));
         
         // For cash flow CSVs, prioritize the THREE KEY METRICS for dashboard population
@@ -414,8 +408,8 @@ const Dashboard: React.FC = () => {
       console.log('  Active CSVs:', activeCSVs.length);
       console.log('  CSV file types:', activeCSVs.map((csv: any) => csv.file_type || csv.fileType));
       console.log('  Has cash flow:', hasCashFlow);
-      setHasCashFlowData(hasCashFlow);
-      setActiveCSVsCount(activeCSVs.length);
+      // setHasCashFlowData(hasCashFlow);
+      // setActiveCSVsCount(activeCSVs.length);
       
       const metrics = {
         totalIncome,

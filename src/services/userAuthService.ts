@@ -107,34 +107,39 @@ class UserAuthService {
 
     try {
       // Ensure user exists in our database
-      const { data, error } = await supabase.rpc('ensure_user_exists', {
-        clerk_user_id: clerkUser.id,
-        user_email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        user_first_name: clerkUser.firstName || '',
-        user_last_name: clerkUser.lastName || ''
-      });
+      try {
+        const { data, error } = await supabase.rpc('ensure_user_exists', {
+          user_email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          user_first_name: clerkUser.firstName || '',
+          user_last_name: clerkUser.lastName || '',
+          clerk_user_id: clerkUser.id
+        });
 
-      if (error) {
-        console.error('Error ensuring user exists:', error);
-        return;
+        if (error) {
+          console.error('Error ensuring user exists:', error);
+          // Continue without failing - user can still use the app
+        } else {
+          console.log('✅ User ensured in database:', data);
+        }
+      } catch (rpcError) {
+        console.warn('RPC function ensure_user_exists not available, skipping user creation:', rpcError);
+        // Continue without failing - user can still use the app
       }
 
       // Get the full user data including organization
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select(`
-          *,
-          organizations (*)
-        `)
+        .select('*')
         .eq('clerk_user_id', clerkUser.id)
         .single();
 
       if (userError) {
         console.error('Error fetching user data:', userError);
-        this.currentUser = { id: data, clerk_user_id: clerkUser.id };
+        this.currentUser = { id: clerkUser.id, clerk_user_id: clerkUser.id };
         return;
       }
 
+      console.log('✅ User data fetched:', userData);
       this.currentUser = userData;
     } catch (error) {
       console.error('Error setting current user:', error);

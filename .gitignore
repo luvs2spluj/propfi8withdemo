@@ -1,3 +1,5 @@
 node_modules
 .vercel
 .iteragent/agent-zero
+pb_data/
+pocketbase
