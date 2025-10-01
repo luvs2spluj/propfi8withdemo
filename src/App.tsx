@@ -21,7 +21,8 @@ import { userAuthService } from './services/userAuthService';
 // }
 
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>('landing');
+  const [showLandingPage, setShowLandingPage] = useState(true);
   // const [showOrganizationSetup, setShowOrganizationSetup] = useState(false);
   const [organizationName, setOrganizationName] = useState<string | null>(null);
   // const [isDemoMode, setIsDemoMode] = useState(false);
@@ -61,6 +62,10 @@ function AppContent() {
             }
             // setShowOrganizationSetup(false);
           }
+          
+          // Redirect logged-in users to dashboard after initialization
+          setShowLandingPage(false);
+          setCurrentPage('dashboard');
         } catch (error) {
           console.error('Error initializing user:', error);
           // Fallback to localStorage if database fails
@@ -71,6 +76,10 @@ function AppContent() {
           } else {
             // setShowOrganizationSetup(true);
           }
+          
+          // Still redirect to dashboard even if there's an error
+          setShowLandingPage(false);
+          setCurrentPage('dashboard');
         }
       };
       
@@ -79,6 +88,9 @@ function AppContent() {
       userAuthService.clearUser();
       // setShowOrganizationSetup(false);
       setOrganizationName(null);
+      // Show landing page for non-authenticated users
+      setShowLandingPage(true);
+      setCurrentPage('landing');
     }
   }, [isSignedIn, user]);
 
@@ -88,6 +100,10 @@ function AppContent() {
       const page = event.detail.page as Page;
       if (page) {
         setCurrentPage(page);
+        // If navigating to a page other than landing, hide landing page
+        if (page !== 'landing') {
+          setShowLandingPage(false);
+        }
       }
     };
 
@@ -103,6 +119,9 @@ function AppContent() {
       await signOut();
       userAuthService.clearUser();
       localStorage.removeItem('organizationName');
+      // Return to landing page after logout
+      setShowLandingPage(true);
+      setCurrentPage('landing');
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -158,6 +177,8 @@ function AppContent() {
 
   const renderPage = () => {
     switch (currentPage) {
+      case 'landing':
+        return <LandingPage />;
       case 'dashboard':
         return <Dashboard />;
       case 'financials':
@@ -175,7 +196,7 @@ function AppContent() {
       case 'logo-test':
         return <LogoTest />;
       default:
-        return <Dashboard />;
+        return <LandingPage />;
     }
   };
 
@@ -188,8 +209,8 @@ function AppContent() {
     );
   }
 
-  // Show landing page if user is not signed in
-  if (!isSignedIn) {
+  // Always show landing page first, then redirect logged-in users
+  if (showLandingPage || !isSignedIn) {
     return <LandingPage />;
   }
 

@@ -6,6 +6,7 @@
  */
 
 export type Page = 
+  | 'landing'
   | 'dashboard' 
   | 'financials' 
   | 'analytics' 
