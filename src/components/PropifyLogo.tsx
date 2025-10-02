@@ -27,12 +27,12 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Logo Graphic - Clean image without border to prevent distortion */}
-      <div className={`${sizeClasses[size]} relative`}>
+      {/* Logo Graphic - With thin blue border */}
+      <div className={`${sizeClasses[size]} relative border-2 border-blue-500 rounded-lg p-1`}>
         <img 
           src="/propfi-logo.jpg" 
           alt="PropFi" 
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain rounded-md"
           style={{
             objectFit: 'contain',
             maxWidth: '100%',
