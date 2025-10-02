@@ -18,7 +18,7 @@ interface SupabaseCSVUpload {
 }
 
 export default function CSVFileManagerPage() {
-  const handleFileSelect = (file: SupabaseCSVUpload) => {
+  const handleFileSelect = (file: any) => {
     console.log('Selected CSV file:', file);
     // Navigate to CSV editing page with the selected file
     window.dispatchEvent(new CustomEvent('navigateToPage', { 

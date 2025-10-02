@@ -104,7 +104,7 @@ export default function CSVFileManager({
       const filtered = files.filter(file =>
         file.file_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         file.upload_status.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        file.properties?.name.toLowerCase().includes(searchQuery.toLowerCase())
+        (file as any).properties?.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredFiles(filtered);
     }
@@ -330,7 +330,7 @@ export default function CSVFileManager({
                   <p>Records Processed: ${file.records_processed}</p>
                   <p>Uploaded: ${formatDate(new Date(file.uploaded_at).getTime())}</p>
                   <p>Status: ${file.upload_status}</p>
-                  ${file.properties?.name && `<p>Property: ${file.properties.name}</p>`}
+                  ${(file as any).properties?.name && `<p>Property: ${(file as any).properties.name}</p>`}
                 </div>
               </div>
               <pre>${content}</pre>
