@@ -1650,10 +1650,10 @@ export default function CSVImportFlow() {
     setManagementLoading(true);
     try {
       // Delete from Supabase first
-      // const supabaseResult = await deleteCSVData(csvId);
-      // if (supabaseResult) {
-      //   console.log('✅ CSV deleted from Supabase');
-      // }
+      const supabaseResult = await CSVTimeSeriesService.deleteCSVFile(csvId);
+      if (supabaseResult) {
+        console.log('✅ CSV deleted from Supabase');
+      }
       
       // Remove from localStorage
       const localSavedCSVs = JSON.parse(localStorage.getItem('savedCSVs') || '[]');
