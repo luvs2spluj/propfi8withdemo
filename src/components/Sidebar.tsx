@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  LayoutDashboard, 
-  Building2, 
-  BarChart3, 
-  DollarSign, 
+import {
+  LayoutDashboard,
+  Building2,
+  BarChart3,
+  DollarSign,
   FileText,
   Upload,
   LogOut,
@@ -11,7 +11,6 @@ import {
   CreditCard,
   Menu,
   X,
-  HardDrive,
   FolderOpen
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
@@ -49,7 +48,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
     { id: 'csv-file-manager' as Page, label: 'CSV File Manager', icon: FileText },
     { id: 'file-manager' as Page, label: 'File Manager', icon: FolderOpen },
-    { id: 'local-first' as Page, label: 'Local-First Data', icon: HardDrive },
     { id: 'team-management' as Page, label: 'Team Management', icon: Users },
   ];
 
