@@ -1740,7 +1740,7 @@ export default function CSVImportFlow() {
   //   }
   // };
 
-  const calculateCurrentSessionTotals = async () => {
+  const calculateCurrentSessionTotals = () => {
     const bucketTotals: Record<string, number> = {};
     
     if (!preview || preview.length === 0) return bucketTotals;
@@ -1751,10 +1751,10 @@ export default function CSVImportFlow() {
       for (const item of preview) {
       const accountName = item.account_name;
       const category = accountCategories[accountName];
-      const bucket = bucketAssignments[accountName] || await getSuggestedBucket(accountName, category);
+      const bucket = bucketAssignments[accountName] || 'unassigned';
       const isIncluded = includedItems[accountName] === true;
       
-      if (!isIncluded || !item.time_series) return;
+      if (!isIncluded || !item.time_series) continue;
       
       // Calculate total for this account - use Total column if it exists, otherwise sum months
       let total = 0;
