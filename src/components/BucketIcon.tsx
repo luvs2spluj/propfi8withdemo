@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { getBucketDefinition } from '../types/bucketTypes'; // getBucketIcon, getBucketColor unused
+import { getBucketDefinition, getChartBuckets, getPrimaryBucket } from '../types/bucketTypes';
 
 interface BucketIconProps {
   bucketId: string;
@@ -105,7 +105,6 @@ export const ChartBucketHeader: React.FC<ChartBucketHeaderProps> = ({
   chartName,
   className = ''
 }) => {
-  const { getChartBuckets, getPrimaryBucket } = require('../types/bucketTypes');
   const buckets = getChartBuckets(chartId);
   const primaryBucket = getPrimaryBucket(chartId);
 

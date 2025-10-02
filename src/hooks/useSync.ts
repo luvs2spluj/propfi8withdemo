@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { onSyncStatusChange, getSyncStatus, triggerSync, SyncStatus } from '../lib/sync/syncManager';
-import { isSupabaseConfigured } from '../lib/supabaseClient';
+import { isSupabaseConfigured, supabase } from '../lib/supabaseClient';
 
 export interface SyncHookState extends SyncStatus {
   isConfigured: boolean;
@@ -142,7 +142,6 @@ export function useAuth() {
     checkAuth();
 
     // Listen for auth state changes
-    const { supabase } = require('../lib/supabaseClient');
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event: string, session: any) => {
         setState(prev => ({ 
