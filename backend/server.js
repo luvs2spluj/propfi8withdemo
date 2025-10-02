@@ -4,7 +4,7 @@ const multer = require('multer');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-require('dotenv').config({ path: './config.env' });
+require('dotenv').config({ path: './.env' });
 
 const { testConnection, initializeDatabase } = require('./config/supabase');
 const PropertyService = require('./services/propertyService');

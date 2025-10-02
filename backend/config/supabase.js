@@ -1,9 +1,9 @@
 const { Pool } = require('pg');
-require('dotenv').config({ path: './config.env' });
+require('dotenv').config({ path: './.env' });
 
 // Supabase PostgreSQL configuration
 const supabaseConfig = {
-  connectionString: process.env.SUPABASE_DB_URL || 'postgresql://postgres:your_password@db.iqwhrvtcrseidfyznqaf.supabase.co:5432/postgres',
+  connectionString: process.env.SUPABASE_DB_URL || 'postgresql://postgres.qktumtzgbwsprueqqhsr:Poosmells123456!@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
   ssl: { rejectUnauthorized: false },
   statement_timeout: 60000,
   idleTimeoutMillis: 30000,

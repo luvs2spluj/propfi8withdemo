@@ -13,6 +13,7 @@ import Pricing from './components/Pricing';
 import DarkModeToggle from './components/DarkModeToggle';
 import LogoTest from './components/LogoTest';
 import LocalFirstApp from './components/LocalFirstApp';
+import FileManagerPage from './pages/FileManagerPage';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -194,6 +195,8 @@ function AppContent() {
         return <LogoTest />;
       case 'local-first':
         return <LocalFirstApp />;
+      case 'file-manager':
+        return <FileManagerPage />;
       default:
         return <LandingPage />;
     }

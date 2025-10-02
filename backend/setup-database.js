@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: './config.env' });
+require('dotenv').config({ path: './.env' });
 
 async function setupDatabase() {
   console.log('🔧 Setting up Horton Properties Database...\n');
@@ -47,7 +47,7 @@ async function setupDatabase() {
     
     console.log('\n🎉 Database setup completed successfully!');
     console.log('\n📋 Next steps:');
-    console.log('1. Update your config.env file with your database credentials');
+    console.log('1. Update your .env file with your database credentials');
     console.log('2. Run: npm install (to install backend dependencies)');
     console.log('3. Run: npm run dev (to start the backend server)');
     console.log('4. The API will be available at http://localhost:5000/api');
@@ -56,7 +56,7 @@ async function setupDatabase() {
     console.error('❌ Database setup failed:', error.message);
     console.log('\n🔧 Troubleshooting:');
     console.log('1. Make sure MySQL is running');
-    console.log('2. Check your database credentials in config.env');
+    console.log('2. Check your database credentials in .env');
     console.log('3. Ensure you have permission to create databases');
     process.exit(1);
   }

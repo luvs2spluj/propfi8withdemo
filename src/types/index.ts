@@ -16,7 +16,8 @@ export type Page =
   | 'team-management'
   | 'pricing'
   | 'logo-test'
-  | 'local-first';
+  | 'local-first'
+  | 'file-manager';
 
 export interface NavigationProps {
   currentPage: Page;
