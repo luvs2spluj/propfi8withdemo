@@ -5,12 +5,12 @@
  * to avoid type conflicts between components.
  */
 
-export type Page = 
+export type Page =
   | 'landing'
-  | 'dashboard' 
-  | 'financials' 
-  | 'analytics' 
-  | 'properties' 
+  | 'dashboard'
+  | 'financials'
+  | 'analytics'
+  | 'properties'
   | 'csvs'
   | 'reports'
   | 'team-management'
@@ -18,7 +18,7 @@ export type Page =
   | 'logo-test'
   | 'local-first'
   | 'file-manager'
-  | 'csv-file-manager';
+  | 'csv-timeseries';
 
 export interface NavigationProps {
   currentPage: Page;

@@ -3,6 +3,7 @@ import { SecureFileStorage, SecureFileMeta } from '../lib/storage/secureFileStor
 import { CSVBucketDataService, CSVBucketData } from '../lib/storage/bucketMemory';
 import { UserPreferencesService } from '../lib/storage/userPreferences';
 import { supabase } from '../services/supabaseClient';
+import { CSVTimeSeriesService, CSVFile } from '../lib/services/csvTimeSeriesService';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -54,7 +55,7 @@ interface SupabaseCSVUpload {
 }
 
 interface CSVFileManagerProps {
-  onFileSelect?: (file: SupabaseCSVUpload) => void;
+  onFileSelect?: (file: CSVFile) => void;
   showUpload?: boolean;
   showPreview?: boolean;
   showDelete?: boolean;
@@ -72,13 +73,13 @@ export default function CSVFileManager({
   showPrint = true,
   maxFileSize = 50
 }: CSVFileManagerProps) {
-  const [files, setFiles] = useState<SupabaseCSVUpload[]>([]);
-  const [filteredFiles, setFilteredFiles] = useState<SupabaseCSVUpload[]>([]);
+  const [files, setFiles] = useState<CSVFile[]>([]);
+  const [filteredFiles, setFilteredFiles] = useState<CSVFile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<SupabaseCSVUpload | null>(null);
+  const [previewFile, setPreviewFile] = useState<CSVFile | null>(null);
   const [stats, setStats] = useState({
     totalFiles: 0,
     totalRecords: 0,
@@ -109,35 +110,24 @@ export default function CSVFileManager({
     }
   }, [files, searchQuery]);
 
-  const loadFiles = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('csv_uploads')
-        .select(`
-          *,
-          properties (
-            name
-          )
-        `)
-        .order('uploaded_at', { ascending: false });
-
-      if (error) {
-        console.error('Failed to load CSV files from Supabase:', error);
-        return;
+    const loadFiles = async () => {
+      try {
+        setIsLoading(true);
+        // For now, using a placeholder organization ID
+        // In a real app, this would come from the user's organization
+        const organizationId = 'placeholder-org-id';
+        const csvFiles = await CSVTimeSeriesService.getCSVFiles(organizationId);
+        setFiles(csvFiles);
+      } catch (error) {
+        console.error('Failed to load CSV files:', error);
+      } finally {
+        setIsLoading(false);
       }
-
-      setFiles(data || []);
-    } catch (error) {
-      console.error('Failed to load CSV files:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
   const loadStats = async () => {
     try {
-      const totalRecords = files.reduce((sum, file) => sum + file.records_processed, 0);
+      const totalRecords = files.reduce((sum, file) => sum + file.total_records, 0);
       const activeFiles = files.filter(file => file.upload_status === 'completed').length;
       
       setStats({
@@ -225,17 +215,8 @@ export default function CSVFileManager({
     }
 
     try {
-      // Delete from Supabase
-      const { error } = await supabase
-        .from('csv_uploads')
-        .delete()
-        .eq('id', fileId);
-      
-      if (error) {
-        console.error('Failed to delete CSV upload record:', error);
-        alert('Failed to delete file. Please try again.');
-        return;
-      }
+      // Delete from time series storage
+      await CSVTimeSeriesService.deleteCSVFile(fileId);
 
       // Reload files and stats
       await loadFiles();
@@ -246,7 +227,7 @@ export default function CSVFileManager({
     }
   };
 
-  const handleFileDownload = async (file: SupabaseCSVUpload) => {
+  const handleFileDownload = async (file: CSVFile) => {
     try {
       // Download from Supabase Storage
       const fileName = `${Date.now()}-${file.file_name}`;
@@ -275,7 +256,7 @@ export default function CSVFileManager({
     }
   };
 
-  const handleFilePreview = async (file: SupabaseCSVUpload) => {
+  const handleFilePreview = async (file: CSVFile) => {
     try {
       // Get file content from Supabase Storage
       const fileName = `${Date.now()}-${file.file_name}`;
@@ -298,24 +279,21 @@ export default function CSVFileManager({
     }
   };
 
-  const handleFileEdit = (file: SupabaseCSVUpload) => {
+  const handleFileEdit = (file: CSVFile) => {
     if (onFileSelect) {
       onFileSelect(file);
     } else {
-      // Navigate to CSV editing page with user preferences
+      // Navigate to time series visualization page
       window.dispatchEvent(new CustomEvent('navigateToPage', { 
-        detail: { 
-          page: 'csvs', 
-          fileId: file.id,
-          bucketAssignments: file.bucket_assignments,
-          includedItems: file.included_items,
-          accountCategories: file.account_categories
+        detail: {
+          page: 'csv-timeseries',
+          fileId: file.id
         } 
       }));
     }
   };
 
-  const handleFilePrint = async (file: SupabaseCSVUpload) => {
+  const handleFilePrint = async (file: CSVFile) => {
     try {
       // Get file content from Supabase Storage
       const fileName = `${Date.now()}-${file.file_name}`;
@@ -386,7 +364,7 @@ export default function CSVFileManager({
     });
   };
 
-  const getStatusIcon = (file: SupabaseCSVUpload) => {
+  const getStatusIcon = (file: CSVFile) => {
     switch (file.upload_status) {
       case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
@@ -399,7 +377,7 @@ export default function CSVFileManager({
     }
   };
 
-  const getStatusText = (file: SupabaseCSVUpload) => {
+  const getStatusText = (file: CSVFile) => {
     switch (file.upload_status) {
       case 'completed':
         return 'Completed';
@@ -568,17 +546,14 @@ export default function CSVFileManager({
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>{file.records_processed} records</span>
-                        <span>{formatDate(new Date(file.uploaded_at).getTime())}</span>
-                        <span>{formatFileSize(file.file_size)}</span>
-                        {file.properties?.name && <span>Property: {file.properties.name}</span>}
-                        {file.bucket_assignments && Object.keys(file.bucket_assignments).length > 0 && (
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
+                          <span>{file.total_records} records</span>
+                          <span>{formatDate(new Date(file.uploaded_at).getTime())}</span>
+                          <span>{formatFileSize(file.file_size)}</span>
                           <span className="text-green-600 font-medium">
-                            {Object.keys(file.bucket_assignments).length} buckets assigned
+                            Time series data available
                           </span>
-                        )}
-                      </div>
+                        </div>
                     </div>
                   </div>
                   
@@ -606,12 +581,12 @@ export default function CSVFileManager({
                             Preview
                           </DropdownMenuItem>
                         )}
-                        {showEdit && (
-                          <DropdownMenuItem onClick={() => handleFileEdit(file)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Buckets
-                          </DropdownMenuItem>
-                        )}
+                          {showEdit && (
+                            <DropdownMenuItem onClick={() => handleFileEdit(file)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              View Time Series
+                            </DropdownMenuItem>
+                          )}
                         <DropdownMenuItem onClick={() => handleFileDownload(file)}>
                           <Download className="h-4 w-4 mr-2" />
                           Download
@@ -652,14 +627,12 @@ export default function CSVFileManager({
                     <Eye className="h-5 w-5" />
                     <span>Preview: {previewFile.file_name}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {previewFile.records_processed} records • {formatDate(new Date(previewFile.uploaded_at).getTime())}
-                    {previewFile.bucket_assignments && Object.keys(previewFile.bucket_assignments).length > 0 && (
+                    <CardDescription>
+                      {previewFile.total_records} records • {formatDate(new Date(previewFile.uploaded_at).getTime())}
                       <span className="ml-2 text-green-600">
-                        • {Object.keys(previewFile.bucket_assignments).length} user preferences saved
+                        • Time series data available
                       </span>
-                    )}
-                  </CardDescription>
+                    </CardDescription>
                 </div>
                 <Button
                   variant="outline"

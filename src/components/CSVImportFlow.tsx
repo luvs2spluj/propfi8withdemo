@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from "react";
 import Papa from "papaparse";
 import { FieldSuggestion } from "./HeaderMapper";
 import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/supabase";
-import { Database, Edit3, Trash2, RefreshCw, Eye, CheckCircle, X } from 'lucide-react';
+import { Database, Edit3, Trash2, RefreshCw, Eye, CheckCircle, X, Upload, FolderOpen } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
-import { UserPreferencesService } from '../lib/storage/userPreferences';
+import { CSVTimeSeriesService } from '../lib/services/csvTimeSeriesService';
+import CSVFileManager from './CSVFileManager';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
@@ -148,6 +149,7 @@ const DASHBOARD_BUCKETS = {
 };
 
 export default function CSVImportFlow() {
+  const [activeTab, setActiveTab] = useState<'upload' | 'file-manager'>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [fileType, setFileType] = useState<FileType>('general');
   const [headers, setHeaders] = useState<string[]>([]);
@@ -1395,48 +1397,33 @@ export default function CSVImportFlow() {
         samplePreviewAccountNames: csvRecord.previewData.slice(0, 3).map((item: any) => item.account_name)
       });
 
-      // Save to Supabase first
+      // Save to Supabase using new time series storage
       try {
         const currentUser = userAuthService.getCurrentUser();
         if (currentUser) {
-      const supabaseResult = await saveCSVData({
-        id: csvRecord.id,
-        file_name: csvRecord.fileName,
-        file_type: csvRecord.fileType,
-        uploaded_at: csvRecord.uploadedAt,
-        total_records: csvRecord.totalRecords,
-        account_categories: csvRecord.accountCategories,
-        bucket_assignments: csvRecord.bucketAssignments,
-        included_items: csvRecord.includedItems,
-        tags: csvRecord.tags,
-        is_active: csvRecord.isActive,
-        preview_data: csvRecord.previewData
-          }, currentUser.id);
-          
-          if (supabaseResult) {
-            console.log('✅ CSV data saved to Supabase successfully');
-            
-            // Save user bucket preferences for future AI recommendations
-            try {
-              for (const [accountName, bucketId] of Object.entries(csvRecord.bucketAssignments)) {
-                if (bucketId && bucketId !== 'unassigned') {
-                  await UserPreferencesService.saveBucketPreference(
-                    accountName,
-                    bucketId as string,
-                    csvRecord.fileType,
-                    currentUser.id
-                  );
-                  console.log(`💾 Saved user preference: ${accountName} → ${bucketId}`);
-                }
-              }
-              console.log('✅ User bucket preferences saved successfully');
-            } catch (prefError) {
-              console.warn('⚠️ Failed to save user preferences:', prefError);
-            }
+          // Create CSV file record
+          const csvFile = await CSVTimeSeriesService.createCSVFile({
+            organization_id: currentUser.id, // Using user ID as organization ID for now
+            file_name: csvRecord.fileName,
+            file_type: csvRecord.fileType,
+            file_size: file.size,
+            created_by: currentUser.id
+          });
+
+          if (csvFile) {
+            // Process and store time series data
+            await CSVTimeSeriesService.processTimeSeriesData(
+              csvFile.id,
+              currentUser.id,
+              preview,
+              csvRecord.bucketAssignments
+            );
+
+            console.log('✅ CSV data saved to time series storage successfully');
           }
         }
       } catch (error) {
-        console.warn('⚠️ Failed to save to Supabase, using localStorage only:', error);
+        console.warn('⚠️ Failed to save to Supabase time series storage:', error);
       }
 
       // Update localStorage
@@ -2372,9 +2359,42 @@ export default function CSVImportFlow() {
 
   return (
     <div className="space-y-6">
-      {/* CSV Import with AI Parser */}
-    <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">CSV Import with AI Parser</h3>
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200 dark:border-gray-700">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('upload')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'upload'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Upload & AI Parser
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('file-manager')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'file-manager'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <FolderOpen className="h-4 w-4" />
+              File Manager
+            </div>
+          </button>
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'upload' && (
+        <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">CSV Import with AI Parser</h3>
       
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-md p-4">
@@ -3540,7 +3560,21 @@ export default function CSVImportFlow() {
           </button>
         </div>
       )}
-    </div>
+        </div>
+      )}
+
+      {/* File Manager Tab */}
+      {activeTab === 'file-manager' && (
+        <div className="space-y-4">
+          <CSVFileManager
+            showUpload={true}
+            showPreview={true}
+            showDelete={true}
+            showEdit={true}
+            showPrint={true}
+          />
+        </div>
+      )}
     </div>
   );
 }

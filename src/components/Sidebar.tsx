@@ -44,8 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'properties' as Page, label: 'Properties', icon: Building2 },
-    { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
-    { id: 'csv-file-manager' as Page, label: 'CSV File Manager', icon: FileText },
+      { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
     { id: 'team-management' as Page, label: 'Team Management', icon: Users },
   ];
 
