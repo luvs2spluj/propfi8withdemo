@@ -1422,7 +1422,7 @@ export default function CSVImportFlow() {
                 if (bucketId && bucketId !== 'unassigned') {
                   await UserPreferencesService.saveBucketPreference(
                     accountName,
-                    bucketId,
+                    bucketId as string,
                     csvRecord.fileType,
                     currentUser.id
                   );
