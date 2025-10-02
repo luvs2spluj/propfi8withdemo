@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SecureFileStorage, SecureFileMeta } from '../lib/storage/secureFileStorage';
 import { CSVBucketDataService, CSVBucketData } from '../lib/storage/bucketMemory';
+import { UserPreferencesService } from '../lib/storage/userPreferences';
 import { supabase } from '../services/supabaseClient';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -44,6 +45,9 @@ interface SupabaseCSVUpload {
   error_message?: string;
   uploaded_at: string;
   processed_at?: string;
+  bucket_assignments?: Record<string, string>;
+  included_items?: Record<string, boolean>;
+  account_categories?: Record<string, string>;
   properties?: {
     name: string;
   };
@@ -298,9 +302,15 @@ export default function CSVFileManager({
     if (onFileSelect) {
       onFileSelect(file);
     } else {
-      // Navigate to CSV editing page
+      // Navigate to CSV editing page with user preferences
       window.dispatchEvent(new CustomEvent('navigateToPage', { 
-        detail: { page: 'csvs', fileId: file.id } 
+        detail: { 
+          page: 'csvs', 
+          fileId: file.id,
+          bucketAssignments: file.bucket_assignments,
+          includedItems: file.included_items,
+          accountCategories: file.account_categories
+        } 
       }));
     }
   };
@@ -563,6 +573,11 @@ export default function CSVFileManager({
                         <span>{formatDate(new Date(file.uploaded_at).getTime())}</span>
                         <span>{formatFileSize(file.file_size)}</span>
                         {file.properties?.name && <span>Property: {file.properties.name}</span>}
+                        {file.bucket_assignments && Object.keys(file.bucket_assignments).length > 0 && (
+                          <span className="text-green-600 font-medium">
+                            {Object.keys(file.bucket_assignments).length} buckets assigned
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -639,6 +654,11 @@ export default function CSVFileManager({
                   </CardTitle>
                   <CardDescription>
                     {previewFile.records_processed} records • {formatDate(new Date(previewFile.uploaded_at).getTime())}
+                    {previewFile.bucket_assignments && Object.keys(previewFile.bucket_assignments).length > 0 && (
+                      <span className="ml-2 text-green-600">
+                        • {Object.keys(previewFile.bucket_assignments).length} user preferences saved
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
                 <Button

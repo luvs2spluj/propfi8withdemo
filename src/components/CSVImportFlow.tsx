@@ -540,7 +540,7 @@ export default function CSVImportFlow() {
   };
 
   // Helper function to set included items with total bucket logic
-  const setIncludedItemsWithTotalLogic = (data: any[], bucketAssignments: Record<string, string>): Record<string, boolean> => {
+  const setIncludedItemsWithTotalLogic = async (data: any[], bucketAssignments: Record<string, string>): Promise<Record<string, boolean>> => {
     const included: Record<string, boolean> = {};
     const totalBucketSelections: Record<string, string> = {}; // Track which account is selected for each total bucket
     const totalValueGroups: Record<string, string[]> = {}; // Track items with same total values
@@ -588,7 +588,7 @@ export default function CSVImportFlow() {
     // Fourth pass: handle total buckets - only allow one selection per total bucket
     data.forEach((row: any) => {
       if (row.account_name && included[row.account_name]) {
-        const bucket = bucketAssignments[row.account_name] || getSuggestedBucket(row.account_name, 'unknown');
+        const bucket = bucketAssignments[row.account_name] || await getSuggestedBucket(row.account_name, 'unknown');
         
         if (isTotalBucket(bucket)) {
           if (!totalBucketSelections[bucket]) {
@@ -782,7 +782,7 @@ export default function CSVImportFlow() {
                   const initialBucketAssignments: Record<string, string> = {};
                   aiResult.categorized_data.forEach((row: any) => {
                     if (row.account_name) {
-                      const suggestedBucket = getSuggestedBucket(row.account_name, row.ai_category);
+                      const suggestedBucket = await getSuggestedBucket(row.account_name, row.ai_category);
                       initialBucketAssignments[row.account_name] = suggestedBucket;
                       console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
                     }
@@ -843,9 +843,15 @@ export default function CSVImportFlow() {
     }));
     console.log(`🪣 Assigned ${accountName} to bucket: ${bucket}`);
     
-    // Save bucket assignment to AI learning for future auto-categorization
+    // Save bucket assignment to user preferences (overrides AI recommendations)
     if (bucket !== 'exclude' && accountName && bucket) {
       try {
+        // Save to user preferences system
+        const { UserPreferencesService } = await import('../lib/storage/userPreferences');
+        await UserPreferencesService.saveBucketPreference(accountName, bucket, fileType);
+        console.log(`👤 User preference saved: ${accountName} → ${bucket}`);
+        
+        // Also save to AI learning for backward compatibility
         await saveAILearning(fileType, accountName, bucket);
         console.log(`🧠 Learned bucket assignment: ${accountName} → ${bucket}`);
         
@@ -866,15 +872,28 @@ export default function CSVImportFlow() {
           }
         });
       } catch (error) {
-        console.warn('Failed to save bucket assignment to AI learning:', error);
+        console.warn('Failed to save bucket assignment:', error);
       }
     }
   };
 
-  const getSuggestedBucket = (accountName: string, aiCategory: string): string => {
+  const getSuggestedBucket = async (accountName: string, aiCategory: string): Promise<string> => {
     const name = accountName.toLowerCase();
     
-    // First, check AI learning for this account name
+    try {
+      // First, check user preferences (overrides AI recommendations)
+      const { UserPreferencesService } = await import('../lib/storage/userPreferences');
+      const userPreference = await UserPreferencesService.getBucketPreference(accountName, fileType);
+      
+      if (userPreference) {
+        console.log(`👤 User preference found for ${accountName}: ${userPreference}`);
+        return userPreference;
+      }
+    } catch (error) {
+      console.warn('Failed to check user preferences:', error);
+    }
+    
+    // Second, check AI learning for this account name
     if (aiLearningData && Array.isArray(aiLearningData) && aiLearningData.length > 0) {
       const learnedAssignment = aiLearningData.find((item: any) => 
         item.account_name && item.account_name.toLowerCase() === name
@@ -1162,7 +1181,7 @@ export default function CSVImportFlow() {
               const initialBucketAssignments: Record<string, string> = {};
               aiResult.categorized_data.forEach((row: any) => {
                 if (row.account_name) {
-                  const suggestedBucket = getSuggestedBucket(row.account_name, row.ai_category);
+                  const suggestedBucket = await getSuggestedBucket(row.account_name, row.ai_category);
                   initialBucketAssignments[row.account_name] = suggestedBucket;
                   console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
                 }
@@ -1170,7 +1189,7 @@ export default function CSVImportFlow() {
               setBucketAssignments(initialBucketAssignments);
               
               // Set included items with total bucket logic to prevent double-counting
-              const included = setIncludedItemsWithTotalLogic(aiResult.categorized_data, initialBucketAssignments);
+              const included = await setIncludedItemsWithTotalLogic(aiResult.categorized_data, initialBucketAssignments);
               setIncludedItems(included);
               
             } else {
@@ -1182,7 +1201,7 @@ export default function CSVImportFlow() {
               const initialBucketAssignments: Record<string, string> = {};
               processedData.forEach((row: any) => {
                 if (row.account_name) {
-                  const suggestedBucket = getSuggestedBucket(row.account_name, 'unknown');
+                  const suggestedBucket = await getSuggestedBucket(row.account_name, 'unknown');
                   initialBucketAssignments[row.account_name] = suggestedBucket;
                   console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, manual mode)`);
                 }
@@ -1190,7 +1209,7 @@ export default function CSVImportFlow() {
               setBucketAssignments(initialBucketAssignments);
               
               // Set included items with total bucket logic to prevent double-counting
-              const included = setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
+              const included = await setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
               setIncludedItems(included);
             }
           } catch (aiError) {
@@ -1202,7 +1221,7 @@ export default function CSVImportFlow() {
             const initialBucketAssignments: Record<string, string> = {};
             processedData.forEach((row: any) => {
               if (row.account_name) {
-                const suggestedBucket = getSuggestedBucket(row.account_name, 'unknown');
+                const suggestedBucket = await getSuggestedBucket(row.account_name, 'unknown');
                 initialBucketAssignments[row.account_name] = suggestedBucket;
                 console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, AI error fallback)`);
               }
@@ -1210,7 +1229,7 @@ export default function CSVImportFlow() {
             setBucketAssignments(initialBucketAssignments);
             
             // Set included items with total bucket logic to prevent double-counting
-            const included = setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
+            const included = await setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
             setIncludedItems(included);
           }
           
@@ -1312,7 +1331,7 @@ export default function CSVImportFlow() {
           ...selectedCSV,
           totalRecords: preview.length, // Use original preview length
           accountCategories: includedAccountCategories,
-          bucketAssignments: generateBucketAssignments(),
+          bucketAssignments: await generateBucketAssignments(),
           includedItems: includedItems,
           tags: generateTags(),
           previewData: includedPreviewData
@@ -1326,7 +1345,7 @@ export default function CSVImportFlow() {
         uploadedAt: new Date().toISOString(),
         totalRecords: preview.length, // Use original preview length
         accountCategories: includedAccountCategories,
-        bucketAssignments: generateBucketAssignments(),
+        bucketAssignments: await generateBucketAssignments(),
         includedItems: includedItems,
         tags: generateTags(),
         isActive: true,
@@ -1683,7 +1702,7 @@ export default function CSVImportFlow() {
   //   }
   // };
 
-  const calculateCurrentSessionTotals = () => {
+  const calculateCurrentSessionTotals = async () => {
     const bucketTotals: Record<string, number> = {};
     
     if (!preview || preview.length === 0) return bucketTotals;
@@ -1691,10 +1710,10 @@ export default function CSVImportFlow() {
     console.log('🔍 Calculating current session totals for', Array.isArray(preview) ? preview.length : 0, 'items');
     
     if (Array.isArray(preview)) {
-      preview.forEach((item: any) => {
+      for (const item of preview) {
       const accountName = item.account_name;
       const category = accountCategories[accountName];
-      const bucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, category);
+      const bucket = bucketAssignments[accountName] || await getSuggestedBucket(accountName, category);
       const isIncluded = includedItems[accountName] === true;
       
       if (!isIncluded || !item.time_series) return;
@@ -1737,7 +1756,7 @@ export default function CSVImportFlow() {
       if (bucket && bucket !== 'exclude') {
         bucketTotals[bucket] = (bucketTotals[bucket] || 0) + total;
       }
-      });
+      }
     }
     
     console.log('💰 Current session bucket totals:', bucketTotals);
@@ -2251,7 +2270,7 @@ export default function CSVImportFlow() {
     );
   };
 
-  const generateBucketAssignments = (): Record<string, string> => {
+  const generateBucketAssignments = async (): Promise<Record<string, string>> => {
     const assignments: Record<string, string> = {};
     
     console.log('🔧 Generating bucket assignments for accounts:', Object.keys(accountCategories));
@@ -2267,7 +2286,7 @@ export default function CSVImportFlow() {
       }
       
       // Auto-generate bucket assignment for new accounts only
-      const suggestedBucket = getSuggestedBucket(accountName, category);
+      const suggestedBucket = await getSuggestedBucket(accountName, category);
       assignments[accountName] = suggestedBucket;
       console.log(`🤖 ${accountName} → ${suggestedBucket} (auto-generated for new account)`);
     }
@@ -2580,7 +2599,7 @@ export default function CSVImportFlow() {
                             {/* Bucket Selection Dropdown */}
                             {(() => {
                               const suggestions = getBucketSuggestions(accountName, accountCategories[accountName] || row.ai_category);
-                                  const currentBucket = bucketAssignments[accountName] || getSuggestedBucket(accountName, accountCategories[accountName] || row.ai_category);
+                                  const currentBucket = bucketAssignments[accountName] || 'unassigned';
                                   
                                   // Debug: Log bucket assignment for this account
                                   if (accountName && bucketAssignments[accountName]) {
