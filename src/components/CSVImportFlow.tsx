@@ -4,6 +4,7 @@ import { FieldSuggestion } from "./HeaderMapper";
 import { getAILearning, saveAILearning, getCSVData, saveCSVData } from "../lib/supabase";
 import { Database, Edit3, Trash2, RefreshCw, Eye, CheckCircle, X } from 'lucide-react';
 import { userAuthService } from '../services/userAuthService';
+import { UserPreferencesService } from '../lib/storage/userPreferences';
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
@@ -780,14 +781,25 @@ export default function CSVImportFlow() {
                   
                   // Auto-populate bucket assignments based on AI learning
                   const initialBucketAssignments: Record<string, string> = {};
-                  aiResult.categorized_data.forEach((row: any) => {
-                    if (row.account_name) {
-                      const suggestedBucket = 'unassigned'; // TODO: Fix async bucket assignment
-                      initialBucketAssignments[row.account_name] = suggestedBucket;
-                      console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
+                  
+                  // Process AI recommendations asynchronously
+                  const processAIRecommendations = async () => {
+                    for (const row of aiResult.categorized_data) {
+                      if (row.account_name) {
+                        try {
+                          const suggestedBucket = await getSuggestedBucket(row.account_name, row.ai_category);
+                          initialBucketAssignments[row.account_name] = suggestedBucket;
+                          console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
+                        } catch (error) {
+                          console.warn(`Failed to get AI suggestion for ${row.account_name}:`, error);
+                          initialBucketAssignments[row.account_name] = 'unassigned';
+                        }
+                      }
                     }
-                  });
-                  setBucketAssignments(initialBucketAssignments);
+                    setBucketAssignments(initialBucketAssignments);
+                  };
+                  
+                  processAIRecommendations();
                 }
               } catch (aiError) {
                 console.warn("AI backend error, using manual categorization:", aiError);
@@ -1179,18 +1191,25 @@ export default function CSVImportFlow() {
               
               // Auto-populate bucket assignments based on AI learning
               const initialBucketAssignments: Record<string, string> = {};
-              aiResult.categorized_data.forEach((row: any) => {
-                if (row.account_name) {
-                  const suggestedBucket = 'unassigned'; // TODO: Fix async bucket assignment
-                  initialBucketAssignments[row.account_name] = suggestedBucket;
-                  console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
-                }
-              });
-              setBucketAssignments(initialBucketAssignments);
               
-              // Set included items with total bucket logic to prevent double-counting
-              const included = await setIncludedItemsWithTotalLogic(aiResult.categorized_data, initialBucketAssignments);
-              setIncludedItems(included);
+              // Process AI recommendations asynchronously
+              const processAIRecommendations = async () => {
+                for (const row of aiResult.categorized_data) {
+                  if (row.account_name) {
+                    try {
+                      const suggestedBucket = await getSuggestedBucket(row.account_name, row.ai_category);
+                      initialBucketAssignments[row.account_name] = suggestedBucket;
+                      console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning)`);
+                    } catch (error) {
+                      console.warn(`Failed to get AI suggestion for ${row.account_name}:`, error);
+                      initialBucketAssignments[row.account_name] = 'unassigned';
+                    }
+                  }
+                }
+                setBucketAssignments(initialBucketAssignments);
+              };
+              
+              processAIRecommendations();
               
             } else {
               console.warn("AI backend not available, using manual categorization");
@@ -1199,18 +1218,25 @@ export default function CSVImportFlow() {
               
               // Auto-populate bucket assignments based on AI learning even for manual categorization
               const initialBucketAssignments: Record<string, string> = {};
-              processedData.forEach((row: any) => {
-                if (row.account_name) {
-                  const suggestedBucket = 'unassigned'; // TODO: Fix async bucket assignment
-                  initialBucketAssignments[row.account_name] = suggestedBucket;
-                  console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, manual mode)`);
-                }
-              });
-              setBucketAssignments(initialBucketAssignments);
               
-              // Set included items with total bucket logic to prevent double-counting
-              const included = await setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
-              setIncludedItems(included);
+              // Process AI recommendations asynchronously for manual mode
+              const processManualAIRecommendations = async () => {
+                for (const row of processedData) {
+                  if (row.account_name) {
+                    try {
+                      const suggestedBucket = await getSuggestedBucket(row.account_name, 'unknown');
+                      initialBucketAssignments[row.account_name] = suggestedBucket;
+                      console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, manual mode)`);
+                    } catch (error) {
+                      console.warn(`Failed to get AI suggestion for ${row.account_name}:`, error);
+                      initialBucketAssignments[row.account_name] = 'unassigned';
+                    }
+                  }
+                }
+                setBucketAssignments(initialBucketAssignments);
+              };
+              
+              processManualAIRecommendations();
             }
           } catch (aiError) {
             console.warn("AI backend error, using manual categorization:", aiError);
@@ -1219,18 +1245,25 @@ export default function CSVImportFlow() {
             
             // Auto-populate bucket assignments based on AI learning even when AI fails
             const initialBucketAssignments: Record<string, string> = {};
-            processedData.forEach((row: any) => {
-              if (row.account_name) {
-                const suggestedBucket = 'unassigned'; // TODO: Fix async bucket assignment
-                initialBucketAssignments[row.account_name] = suggestedBucket;
-                console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, AI error fallback)`);
-              }
-            });
-            setBucketAssignments(initialBucketAssignments);
             
-            // Set included items with total bucket logic to prevent double-counting
-            const included = await setIncludedItemsWithTotalLogic(processedData, initialBucketAssignments);
-            setIncludedItems(included);
+            // Process AI recommendations asynchronously for error fallback
+            const processErrorFallbackAIRecommendations = async () => {
+              for (const row of processedData) {
+                if (row.account_name) {
+                  try {
+                    const suggestedBucket = await getSuggestedBucket(row.account_name, 'unknown');
+                    initialBucketAssignments[row.account_name] = suggestedBucket;
+                    console.log(`🧠 Auto-assigned ${row.account_name} → ${suggestedBucket} (from AI learning, AI error fallback)`);
+                  } catch (error) {
+                    console.warn(`Failed to get AI suggestion for ${row.account_name}:`, error);
+                    initialBucketAssignments[row.account_name] = 'unassigned';
+                  }
+                }
+              }
+              setBucketAssignments(initialBucketAssignments);
+            };
+            
+            processErrorFallbackAIRecommendations();
           }
           
           setHasPreviewed(true);
@@ -1382,6 +1415,24 @@ export default function CSVImportFlow() {
           
           if (supabaseResult) {
             console.log('✅ CSV data saved to Supabase successfully');
+            
+            // Save user bucket preferences for future AI recommendations
+            try {
+              for (const [accountName, bucketId] of Object.entries(csvRecord.bucketAssignments)) {
+                if (bucketId && bucketId !== 'unassigned') {
+                  await UserPreferencesService.saveBucketPreference(
+                    accountName,
+                    bucketId,
+                    csvRecord.fileType,
+                    currentUser.id
+                  );
+                  console.log(`💾 Saved user preference: ${accountName} → ${bucketId}`);
+                }
+              }
+              console.log('✅ User bucket preferences saved successfully');
+            } catch (prefError) {
+              console.warn('⚠️ Failed to save user preferences:', prefError);
+            }
           }
         }
       } catch (error) {
