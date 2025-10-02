@@ -1,9 +1,24 @@
 import React from 'react';
 import CSVFileManager from '../components/CSVFileManager';
-import { CSVBucketData } from '../lib/storage/bucketMemory';
+
+interface SupabaseCSVUpload {
+  id: string;
+  property_id: string;
+  file_name: string;
+  file_size: number;
+  records_processed: number;
+  records_skipped: number;
+  upload_status: string;
+  error_message?: string;
+  uploaded_at: string;
+  processed_at?: string;
+  properties?: {
+    name: string;
+  };
+}
 
 export default function CSVFileManagerPage() {
-  const handleFileSelect = (file: CSVBucketData) => {
+  const handleFileSelect = (file: SupabaseCSVUpload) => {
     console.log('Selected CSV file:', file);
     // Navigate to CSV editing page with the selected file
     window.dispatchEvent(new CustomEvent('navigateToPage', { 
@@ -19,7 +34,7 @@ export default function CSVFileManagerPage() {
             CSV File Manager
           </h1>
           <p className="text-gray-600">
-            Upload, manage, and edit your CSV files with intelligent bucket categorization and memory.
+            Upload, manage, and edit your CSV files from Supabase backend with intelligent bucket categorization and memory.
           </p>
         </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SecureFileStorage, SecureFileMeta } from '../lib/storage/secureFileStorage';
 import { CSVBucketDataService, CSVBucketData } from '../lib/storage/bucketMemory';
+import { supabase } from '../services/supabaseClient';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -22,7 +23,8 @@ import {
   Database,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,8 +33,24 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 
+interface SupabaseCSVUpload {
+  id: string;
+  property_id: string;
+  file_name: string;
+  file_size: number;
+  records_processed: number;
+  records_skipped: number;
+  upload_status: string;
+  error_message?: string;
+  uploaded_at: string;
+  processed_at?: string;
+  properties?: {
+    name: string;
+  };
+}
+
 interface CSVFileManagerProps {
-  onFileSelect?: (file: CSVBucketData) => void;
+  onFileSelect?: (file: SupabaseCSVUpload) => void;
   showUpload?: boolean;
   showPreview?: boolean;
   showDelete?: boolean;
@@ -50,12 +68,13 @@ export default function CSVFileManager({
   showPrint = true,
   maxFileSize = 50
 }: CSVFileManagerProps) {
-  const [files, setFiles] = useState<CSVBucketData[]>([]);
-  const [filteredFiles, setFilteredFiles] = useState<CSVBucketData[]>([]);
+  const [files, setFiles] = useState<SupabaseCSVUpload[]>([]);
+  const [filteredFiles, setFilteredFiles] = useState<SupabaseCSVUpload[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [previewContent, setPreviewContent] = useState<string | null>(null);
-  const [previewFile, setPreviewFile] = useState<CSVBucketData | null>(null);
+  const [previewFile, setPreviewFile] = useState<SupabaseCSVUpload | null>(null);
   const [stats, setStats] = useState({
     totalFiles: 0,
     totalRecords: 0,
@@ -78,11 +97,9 @@ export default function CSVFileManager({
       setFilteredFiles(files);
     } else {
       const filtered = files.filter(file =>
-        file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        file.fileType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        Object.keys(file.bucketAssignments).some(account => 
-          account.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        file.file_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.upload_status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        file.properties?.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredFiles(filtered);
     }
@@ -90,25 +107,41 @@ export default function CSVFileManager({
 
   const loadFiles = async () => {
     try {
-      const fileList = await CSVBucketDataService.getAllCSVBucketData();
-      setFiles(fileList);
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('csv_uploads')
+        .select(`
+          *,
+          properties (
+            name
+          )
+        `)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to load CSV files from Supabase:', error);
+        return;
+      }
+
+      setFiles(data || []);
     } catch (error) {
       console.error('Failed to load CSV files:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const loadStats = async () => {
     try {
-      const allFiles = await CSVBucketDataService.getAllCSVBucketData();
-      const totalRecords = allFiles.reduce((sum, file) => sum + file.totalRecords, 0);
-      const activeFiles = allFiles.filter(file => file.isActive).length;
+      const totalRecords = files.reduce((sum, file) => sum + file.records_processed, 0);
+      const activeFiles = files.filter(file => file.upload_status === 'completed').length;
       
       setStats({
-        totalFiles: allFiles.length,
+        totalFiles: files.length,
         totalRecords,
         activeFiles,
-        oldestFile: allFiles.length > 0 ? Math.min(...allFiles.map(f => f.uploadedAt)) : 0,
-        newestFile: allFiles.length > 0 ? Math.max(...allFiles.map(f => f.uploadedAt)) : 0
+        oldestFile: files.length > 0 ? Math.min(...files.map(f => new Date(f.uploaded_at).getTime())) : 0,
+        newestFile: files.length > 0 ? Math.max(...files.map(f => new Date(f.uploaded_at).getTime())) : 0
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -137,29 +170,33 @@ export default function CSVFileManager({
           continue;
         }
 
-        // Store file securely
-        const secureFile = await SecureFileStorage.storeFile(file, {
-          encrypt: true,
-          tags: ['csv', 'uploaded'],
-          description: `CSV file uploaded on ${new Date().toLocaleDateString()}`
-        });
+        // Upload to Supabase Storage
+        const fileName = `${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage
+          .from('csv-files')
+          .upload(fileName, file);
 
-        // Create CSV bucket data
-        const csvData: CSVBucketData = {
-          id: secureFile.id,
-          fileName: file.name,
-          fileType: 'csv',
-          uploadedAt: Date.now(),
-          bucketAssignments: {},
-          includedItems: {},
-          accountCategories: {},
-          previewData: [],
-          totalRecords: 0,
-          isActive: true,
-          lastModified: Date.now()
-        };
+        if (uploadError) {
+          console.error('Failed to upload file to Supabase Storage:', uploadError);
+          alert(`Failed to upload ${file.name}. Please try again.`);
+          continue;
+        }
 
-        await CSVBucketDataService.saveCSVBucketData(csvData);
+        // Create CSV upload record
+        const { error: insertError } = await supabase
+          .from('csv_uploads')
+          .insert({
+            file_name: file.name,
+            file_size: file.size,
+            upload_status: 'uploaded',
+            property_id: null // Will be set when property is selected
+          });
+
+        if (insertError) {
+          console.error('Failed to create CSV upload record:', insertError);
+          alert(`Failed to create record for ${file.name}. Please try again.`);
+          continue;
+        }
       }
 
       // Reload files and stats
@@ -184,96 +221,136 @@ export default function CSVFileManager({
     }
 
     try {
-      // Delete from secure storage
-      await SecureFileStorage.deleteFile(fileId);
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('csv_uploads')
+        .delete()
+        .eq('id', fileId);
       
-      // Delete from CSV bucket data
-      const success = await CSVBucketDataService.deleteCSVBucketData(fileId);
-      
-      if (success) {
-        await loadFiles();
-        await loadStats();
-      } else {
+      if (error) {
+        console.error('Failed to delete CSV upload record:', error);
         alert('Failed to delete file. Please try again.');
+        return;
       }
+
+      // Reload files and stats
+      await loadFiles();
+      await loadStats();
     } catch (error) {
       console.error('Failed to delete file:', error);
       alert('Failed to delete file. Please try again.');
     }
   };
 
-  const handleFileDownload = async (fileId: string) => {
+  const handleFileDownload = async (file: SupabaseCSVUpload) => {
     try {
-      await SecureFileStorage.exportFile(fileId);
+      // Download from Supabase Storage
+      const fileName = `${Date.now()}-${file.file_name}`;
+      const { data, error } = await supabase.storage
+        .from('csv-files')
+        .download(fileName);
+
+      if (error) {
+        console.error('Failed to download file from Supabase Storage:', error);
+        alert('Failed to download file. Please try again.');
+        return;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download file:', error);
       alert('Failed to download file. Please try again.');
     }
   };
 
-  const handleFilePreview = async (file: CSVBucketData) => {
+  const handleFilePreview = async (file: SupabaseCSVUpload) => {
     try {
-      const content = await SecureFileStorage.previewFile(file.id);
-      if (content) {
-        setPreviewContent(content);
-        setPreviewFile(file);
-      } else {
+      // Get file content from Supabase Storage
+      const fileName = `${Date.now()}-${file.file_name}`;
+      const { data, error } = await supabase.storage
+        .from('csv-files')
+        .download(fileName);
+
+      if (error) {
+        console.error('Failed to preview file from Supabase Storage:', error);
         alert('Preview not available for this file.');
+        return;
       }
+
+      const text = await data.text();
+      setPreviewContent(text);
+      setPreviewFile(file);
     } catch (error) {
       console.error('Failed to preview file:', error);
       alert('Failed to preview file. Please try again.');
     }
   };
 
-  const handleFileEdit = (file: CSVBucketData) => {
+  const handleFileEdit = (file: SupabaseCSVUpload) => {
     if (onFileSelect) {
       onFileSelect(file);
     } else {
       // Navigate to CSV editing page
       window.dispatchEvent(new CustomEvent('navigateToPage', { 
-        detail: { page: 'csvs' } 
+        detail: { page: 'csvs', fileId: file.id } 
       }));
     }
   };
 
-  const handleFilePrint = async (file: CSVBucketData) => {
+  const handleFilePrint = async (file: SupabaseCSVUpload) => {
     try {
-      const content = await SecureFileStorage.previewFile(file.id);
-      if (content) {
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-          printWindow.document.write(`
-            <html>
-              <head>
-                <title>Print: ${file.fileName}</title>
-                <style>
-                  body { font-family: Arial, sans-serif; margin: 20px; }
-                  h1 { color: #1E3A8A; }
-                  pre { white-space: pre-wrap; font-size: 12px; }
-                  .header { margin-bottom: 20px; }
-                  .info { margin-bottom: 20px; color: #666; }
-                </style>
-              </head>
-              <body>
-                <div class="header">
-                  <h1>${file.fileName}</h1>
-                  <div class="info">
-                    <p>File Type: ${file.fileType}</p>
-                    <p>Total Records: ${file.totalRecords}</p>
-                    <p>Uploaded: ${new Date(file.uploadedAt).toLocaleDateString()}</p>
-                    <p>Status: ${file.isActive ? 'Active' : 'Inactive'}</p>
-                  </div>
-                </div>
-                <pre>${content}</pre>
-              </body>
-            </html>
-          `);
-          printWindow.document.close();
-          printWindow.print();
-        }
-      } else {
+      // Get file content from Supabase Storage
+      const fileName = `${Date.now()}-${file.file_name}`;
+      const { data, error } = await supabase.storage
+        .from('csv-files')
+        .download(fileName);
+
+      if (error) {
+        console.error('Failed to print file from Supabase Storage:', error);
         alert('Print preview not available for this file.');
+        return;
+      }
+
+      const content = await data.text();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Print: ${file.file_name}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { color: #1E3A8A; }
+                pre { white-space: pre-wrap; font-size: 12px; }
+                .header { margin-bottom: 20px; }
+                .info { margin-bottom: 20px; color: #666; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>${file.file_name}</h1>
+                <div class="info">
+                  <p>File Size: ${formatFileSize(file.file_size)}</p>
+                  <p>Records Processed: ${file.records_processed}</p>
+                  <p>Uploaded: ${formatDate(new Date(file.uploaded_at).getTime())}</p>
+                  <p>Status: ${file.upload_status}</p>
+                  ${file.properties?.name && `<p>Property: ${file.properties.name}</p>`}
+                </div>
+              </div>
+              <pre>${content}</pre>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
       }
     } catch (error) {
       console.error('Failed to print file:', error);
@@ -299,19 +376,31 @@ export default function CSVFileManager({
     });
   };
 
-  const getStatusIcon = (file: CSVBucketData) => {
-    if (file.isActive) {
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
-    } else {
-      return <XCircle className="h-4 w-4 text-red-500" />;
+  const getStatusIcon = (file: SupabaseCSVUpload) => {
+    switch (file.upload_status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'processing':
+        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
+      case 'failed':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
     }
   };
 
-  const getStatusText = (file: CSVBucketData) => {
-    if (file.isActive) {
-      return 'Active';
-    } else {
-      return 'Inactive';
+  const getStatusText = (file: SupabaseCSVUpload) => {
+    switch (file.upload_status) {
+      case 'completed':
+        return 'Completed';
+      case 'processing':
+        return 'Processing';
+      case 'failed':
+        return 'Failed';
+      case 'uploaded':
+        return 'Uploaded';
+      default:
+        return 'Unknown';
     }
   };
 
@@ -321,29 +410,41 @@ export default function CSVFileManager({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold">CSV File Manager</h2>
-          <p className="text-gray-600">Manage your CSV files with bucket assignments and categorization</p>
+          <p className="text-gray-600">Manage your CSV files from Supabase backend with bucket assignments and categorization</p>
         </div>
         
-        {showUpload && (
-          <div className="flex items-center space-x-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".csv"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isUploading}
-              className="flex items-center space-x-2"
-            >
-              <Upload className="h-4 w-4" />
-              <span>{isUploading ? 'Uploading...' : 'Upload CSV Files'}</span>
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          <Button
+            onClick={loadFiles}
+            disabled={isLoading}
+            variant="outline"
+            className="flex items-center space-x-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </Button>
+          
+          {showUpload && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="flex items-center space-x-2"
+              >
+                <Upload className="h-4 w-4" />
+                <span>{isUploading ? 'Uploading...' : 'Upload CSV Files'}</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -412,7 +513,15 @@ export default function CSVFileManager({
 
       {/* Files List */}
       <div className="space-y-4">
-        {filteredFiles.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <RefreshCw className="h-12 w-12 text-gray-400 mx-auto mb-4 animate-spin" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Loading CSV files...</h3>
+              <p className="text-gray-600">Fetching files from Supabase backend</p>
+            </CardContent>
+          </Card>
+        ) : filteredFiles.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -441,7 +550,7 @@ export default function CSVFileManager({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2 mb-1">
                         <h3 className="text-sm font-medium text-gray-900 truncate">
-                          {file.fileName}
+                          {file.file_name}
                         </h3>
                         {getStatusIcon(file)}
                         <Badge variant="secondary" className="text-xs">
@@ -450,9 +559,10 @@ export default function CSVFileManager({
                       </div>
                       
                       <div className="flex items-center space-x-4 text-xs text-gray-500">
-                        <span>{file.totalRecords} records</span>
-                        <span>{formatDate(file.uploadedAt)}</span>
-                        <span>{Object.keys(file.bucketAssignments).length} buckets</span>
+                        <span>{file.records_processed} records</span>
+                        <span>{formatDate(new Date(file.uploaded_at).getTime())}</span>
+                        <span>{formatFileSize(file.file_size)}</span>
+                        {file.properties?.name && <span>Property: {file.properties.name}</span>}
                       </div>
                     </div>
                   </div>
@@ -487,7 +597,7 @@ export default function CSVFileManager({
                             Edit Buckets
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => handleFileDownload(file.id)}>
+                        <DropdownMenuItem onClick={() => handleFileDownload(file)}>
                           <Download className="h-4 w-4 mr-2" />
                           Download
                         </DropdownMenuItem>
@@ -499,7 +609,7 @@ export default function CSVFileManager({
                         )}
                         {showDelete && (
                           <DropdownMenuItem 
-                            onClick={() => handleFileDelete(file.id, file.fileName)}
+                            onClick={() => handleFileDelete(file.id, file.file_name)}
                             className="text-red-600"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
@@ -525,10 +635,10 @@ export default function CSVFileManager({
                 <div>
                   <CardTitle className="flex items-center space-x-2">
                     <Eye className="h-5 w-5" />
-                    <span>Preview: {previewFile.fileName}</span>
+                    <span>Preview: {previewFile.file_name}</span>
                   </CardTitle>
                   <CardDescription>
-                    {previewFile.totalRecords} records • {formatDate(previewFile.uploadedAt)}
+                    {previewFile.records_processed} records • {formatDate(new Date(previewFile.uploaded_at).getTime())}
                   </CardDescription>
                 </div>
                 <Button
