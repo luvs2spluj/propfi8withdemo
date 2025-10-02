@@ -14,6 +14,7 @@ import DarkModeToggle from './components/DarkModeToggle';
 import LogoTest from './components/LogoTest';
 import LocalFirstApp from './components/LocalFirstApp';
 import FileManagerPage from './pages/FileManagerPage';
+import CSVFileManagerPage from './pages/CSVFileManagerPage';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -197,6 +198,8 @@ function AppContent() {
         return <LocalFirstApp />;
       case 'file-manager':
         return <FileManagerPage />;
+      case 'csv-file-manager':
+        return <CSVFileManagerPage />;
       default:
         return <LandingPage />;
     }

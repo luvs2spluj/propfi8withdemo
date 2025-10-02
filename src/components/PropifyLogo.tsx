@@ -27,15 +27,22 @@ const PropifyLogo: React.FC<PropifyLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Logo Graphic with Blue Border */}
-      <div className={`${sizeClasses[size]} relative border-2 border-blue-500 rounded-lg p-1 bg-white shadow-sm`}>
+      {/* Logo Graphic - Clean image without border to prevent distortion */}
+      <div className={`${sizeClasses[size]} relative`}>
         <img 
-          src="/propfi-logo.svg" 
+          src="/propfi-logo.jpg" 
           alt="PropFi" 
-          className="w-full h-full object-contain rounded"
-          style={{objectFit: 'contain', aspectRatio: '1 / 1'}}
-          width="100"
-          height="100"
+          className="w-full h-full object-contain"
+          style={{
+            objectFit: 'contain',
+            maxWidth: '100%',
+            height: 'auto'
+          }}
+          onError={(e) => {
+            // Fallback to PDF if JPG fails
+            const target = e.target as HTMLImageElement;
+            target.src = '/propfi-logo.pdf';
+          }}
         />
       </div>
 

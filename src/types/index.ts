@@ -17,7 +17,8 @@ export type Page =
   | 'pricing'
   | 'logo-test'
   | 'local-first'
-  | 'file-manager';
+  | 'file-manager'
+  | 'csv-file-manager';
 
 export interface NavigationProps {
   currentPage: Page;
