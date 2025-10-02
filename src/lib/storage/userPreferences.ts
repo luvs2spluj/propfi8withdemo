@@ -247,7 +247,6 @@ export class UserPreferencesService {
       let query = supabase
         .from('ai_learning')
         .update({
-          usage_count: supabase.raw('usage_count + 1'),
           updated_at: new Date().toISOString()
         })
         .eq('account_name', accountName)

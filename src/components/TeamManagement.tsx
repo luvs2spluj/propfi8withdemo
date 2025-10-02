@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
@@ -12,8 +12,17 @@ import {
   Eye, 
   Edit, 
   Trash2,
-  X
+  X,
+  Mail,
+  Send,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle,
+  Clock
 } from 'lucide-react';
+import { TeamService, TeamMember as SupabaseTeamMember, TeamMemberInvitation } from '../lib/services/teamService';
+import { GmailService } from '../lib/services/gmailService';
+import { useUser } from '@clerk/clerk-react';
 
 interface TeamMember {
   id: string;

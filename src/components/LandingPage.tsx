@@ -56,9 +56,9 @@ const LandingPage: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
       {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <PropifyLogo 
@@ -105,12 +105,12 @@ const LandingPage: React.FC = () => {
             />
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             Visualize Your Property's
             <span className="text-primary"> Financial Data</span>
           </h1>
           
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             PropFi is a Data Visualization and AI powered market analysis tool for property investors and managers. 
             Import CSV data with AI-powered categorization, track cash flows, and gain 
             real-time insights into your property portfolio.
@@ -146,10 +146,10 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4 bg-white dark:bg-gray-800">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               From AI-powered data import to real-time analytics, PropFi provides 
               all the tools you need for successful property management.
             </p>
@@ -218,7 +218,7 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-gray-900 text-white">
+      <footer className="py-12 px-4 bg-gray-900 dark:bg-gray-950 text-white">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -263,7 +263,7 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+          <div className="border-t border-gray-800 dark:border-gray-700 mt-8 pt-8 text-center text-gray-400">
             <p>&copy; 2024 PropFi. All rights reserved.</p>
           </div>
         </div>
