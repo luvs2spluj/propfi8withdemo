@@ -545,7 +545,7 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     };
   };
 
-  const processData = (rows: any[]) => {
+  const processData = async (rows: any[]) => {
     const buckets = bucketizeSmart(rows);
     
     // Calculate summary
@@ -634,7 +634,7 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     try {
       const content = await readFileContent(file);
       const rows = parseCSVSmart(content);
-      processData(rows);
+      await processData(rows);
     } catch (error) {
       console.error('❌ Error processing CSV:', error);
     } finally {
@@ -649,7 +649,7 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     
     try {
       const rows = parseCSVSmart(rawText);
-      processData(rows);
+      await processData(rows);
     } catch (error) {
       console.error('❌ Error processing text:', error);
     } finally {
