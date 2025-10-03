@@ -585,6 +585,40 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     // Save to our enhanced storage system
     saveStoredData(newBudgetData, selectedSheetType);
     
+    // Also save to property-based CSV system if a property is selected
+    if (selectedProperty) {
+      try {
+        const { record, isDuplicate } = await propertyCSVStorageService.uploadCSVForProperty(
+          selectedProperty.id,
+          `budget-${Date.now()}.csv`,
+          'budget',
+          rawText,
+          rows,
+          newBudgetData,
+          new Date(), // periodStart
+          new Date(), // periodEnd
+          ['budget', 'imported']
+        );
+        
+        console.log('✅ CSV saved to property system:', record.fileName, isDuplicate ? '(duplicate)' : '(new)');
+        
+        // Reload property CSV records
+        await loadPropertyCSVRecords();
+        
+        // Trigger dashboard update
+        window.dispatchEvent(new CustomEvent('dataUpdated', {
+          detail: {
+            propertyId: selectedProperty.id,
+            uploadResult: newBudgetData,
+            source: 'budget-importer'
+          }
+        }));
+        
+      } catch (error) {
+        console.error('❌ Failed to save to property system:', error);
+      }
+    }
+    
     if (onDataLoaded) {
       onDataLoaded(newBudgetData);
     }

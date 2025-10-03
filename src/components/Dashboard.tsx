@@ -14,6 +14,7 @@ import OccupancyChart from './charts/OccupancyChart';
 import MultiBucketChart from './charts/MultiBucketChart';
 import PropertySelector from './PropertySelector';
 import unifiedPropertyService from '../services/unifiedPropertyService';
+import { propertyChartDataService } from '../services/propertyChartDataService';
 import { getCSVData, deleteCSVData, migrateLocalStorageToSupabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
@@ -84,6 +85,39 @@ const Dashboard: React.FC = () => {
       // Load financial data from ACTIVE CSV sources only
       console.log('📊 Loading financial data from active CSVs only...');
       
+      // Also load data from property chart data service
+      try {
+        const propertyData = await propertyChartDataService.loadConsolidatedChartData();
+        console.log('🏢 Property chart data loaded:', propertyData);
+        
+        if (propertyData.selectedProperty) {
+          const property = propertyData.selectedProperty;
+          const totalIncome = Object.values(property.monthlyData).reduce((sum, month) => sum + month.totals.total_income, 0);
+          const totalExpense = Object.values(property.monthlyData).reduce((sum, month) => sum + month.totals.total_expense, 0);
+          const netIncome = totalIncome - totalExpense;
+          
+          console.log('💰 Financial Summary from Property Data:');
+          console.log(`  Total Income: $${totalIncome.toLocaleString()}`);
+          console.log(`  Total Expenses: $${totalExpense.toLocaleString()}`);
+          console.log(`  Net Income: $${netIncome.toLocaleString()}`);
+          console.log(`  Property: ${property.propertyName}`);
+          console.log(`  Active Records: ${property.activeRecords}`);
+          
+          setFinancialData({
+            totalRevenue: totalIncome,
+            totalExpenses: totalExpense,
+            totalNetIncome: netIncome,
+            totalRecords: property.activeRecords,
+            dataSource: 'property-csv'
+          });
+          
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error('❌ Failed to load property chart data:', error);
+      }
+      
       // Calculate metrics from active CSVs only
       const csvMetrics = await calculateCSVMetrics();
       console.log('📈 CSV Metrics calculated:', csvMetrics);
@@ -132,6 +166,18 @@ const Dashboard: React.FC = () => {
     initializeUnifiedService();
     loadDashboardData();
     checkForDuplicateCSVs();
+    
+    // Initialize property chart data service
+    const initializePropertyService = async () => {
+      try {
+        await propertyChartDataService.initialize();
+        console.log('✅ Property chart data service initialized');
+      } catch (error) {
+        console.error('❌ Failed to initialize property chart data service:', error);
+      }
+    };
+    
+    initializePropertyService();
     
     // Listen for data updates from CSV uploads and deletions
     const handleDataUpdate = (event: any) => {
@@ -582,7 +628,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Trend</h3>
-          <RevenueChart properties={properties} />
+          <RevenueChart />
         </div>
         <div className="card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Occupancy Rate</h3>
@@ -592,7 +638,7 @@ const Dashboard: React.FC = () => {
 
       {/* Multi-Bucket Analysis Chart */}
       <div className="mt-6">
-        <MultiBucketChart properties={properties} />
+        <MultiBucketChart />
       </div>
 
       <div className="grid grid-cols-1 gap-6">
