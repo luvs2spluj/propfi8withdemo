@@ -237,24 +237,62 @@ class UnifiedCSVDataService {
   // Delete CSV
   async deleteCSV(csvId: string): Promise<boolean> {
     try {
-      // Remove from Supabase if it exists there
-      // This would need to be implemented based on your Supabase setup
+      console.log('🗑️ UnifiedCSVDataService: Deleting CSV:', csvId);
       
-      // Remove from localStorage
+      // Find the CSV to delete
+      const csvToDelete = this.csvData.find(csv => csv.id === csvId);
+      if (!csvToDelete) {
+        console.log('❌ CSV not found in memory:', csvId);
+        return false;
+      }
+
+      console.log('📋 CSV to delete:', csvToDelete.fileName);
+
+      // Remove from Supabase if it exists there
+      try {
+        const { deleteCSVData } = await import('../lib/supabase');
+        await deleteCSVData(csvId);
+        console.log('✅ CSV deleted from Supabase');
+      } catch (error) {
+        console.log('⚠️ CSV not found in Supabase or deletion failed:', error);
+      }
+      
+      // Remove from localStorage (budget importer data)
       const storedCSVs = localStorage.getItem('uploadedCSVs');
       if (storedCSVs) {
         const budgetCSVs = JSON.parse(storedCSVs);
         const updatedCSVs = budgetCSVs.filter((csv: any) => csv.id !== csvId);
         localStorage.setItem('uploadedCSVs', JSON.stringify(updatedCSVs));
+        console.log('✅ CSV deleted from localStorage uploadedCSVs');
+      }
+
+      // Also remove from buckets localStorage
+      const bucketsData = localStorage.getItem('buckets');
+      if (bucketsData && csvToDelete.fileType === 'budget') {
+        localStorage.removeItem('buckets');
+        console.log('✅ Budget buckets cleared from localStorage');
       }
 
       // Remove from memory
       this.csvData = this.csvData.filter(csv => csv.id !== csvId);
+      console.log('✅ CSV removed from memory. Remaining CSVs:', this.csvData.length);
+      
+      // Notify subscribers
       this.notifyListeners();
       
+      // Trigger dashboard update
+      window.dispatchEvent(new CustomEvent('dataUpdated', { 
+        detail: { 
+          action: 'csv_deleted',
+          csvId: csvId,
+          fileName: csvToDelete.fileName
+        } 
+      }));
+      
+      console.log('✅ CSV deleted successfully:', csvToDelete.fileName);
       return true;
     } catch (error) {
-      console.error('Error deleting CSV:', error);
+      console.error('❌ Error deleting CSV:', error);
       return false;
     }
   }

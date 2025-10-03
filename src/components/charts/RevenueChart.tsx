@@ -13,6 +13,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import { Building2 } from 'lucide-react';
 import { propertyChartDataService, ConsolidatedChartData } from '../../services/propertyChartDataService';
+import { budgetDataBridgeService, BudgetChartData } from '../../services/budgetDataBridgeService';
 
 ChartJS.register(
   CategoryScale,
@@ -30,9 +31,10 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
-  const [chartData, setChartData] = useState<any>(null);
+  const [chartData, setChartData] = useState<BudgetChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [consolidatedData, setConsolidatedData] = useState<ConsolidatedChartData | null>(null);
+  const [dataSource, setDataSource] = useState<string>('none');
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,6 +42,17 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
         setIsLoading(true);
         console.log('📈 Revenue Chart: Starting data load...');
         
+        // First try to load from budget importer localStorage
+        const budgetData = budgetDataBridgeService.getRevenueChartData();
+        if (budgetData && budgetData.datasets.length > 0) {
+          console.log('📈 Revenue Chart: Using budget importer data:', budgetData);
+          setChartData(budgetData);
+          setDataSource('budget-importer');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fallback to property chart data service
         await propertyChartDataService.initialize();
         const data = await propertyChartDataService.loadConsolidatedChartData();
         console.log('📈 Revenue Chart: Property data loaded:', data);
@@ -49,9 +62,14 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
         if (data.selectedProperty) {
           const formattedData = propertyChartDataService.formatForRevenueChart(data.selectedProperty);
           setChartData(formattedData);
+          setDataSource('property-system');
+        } else {
+          console.log('📈 Revenue Chart: No data available from any source');
+          setChartData(null);
+          setDataSource('none');
         }
       } catch (error) {
-        console.error('Error loading property chart data:', error);
+        console.error('Error loading revenue chart data:', error);
         setConsolidatedData({
           properties: [],
           selectedProperty: null,
@@ -59,6 +77,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
           globalTotals: { income: 0, expense: 0, noi: 0 }
         });
         setChartData(null);
+        setDataSource('none');
       } finally {
         setIsLoading(false);
       }
@@ -66,16 +85,30 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
     
     loadData();
     
-    // Subscribe to data changes
-    const unsubscribe = propertyChartDataService.subscribe((data) => {
-      setConsolidatedData(data);
-      if (data.selectedProperty) {
-        const formattedData = propertyChartDataService.formatForRevenueChart(data.selectedProperty);
-        setChartData(formattedData);
+    // Subscribe to budget data changes
+    const unsubscribeBudget = budgetDataBridgeService.subscribe((data) => {
+      if (data) {
+        const budgetChartData = budgetDataBridgeService.getRevenueChartData();
+        if (budgetChartData && budgetChartData.datasets.length > 0) {
+          setChartData(budgetChartData);
+          setDataSource('budget-importer');
+        }
       }
     });
     
-    return unsubscribe;
+    // Subscribe to property data changes
+    const unsubscribeProperty = propertyChartDataService.subscribe((data) => {
+      if (data.selectedProperty) {
+        const formattedData = propertyChartDataService.formatForRevenueChart(data.selectedProperty);
+        setChartData(formattedData);
+        setDataSource('property-system');
+      }
+    });
+    
+    return () => {
+      unsubscribeBudget();
+      unsubscribeProperty();
+    };
   }, []);
 
   // Prepare chart data
@@ -130,7 +163,15 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Revenue Analysis
             </h3>
-            {consolidatedData?.selectedProperty && (
+            {dataSource === 'budget-importer' && (
+              <div className="flex items-center space-x-2 mt-1">
+                <Building2 className="w-4 h-4 text-green-600" />
+                <span className="text-sm text-green-600 font-medium">
+                  📊 Budget Importer Data
+                </span>
+              </div>
+            )}
+            {dataSource === 'property-system' && consolidatedData?.selectedProperty && (
               <div className="flex items-center space-x-2 mt-1">
                 <Building2 className="w-4 h-4 text-blue-600" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -138,6 +179,14 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
                 </span>
                 <span className="text-xs text-gray-500">
                   ({consolidatedData.selectedProperty.activeRecords} CSV files)
+                </span>
+              </div>
+            )}
+            {dataSource === 'none' && (
+              <div className="flex items-center space-x-2 mt-1">
+                <Building2 className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-500">
+                  No data available
                 </span>
               </div>
             )}

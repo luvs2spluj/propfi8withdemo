@@ -15,6 +15,8 @@ import MultiBucketChart from './charts/MultiBucketChart';
 import PropertySelector from './PropertySelector';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { propertyChartDataService } from '../services/propertyChartDataService';
+import { budgetDataBridgeService } from '../services/budgetDataBridgeService';
+import BudgetDataTest from './BudgetDataTest';
 import { getCSVData, deleteCSVData, migrateLocalStorageToSupabase } from '../lib/supabase';
 
 const Dashboard: React.FC = () => {
@@ -84,6 +86,20 @@ const Dashboard: React.FC = () => {
 
       // Load financial data from ACTIVE CSV sources only
       console.log('📊 Loading financial data from active CSVs only...');
+      
+      // First try to load from budget importer localStorage
+      const budgetFinancialData = budgetDataBridgeService.getFinancialData();
+      if (budgetFinancialData) {
+        console.log('💰 Financial Summary from Budget Importer:');
+        console.log(`  Total Revenue: $${budgetFinancialData.totalRevenue.toLocaleString()}`);
+        console.log(`  Total Expenses: $${budgetFinancialData.totalExpenses.toLocaleString()}`);
+        console.log(`  Net Income: $${budgetFinancialData.totalNetIncome.toLocaleString()}`);
+        console.log(`  Records: ${budgetFinancialData.totalRecords}`);
+        
+        setFinancialData(budgetFinancialData);
+        setIsLoading(false);
+        return;
+      }
       
       // Also load data from property chart data service
       try {
@@ -194,9 +210,18 @@ const Dashboard: React.FC = () => {
     };
 
     window.addEventListener('dataUpdated', handleDataUpdate);
+    
+    // Subscribe to budget data changes
+    const unsubscribeBudget = budgetDataBridgeService.subscribe((data) => {
+      if (data) {
+        console.log('🔄 Dashboard received budget data update, refreshing...');
+        loadDashboardData();
+      }
+    });
 
     return () => {
       window.removeEventListener('dataUpdated', handleDataUpdate);
+      unsubscribeBudget();
     };
   }, [checkForDuplicateCSVs, loadDashboardData]);
 
@@ -588,6 +613,9 @@ const Dashboard: React.FC = () => {
 
       {/* Property Selector */}
       <PropertySelector className="mb-6" />
+
+      {/* Budget Data Test Component */}
+      <BudgetDataTest />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

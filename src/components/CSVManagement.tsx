@@ -64,14 +64,43 @@ export default function CSVManagement({
   };
 
   const handleDeleteCSV = async (csvId: string) => {
-    if (window.confirm('Are you sure you want to delete this CSV? This action cannot be undone.')) {
+    const csvToDelete = csvs.find(csv => csv.id === csvId);
+    if (!csvToDelete) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${csvToDelete.fileName}"?\n\n` +
+      `This will permanently remove:\n` +
+      `• All data from this CSV\n` +
+      `• All categorizations and bucket assignments\n` +
+      `• Dashboard data from this CSV\n\n` +
+      `This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      console.log('🗑️ Deleting CSV:', csvToDelete.fileName);
+      
+      // Call the unified service delete method
       const success = await unifiedCSVDataService.deleteCSV(csvId);
+      
       if (success) {
+        console.log('✅ CSV deleted successfully');
+        
+        // Call the callback if provided
         if (onCSVDeleted) {
           onCSVDeleted(csvId);
         }
-        // Data will be updated via subscription
+        
+        // The data will be updated via subscription, but let's also reload manually
+        await loadCSVData();
+      } else {
+        console.error('❌ Failed to delete CSV');
+        alert('Failed to delete CSV. Please try again.');
       }
+    } catch (error) {
+      console.error('❌ Error deleting CSV:', error);
+      alert('Failed to delete CSV. Please try again.');
     }
   };
 

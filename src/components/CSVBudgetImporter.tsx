@@ -4,6 +4,7 @@ import { unifiedCSVDataService } from '../services/unifiedCSVDataService';
 import CSVManagement from './CSVManagement';
 import PropertyManagement from './PropertyManagement';
 import { propertyCSVStorageService, PropertyInfo, PropertyCSVRecord } from '../services/propertyCSVStorageService';
+import { budgetDataBridgeService } from '../services/budgetDataBridgeService';
 
 interface CSVBudgetImporterProps {
   onDataLoaded?: (data: any) => void;
@@ -44,7 +45,6 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
   });
   const [budgetData, setBudgetData] = useState<BudgetData | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [rawText, setRawText] = useState('');
   const [selectedSheetType, setSelectedSheetType] = useState<string>('budget');
   const [uploadedCSVs, setUploadedCSVs] = useState<any[]>([]);
   const [aiLearningData, setAiLearningData] = useState<any[]>([]);
@@ -58,7 +58,6 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
   const [propertyCSVRecords, setPropertyCSVRecords] = useState<PropertyCSVRecord[]>([]);
   const [showPropertyManagement, setShowPropertyManagement] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load stored data on component mount
   useEffect(() => {
@@ -585,6 +584,9 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     // Save to our enhanced storage system
     saveStoredData(newBudgetData, selectedSheetType);
     
+    // Trigger budget data bridge service refresh
+    budgetDataBridgeService.refreshData();
+    
     // Also save to property-based CSV system if a property is selected
     if (selectedProperty) {
       try {
@@ -592,7 +594,7 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
           selectedProperty.id,
           `budget-${Date.now()}.csv`,
           'budget',
-          rawText,
+          '', // No raw text since we removed that functionality
           rows,
           newBudgetData,
           new Date(), // periodStart
@@ -637,21 +639,6 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
       await processData(rows);
     } catch (error) {
       console.error('❌ Error processing CSV:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleTextParse = async () => {
-    if (!rawText.trim()) return;
-    
-    setIsLoading(true);
-    
-    try {
-      const rows = parseCSVSmart(rawText);
-      await processData(rows);
-    } catch (error) {
-      console.error('❌ Error processing text:', error);
     } finally {
       setIsLoading(false);
     }
@@ -899,26 +886,6 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Text Input */}
-      <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Or paste raw CSV text:
-        </label>
-        <textarea
-          ref={textAreaRef}
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-          placeholder="Paste your CSV data here..."
-          className="w-full min-h-[120px] p-3 border border-gray-300 rounded-lg font-mono text-sm resize-vertical"
-        />
-        <button
-          onClick={handleTextParse}
-          className="mt-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-        >
-          Parse Text Below
-        </button>
       </div>
       
       {/* Controls */}

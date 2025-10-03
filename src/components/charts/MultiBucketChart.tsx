@@ -14,6 +14,7 @@ import {
 import { X, Plus, ChevronDown, Building2 } from 'lucide-react';
 import { BUCKET_DEFINITIONS, getBucketIcon, getBucketColor } from '../../types/bucketTypes';
 import { propertyChartDataService, ConsolidatedChartData, PropertyChartData } from '../../services/propertyChartDataService';
+import { budgetDataBridgeService, BudgetChartData } from '../../services/budgetDataBridgeService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -36,6 +37,7 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
   const [showDropdown, setShowDropdown] = useState(false);
   const [consolidatedData, setConsolidatedData] = useState<ConsolidatedChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<string>('none');
 
   // Enhanced bucket matching logic based on account categories and names
   const matchesBucket = (accountName: string, bucketId: string): boolean => {
@@ -74,11 +76,28 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
         setIsLoading(true);
         console.log('📊 Multi-Bucket Chart: Starting data load...');
         
+        // First try to load from budget importer localStorage
+        const budgetData = budgetDataBridgeService.getMultiBucketChartData();
+        if (budgetData && budgetData.datasets.length > 0) {
+          console.log('📊 Multi-Bucket Chart: Using budget importer data:', budgetData);
+          setConsolidatedData({
+            properties: [],
+            selectedProperty: null,
+            allMonths: budgetData.labels,
+            globalTotals: { income: 0, expense: 0, noi: 0 }
+          });
+          setDataSource('budget-importer');
+          setIsLoading(false);
+          return;
+        }
+        
+        // Fallback to property chart data service
         await propertyChartDataService.initialize();
         const data = await propertyChartDataService.loadConsolidatedChartData();
         console.log('📊 Multi-Bucket Chart: Property data loaded:', data);
         
         setConsolidatedData(data);
+        setDataSource(data.selectedProperty ? 'property-system' : 'none');
       } catch (error) {
         console.error('Error loading property chart data:', error);
         // Set empty data to prevent crashes
@@ -88,6 +107,7 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
           allMonths: [],
           globalTotals: { income: 0, expense: 0, noi: 0 }
         });
+        setDataSource('none');
       } finally {
         setIsLoading(false);
       }
@@ -95,18 +115,48 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
     
     loadData();
     
-    // Subscribe to data changes
-    const unsubscribe = propertyChartDataService.subscribe((data) => {
-      setConsolidatedData(data);
+    // Subscribe to budget data changes
+    const unsubscribeBudget = budgetDataBridgeService.subscribe((data) => {
+      if (data) {
+        const budgetChartData = budgetDataBridgeService.getMultiBucketChartData();
+        if (budgetChartData && budgetChartData.datasets.length > 0) {
+          setConsolidatedData({
+            properties: [],
+            selectedProperty: null,
+            allMonths: budgetChartData.labels,
+            globalTotals: { income: 0, expense: 0, noi: 0 }
+          });
+          setDataSource('budget-importer');
+        }
+      }
     });
     
-    return unsubscribe;
+    // Subscribe to property data changes
+    const unsubscribeProperty = propertyChartDataService.subscribe((data) => {
+      setConsolidatedData(data);
+      setDataSource(data.selectedProperty ? 'property-system' : 'none');
+    });
+    
+    return () => {
+      unsubscribeBudget();
+      unsubscribeProperty();
+    };
   }, []);
 
   // Process data for selected buckets using property-based data
   const chartData = useMemo(() => {
-    console.log('📊 Multi-Bucket Chart: Processing chart data with', consolidatedData?.properties.length || 0, 'properties');
+    console.log('📊 Multi-Bucket Chart: Processing chart data, source:', dataSource);
     
+    // If using budget importer data, return it directly
+    if (dataSource === 'budget-importer') {
+      const budgetData = budgetDataBridgeService.getMultiBucketChartData();
+      if (budgetData) {
+        console.log('📊 Multi-Bucket Chart: Using budget data:', budgetData);
+        return budgetData;
+      }
+    }
+    
+    // Fallback to property-based data
     if (!consolidatedData?.selectedProperty) {
       console.log('📊 Multi-Bucket Chart: No selected property available');
       return { labels: [], datasets: [] };
@@ -121,7 +171,7 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
     console.log('📊 Multi-Bucket Chart: Formatted data:', formattedData);
 
     return formattedData;
-  }, [consolidatedData, selectedBuckets]);
+  }, [consolidatedData, selectedBuckets, dataSource]);
 
   // Available buckets for selection
   const availableBuckets = Object.entries(BUCKET_DEFINITIONS)
