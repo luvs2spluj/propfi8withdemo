@@ -1,0 +1,144 @@
+<!-- SMART CSV WIDGET (put inside your index.html <body>) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+  .csv-smart-widget { 
+    border: 1px solid #ddd; 
+    padding: 16px; 
+    border-radius: 12px; 
+    margin: 16px 0; 
+    font-family: system-ui, sans-serif; 
+    background: white;
+  }
+  .csv-smart-widget .drop { 
+    border: 2px dashed #bbb; 
+    padding: 24px; 
+    text-align: center; 
+    border-radius: 10px; 
+    margin-top: 8px; 
+    transition: all 0.2s ease;
+  }
+  .csv-smart-widget .drop.over { 
+    border-color: #3b82f6; 
+    background: #eff6ff; 
+  }
+  .csv-smart-widget .cards { 
+    display: flex; 
+    gap: 12px; 
+    margin: 16px 0; 
+  }
+  .csv-smart-widget .card { 
+    flex: 1; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 10px; 
+    padding: 16px; 
+    background: #f9fafb; 
+  }
+  .csv-smart-widget .card.income { background: #f0fdf4; border-color: #bbf7d0; }
+  .csv-smart-widget .card.expense { background: #fef2f2; border-color: #fecaca; }
+  .csv-smart-widget .card.noi { background: #f0f9ff; border-color: #bae6fd; }
+  .csv-smart-widget table.csv-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 16px; 
+  }
+  .csv-smart-widget table.csv-table th, 
+  .csv-smart-widget table.csv-table td { 
+    border: 1px solid #e5e7eb; 
+    padding: 8px 12px; 
+    font-size: 13px; 
+  }
+  .csv-smart-widget table.csv-table th { 
+    background: #f3f4f6; 
+    text-align: left; 
+    font-weight: 600;
+  }
+  .csv-smart-widget button {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin: 4px;
+    font-size: 14px;
+  }
+  .csv-smart-widget button:hover {
+    background: #2563eb;
+  }
+  .csv-smart-widget button.secondary {
+    background: #6b7280;
+  }
+  .csv-smart-widget button.secondary:hover {
+    background: #4b5563;
+  }
+  .csv-smart-widget textarea {
+    width: 100%;
+    min-height: 120px;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 12px;
+    resize: vertical;
+  }
+</style>
+
+<div class="csv-smart-widget">
+  <h2 style="margin: 0 0 16px 0; font-size: 20px; font-weight: 600;">📊 Smart CSV Budget Parser</h2>
+  
+  <!-- File Upload -->
+  <div>
+    <input id="csv-input" type="file" accept=".csv" style="margin-bottom: 8px;" />
+    <div id="csv-drop" class="drop">Drag & drop CSV here</div>
+  </div>
+  
+  <!-- Text Input -->
+  <div style="margin-top: 16px;">
+    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Or paste raw CSV text:</label>
+    <textarea id="csv-text" placeholder="Paste your CSV data here..."></textarea>
+    <button id="csv-parse-text">Parse Text Below</button>
+  </div>
+  
+  <!-- Controls -->
+  <div style="margin: 16px 0;">
+    <button id="csv-load-existing" class="secondary">Load Saved Data</button>
+    <button onclick="localStorage.removeItem('buckets'); location.reload();" class="secondary">Clear Data</button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card income">
+      <strong>Total Income:</strong> 
+      <span id="card-income" style="font-size: 18px; font-weight: bold; color: #059669;">$0</span>
+    </div>
+    <div class="card expense">
+      <strong>Total Expense:</strong> 
+      <span id="card-expense" style="font-size: 18px; font-weight: bold; color: #dc2626;">$0</span>
+    </div>
+    <div class="card noi">
+      <strong>NOI:</strong> 
+      <span id="card-noi" style="font-size: 18px; font-weight: bold; color: #2563eb;">$0</span>
+    </div>
+  </div>
+
+  <!-- Data Tables -->
+  <div id="income-table"></div>
+  <div id="expense-table"></div>
+  <div id="other-table"></div>
+  
+  <!-- Instructions -->
+  <div style="margin-top: 24px; padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+    <h3 style="margin: 0 0 8px 0; color: #1e40af;">💡 Smart Parser Features</h3>
+    <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 14px;">
+      <li>Handles commas in account names (e.g., "Clerical , Postage")</li>
+      <li>Processes mixed quoting and thousands separators</li>
+      <li>Filters out section headers and non-data rows</li>
+      <li>Handles negatives in parentheses and currency symbols</li>
+      <li>Fuzzy matching for account categorization</li>
+      <li>Auto-saves to localStorage for persistence</li>
+    </ul>
+  </div>
+</div>
+
+<script src="./csv-smart.js"></script>

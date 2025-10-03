@@ -1,0 +1,49 @@
+{
+  "name": "Rent Roll Template",
+  "description": "Property rent roll template",
+  "category": "rent_roll",
+  "headers": [
+    "Unit Number",
+    "Tenant Name",
+    "Monthly Rent",
+    "Lease Start",
+    "Lease End",
+    "Occupancy Status"
+  ],
+  "requiredFields": [
+    "Unit Number",
+    "Monthly Rent",
+    "Occupancy Status"
+  ],
+  "optionalFields": [
+    "Tenant Name",
+    "Lease Start",
+    "Lease End"
+  ],
+  "sampleData": [
+    {
+      "Unit Number": "101",
+      "Tenant Name": "John Smith",
+      "Monthly Rent": "1200",
+      "Lease Start": "2024-01-01",
+      "Lease End": "2024-12-31",
+      "Occupancy Status": "Occupied"
+    },
+    {
+      "Unit Number": "102",
+      "Tenant Name": "Jane Doe",
+      "Monthly Rent": "1150",
+      "Lease Start": "2024-02-01",
+      "Lease End": "2025-01-31",
+      "Occupancy Status": "Occupied"
+    },
+    {
+      "Unit Number": "103",
+      "Tenant Name": "",
+      "Monthly Rent": "1200",
+      "Lease Start": "",
+      "Lease End": "",
+      "Occupancy Status": "Vacant"
+    }
+  ]
+}

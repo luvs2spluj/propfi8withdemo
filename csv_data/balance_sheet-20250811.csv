@@ -1,0 +1,26 @@
+Account Name,Balance
+
+ASSETS,
+Cash,
+    CASH IN BANK,
+        Operating Cash,"76,220.54"
+        Security Deposit Cash,"31,315.00"
+    Total CASH IN BANK,"107,535.54"
+Total Cash,"107,535.54"
+TOTAL ASSETS,"107,535.54"
+,
+,
+LIABILITIES & CAPITAL,
+Liabilities,
+    Prepaid Revenue,"22,138.21"
+    Refundable Security Deposits,"31,315.00"
+    Accrued Property Taxes (Real & Personal),"-2,822.92"
+    Accrued Other Expenses,"-18,146.00"
+Total Liabilities,"32,484.29"
+Capital,
+     Owners - Add'l Cash Contribution,"19,859.23"
+    Owner Withdrawals,"-390,000.00"
+    Calculated Retained Earnings,"162,458.79"
+    Calculated Prior Years Retained Earnings,"282,733.23"
+Total Capital,"75,051.25"
+TOTAL LIABILITIES & CAPITAL,"107,535.54"

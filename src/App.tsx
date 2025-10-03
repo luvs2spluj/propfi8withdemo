@@ -15,6 +15,12 @@ import LogoTest from './components/LogoTest';
 import LocalFirstApp from './components/LocalFirstApp';
 import FileManagerPage from './pages/FileManagerPage';
 import CSVTimeSeriesPage from './pages/CSVTimeSeriesPage';
+import DemoPage from './pages/Demo';
+import DebugConsole from './components/DebugConsole';
+import NotebookManager from './components/NotebookManager';
+import NotebookDemoPage from './pages/NotebookDemo';
+import CSVBudgetPage from './pages/CSVBudgetPage';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Page } from './types';
 import { userAuthService } from './services/userAuthService';
 
@@ -200,6 +206,16 @@ function AppContent() {
         return <FileManagerPage />;
       case 'csv-timeseries':
         return <CSVTimeSeriesPage />;
+      case 'demo':
+        return <DemoPage />;
+      case 'debug':
+        return <DebugConsole />;
+      case 'notebook':
+        return <NotebookManager />;
+      case 'notebook-demo':
+        return <NotebookDemoPage />;
+      case 'csv-budget':
+        return <CSVBudgetPage />;
       default:
         return <LandingPage />;
     }
@@ -241,7 +257,7 @@ function AppContent() {
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
-      <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'lg:ml-0' : ''}`}>
+      <main className={`flex-1 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'ml-16' : 'ml-0'}`}>
         
         <div className="p-6 pb-12">
           {renderPage()}
@@ -269,7 +285,9 @@ function App() {
 
   return (
     <ClerkProvider publishableKey={clerkKey}>
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </ClerkProvider>
   );
 }

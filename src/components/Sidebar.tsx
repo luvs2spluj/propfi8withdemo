@@ -10,7 +10,9 @@ import {
   Users,
   CreditCard,
   Menu,
-  X
+  X,
+  BookOpen,
+  Calculator
 } from 'lucide-react';
 import { Page, NavigationProps } from '../types';
 import { useUser } from '@clerk/clerk-react';
@@ -44,7 +46,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'analytics' as Page, label: 'Analytics', icon: BarChart3 },
     { id: 'reports' as Page, label: 'Reports', icon: FileText },
     { id: 'properties' as Page, label: 'Properties', icon: Building2 },
-      { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
+    { id: 'csvs' as Page, label: 'CSV Upload & Management', icon: Upload },
+    { id: 'notebook' as Page, label: 'Notebook Manager', icon: BookOpen },
+    { id: 'csv-budget' as Page, label: 'CSV Budget Importer', icon: Calculator },
     { id: 'team-management' as Page, label: 'Team Management', icon: Users },
   ];
 

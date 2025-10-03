@@ -1,488 +1,484 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Building2, 
-  MapPin, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X,
-  AlertCircle,
-  CheckCircle,
-  RefreshCw
-} from 'lucide-react';
-import ApiService from '../services/api';
-import { unifiedPropertyService } from '../services/unifiedPropertyService';
+import { Building2, Plus, Upload, FileText, Calendar, Tag, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { propertyCSVStorageService, PropertyInfo, PropertyCSVRecord, DuplicateCheckResult } from '../services/propertyCSVStorageService';
 
-interface Property {
-  id: string;
-  name: string;
-  address: string;
-  type: string;
-  total_units: number;
-  created_at?: string;
-  updated_at?: string;
+interface PropertyManagementProps {
+  onPropertySelected?: (property: PropertyInfo) => void;
+  onCSVUploaded?: (record: PropertyCSVRecord) => void;
+  className?: string;
 }
 
-const PropertyManagement: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
+const PropertyManagement: React.FC<PropertyManagementProps> = ({
+  onPropertySelected,
+  onCSVUploaded,
+  className = ''
+}) => {
+  const [properties, setProperties] = useState<PropertyInfo[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<PropertyInfo | null>(null);
+  const [csvRecords, setCsvRecords] = useState<PropertyCSVRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
+  const [showAddProperty, setShowAddProperty] = useState(false);
+  const [newProperty, setNewProperty] = useState({
     name: '',
     address: '',
-    type: 'Apartment Complex',
-    total_units: 0
+    propertyType: 'residential' as 'residential' | 'commercial' | 'mixed-use'
   });
-
-  const propertyTypes = [
-    'Apartment Complex',
-    'Townhouse Complex',
-    'Single Family',
-    'Condo Complex',
-    'Commercial Building',
-    'Mixed Use',
-    'Other'
-  ];
+  const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResult | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'checking' | 'uploading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    loadProperties();
+    initializeService();
   }, []);
 
-  const loadProperties = async () => {
+  useEffect(() => {
+    if (selectedProperty) {
+      loadCSVRecords(selectedProperty.id);
+    }
+  }, [selectedProperty]);
+
+  const initializeService = async () => {
     try {
-      setIsLoading(true);
-      console.log('Loading properties from unified service...');
-      
-      // Initialize unified service
-      await unifiedPropertyService.initialize();
-      
-      // Load properties from unified service
-      const unifiedProperties = unifiedPropertyService.getAllProperties();
-      console.log('Unified properties loaded:', unifiedProperties);
-      
-      if (unifiedProperties.length > 0) {
-        // Convert unified properties to Property format
-        const convertedProperties: Property[] = unifiedProperties.map(prop => ({
-          id: prop.id,
-          name: prop.name,
-          address: prop.address,
-          type: prop.type,
-          total_units: prop.totalUnits,
-          created_at: prop.createdAt,
-          updated_at: prop.updatedAt
-        }));
-        
-        setProperties(convertedProperties);
-        console.log('Properties loaded from unified service:', convertedProperties.length);
-      } else {
-        // Fallback to API if no unified properties
-        console.log('No unified properties, trying API...');
-        const response = await ApiService.getProperties();
-        console.log('Properties API response:', response);
-        
-        if (response.success && response.data) {
-          setProperties(response.data);
-          console.log('Properties loaded from database:', response.data.length);
-        } else {
-          setProperties([]);
-        }
-      }
-    } catch (error: any) {
-      console.error('Error loading properties:', error);
-      setError('Failed to load properties. Please check if the backend server is running.');
-      setProperties([]);
+      await propertyCSVStorageService.initialize();
+      await loadProperties();
+    } catch (error) {
+      console.error('Failed to initialize property CSV storage:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'total_units' ? parseInt(value) || 0 : value
-    }));
+  const loadProperties = async () => {
+    try {
+      const props = await propertyCSVStorageService.getProperties();
+      setProperties(props);
+      if (props.length > 0 && !selectedProperty) {
+        setSelectedProperty(props[0]);
+        onPropertySelected?.(props[0]);
+      }
+    } catch (error) {
+      console.error('Failed to load properties:', error);
+    }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      address: '',
-      type: 'Apartment Complex',
-      total_units: 0
-    });
-    setError(null);
-    setSuccess(null);
+  const loadCSVRecords = async (propertyId: string) => {
+    try {
+      const records = await propertyCSVStorageService.getCSVRecords(propertyId);
+      setCsvRecords(records);
+    } catch (error) {
+      console.error('Failed to load CSV records:', error);
+    }
   };
 
-  // Auto-clear success messages after 5 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        setSuccess(null);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  const handleAddProperty = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.name.trim() || !formData.address.trim()) {
-      setError('Property name and address are required');
-      return;
-    }
+  const handleAddProperty = async () => {
+    if (!newProperty.name.trim()) return;
 
     try {
-      // Check if property name already exists
-      const existingProperty = properties.find(p => 
-        p.name.toLowerCase() === formData.name.toLowerCase()
-      );
+      const property = await propertyCSVStorageService.createProperty(newProperty);
+      setProperties([...properties, property]);
+      setSelectedProperty(property);
+      onPropertySelected?.(property);
+      setNewProperty({ name: '', address: '', propertyType: 'residential' });
+      setShowAddProperty(false);
+    } catch (error) {
+      console.error('Failed to add property:', error);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedProperty) return;
+
+    setUploadStatus('checking');
+    setDuplicateCheck(null);
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const data = lines.slice(1).map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        return row;
+      });
+
+      // Detect CSV type based on headers
+      const csvType = detectCSVType(headers);
       
-      if (existingProperty) {
-        setError('A property with this name already exists');
+      // Extract year/month from data if possible
+      const { year, month } = extractPeriodFromData(data);
+
+      // Check for duplicates
+      const duplicateResult = await propertyCSVStorageService.checkForDuplicates(
+        selectedProperty.id,
+        csvType,
+        data,
+        year,
+        month
+      );
+
+      setDuplicateCheck(duplicateResult);
+
+      if (duplicateResult.isDuplicate) {
+        setUploadStatus('error');
         return;
       }
 
-      console.log('Adding property:', formData);
-
-      // Add to unified property service first
-      const unifiedProperty = await unifiedPropertyService.addProperty({
-        name: formData.name,
-        address: formData.address,
-        type: formData.type,
-        totalUnits: formData.total_units
-      });
-      
-      console.log('✅ Property added to unified service:', unifiedProperty);
-
-      // Try to add via API as well for persistence
-      try {
-        const response = await ApiService.addProperty(formData);
-        console.log('API response:', response);
-        if (response.success) {
-          setSuccess('Property added successfully to database and unified system!');
-        } else {
-          setSuccess('Property added to unified system (API unavailable)');
+      // Process categorization (simplified)
+      const categorization = {
+        buckets: {
+          income: { individualItems: [], totals: {} },
+          expense: { individualItems: [], totals: {} },
+          other: { individualItems: [], totals: {} }
         }
-      } catch (apiError: any) {
-        console.warn('API not available, property saved to unified system only:', apiError.message);
-        setSuccess('Property added to unified system (API unavailable)');
-      }
-      
-      // Reload properties from unified service
-      await loadProperties();
-      setShowAddForm(false);
-      resetForm();
-    } catch (error: any) {
-      console.error('Error adding property:', error);
-      setError(error.message || 'Failed to add property');
+      };
+
+      setUploadStatus('uploading');
+
+      // Save the CSV record
+      const record = await propertyCSVStorageService.processCSVWithDeduplication(
+        selectedProperty.id,
+        csvType,
+        file.name,
+        data,
+        categorization,
+        year,
+        month
+      );
+
+      setCsvRecords([...csvRecords, record]);
+      onCSVUploaded?.(record);
+      setUploadStatus('success');
+
+      // Reset file input
+      event.target.value = '';
+
+    } catch (error) {
+      console.error('Failed to process CSV:', error);
+      setUploadStatus('error');
     }
   };
 
-  const handleEditProperty = (property: Property) => {
-    setEditingProperty(property);
-    setFormData({
-      name: property.name,
-      address: property.address,
-      type: property.type,
-      total_units: property.total_units
-    });
-    setShowAddForm(true);
-  };
-
-  const handleUpdateProperty = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const detectCSVType = (headers: string[]): string => {
+    const headerText = headers.join(' ').toLowerCase();
     
-    if (!editingProperty) return;
+    if (headerText.includes('rent') && headerText.includes('unit')) return 'rent-roll';
+    if (headerText.includes('cash') && headerText.includes('flow')) return 'cash-flow';
+    if (headerText.includes('income') || headerText.includes('revenue')) return 'income';
+    if (headerText.includes('balance') && headerText.includes('sheet')) return 'balance-sheet';
+    if (headerText.includes('budget') || headerText.includes('forecast')) return 'budget';
+    
+    return 'other';
+  };
 
-    try {
-      console.log('Updating property:', editingProperty.id, formData);
-
-      // Try API first
-      try {
-        const response = await ApiService.updateProperty(editingProperty.id, formData);
-        console.log('Update API response:', response);
-        if (response.success) {
-          setSuccess('Property updated successfully in database!');
-          // Reload properties from database
-          await loadProperties();
-          setShowAddForm(false);
-          setEditingProperty(null);
-          resetForm();
-          return;
-        } else {
-          throw new Error(response.error || 'API request failed');
+  const extractPeriodFromData = (data: any[]): { year?: number; month?: number } => {
+    // Look for date patterns in the data
+    for (const row of data) {
+      for (const [key, value] of Object.entries(row)) {
+        if (typeof value === 'string') {
+          const dateMatch = value.match(/(\d{4})[-\/](\d{1,2})/);
+          if (dateMatch) {
+            return {
+              year: parseInt(dateMatch[1]),
+              month: parseInt(dateMatch[2])
+            };
+          }
         }
-      } catch (apiError: any) {
-        console.warn('API not available, using local storage:', apiError.message);
-        
-        // Fallback to local storage
-        const updatedProperties = properties.map(p => 
-          p.id === editingProperty.id 
-            ? { ...p, ...formData, updated_at: new Date().toISOString() }
-            : p
-        );
-        
-        setProperties(updatedProperties);
-        
-        setSuccess('Property updated successfully (saved locally)!');
-        setShowAddForm(false);
-        setEditingProperty(null);
-        resetForm();
       }
+    }
+    return {};
+  };
 
-    } catch (error: any) {
-      console.error('Error updating property:', error);
-      setError(error.message || 'Failed to update property');
+  const getCSVTypeIcon = (type: string) => {
+    switch (type) {
+      case 'rent-roll': return '🏠';
+      case 'cash-flow': return '💰';
+      case 'income': return '📈';
+      case 'balance-sheet': return '📊';
+      case 'budget': return '📋';
+      default: return '📄';
     }
   };
 
-  const handleDeleteProperty = async (property: Property) => {
-    if (!window.confirm(`Are you sure you want to delete "${property.name}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      // Try API first
-      try {
-        const response = await ApiService.deleteProperty(property.id);
-        if (response.success) {
-          setSuccess('Property deleted successfully!');
-          await loadProperties();
-          return;
-        }
-      } catch (apiError) {
-        console.warn('API not available, using local storage');
-      }
-
-      // Fallback to local storage
-      const updatedProperties = properties.filter(p => p.id !== property.id);
-      setProperties(updatedProperties);
-      
-      setSuccess('Property deleted successfully!');
-
-    } catch (error: any) {
-      setError(error.message || 'Failed to delete property');
+  const getCSVTypeColor = (type: string) => {
+    switch (type) {
+      case 'rent-roll': return 'bg-blue-100 text-blue-800';
+      case 'cash-flow': return 'bg-green-100 text-green-800';
+      case 'income': return 'bg-purple-100 text-purple-800';
+      case 'balance-sheet': return 'bg-orange-100 text-orange-800';
+      case 'budget': return 'bg-pink-100 text-pink-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const cancelForm = () => {
-    setShowAddForm(false);
-    setEditingProperty(null);
-    resetForm();
-  };
+  if (isLoading) {
+    return (
+      <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading property management...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Property Management</h1>
-          <p className="text-gray-600 mt-1">Manage your property portfolio</p>
-        </div>
-        <div className="flex space-x-3">
-          <button
-            onClick={loadProperties}
-            disabled={isLoading}
-            className="btn-secondary flex items-center space-x-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Property</span>
-          </button>
+    <div className={`bg-white rounded-lg shadow-md p-6 ${className}`}>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center">
+          <Building2 className="w-6 h-6 mr-2" />
+          Property CSV Management
+        </h2>
+        <button
+          onClick={() => setShowAddProperty(true)}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Property</span>
+        </button>
+      </div>
+
+      {/* Property Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select Property
+        </label>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {properties.map(property => (
+            <button
+              key={property.id}
+              onClick={() => {
+                setSelectedProperty(property);
+                onPropertySelected?.(property);
+              }}
+              className={`p-3 rounded-lg border-2 text-left transition-colors ${
+                selectedProperty?.id === property.id
+                  ? 'border-blue-500 bg-blue-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="font-medium text-gray-900">{property.name}</div>
+              {property.address && (
+                <div className="text-sm text-gray-600">{property.address}</div>
+              )}
+              <div className="text-xs text-gray-500 capitalize mt-1">
+                {property.propertyType}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="bg-green-50 border border-green-200 rounded-md p-3 flex items-center space-x-2">
-          <CheckCircle className="w-4 h-4 text-green-600" />
-          <span className="text-sm text-green-600">{success}</span>
-        </div>
-      )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-3 flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 text-red-600" />
-          <span className="text-sm text-red-600">{error}</span>
-        </div>
-      )}
-
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <div className="card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingProperty ? 'Edit Property' : 'Add New Property'}
-            </h3>
-            <button
-              onClick={cancelForm}
-              className="p-1 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <form onSubmit={editingProperty ? handleUpdateProperty : handleAddProperty} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Add Property Modal */}
+      {showAddProperty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add New Property</h3>
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Property Name *
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  placeholder="Enter property name"
-                  required
+                  value={newProperty.name}
+                  onChange={(e) => setNewProperty({ ...newProperty, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g., 123 Main Street"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={newProperty.address}
+                  onChange={(e) => setNewProperty({ ...newProperty, address: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Full address"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Property Type
                 </label>
                 <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  value={newProperty.propertyType}
+                  onChange={(e) => setNewProperty({ ...newProperty, propertyType: e.target.value as any })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {propertyTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
+                  <option value="residential">Residential</option>
+                  <option value="commercial">Commercial</option>
+                  <option value="mixed-use">Mixed Use</option>
                 </select>
               </div>
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address *
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Enter property address"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Total Units
-              </label>
-              <input
-                type="number"
-                name="total_units"
-                value={formData.total_units}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                placeholder="Enter total number of units"
-                min="0"
-              />
-            </div>
-
-            <div className="flex space-x-3 pt-4">
+            <div className="flex justify-end space-x-3 mt-6">
               <button
-                type="submit"
-                className="btn-primary flex items-center space-x-2"
-              >
-                <Save className="w-4 h-4" />
-                <span>{editingProperty ? 'Update Property' : 'Add Property'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={cancelForm}
-                className="btn-secondary"
+                onClick={() => setShowAddProperty(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
               >
                 Cancel
               </button>
+              <button
+                onClick={handleAddProperty}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add Property
+              </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
 
-      {/* Properties List */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Properties ({properties.length})</h3>
-        
-        {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Loading properties...</p>
+      {/* CSV Upload Section */}
+      {selectedProperty && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Upload CSV for {selectedProperty.name}
+            </h3>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={uploadStatus === 'checking' || uploadStatus === 'uploading'}
+              />
+              <button
+                className={`px-4 py-2 rounded-md flex items-center space-x-2 ${
+                  uploadStatus === 'checking' || uploadStatus === 'uploading'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                } text-white`}
+                disabled={uploadStatus === 'checking' || uploadStatus === 'uploading'}
+              >
+                <Upload className="w-4 h-4" />
+                <span>
+                  {uploadStatus === 'checking' ? 'Checking...' :
+                   uploadStatus === 'uploading' ? 'Uploading...' : 'Upload CSV'}
+                </span>
+              </button>
+            </div>
           </div>
-        ) : properties.length === 0 ? (
-          <div className="text-center py-12">
-            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
-            <p className="text-gray-500 mb-4">Get started by adding your first property.</p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="btn-primary flex items-center space-x-2 mx-auto"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Property</span>
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {properties.map(property => (
-              <div key={property.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow duration-200">
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-semibold text-gray-900">{property.name}</h4>
-                  <div className="flex space-x-1">
-                    <button
-                      onClick={() => handleEditProperty(property)}
-                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors duration-200"
-                      title="Edit property"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProperty(property)}
-                      className="p-1 text-gray-400 hover:text-red-600 transition-colors duration-200"
-                      title="Delete property"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
 
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span className="truncate">{property.address}</span>
+          {/* Upload Status */}
+          {uploadStatus === 'success' && (
+            <div className="mb-4 p-3 bg-green-100 border border-green-300 rounded-md flex items-center">
+              <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
+              <span className="text-green-800">CSV uploaded successfully!</span>
+            </div>
+          )}
+
+          {uploadStatus === 'error' && duplicateCheck && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md">
+              <div className="flex items-center mb-2">
+                <AlertTriangle className="w-5 h-5 text-red-600 mr-2" />
+                <span className="text-red-800 font-medium">Duplicate Detected</span>
+              </div>
+              <div className="text-red-700 text-sm">
+                {duplicateCheck.duplicateType === 'exact' && 
+                  `Exact duplicate: ${duplicateCheck.existingRecord?.fileName}`}
+                {duplicateCheck.duplicateType === 'property-period' && 
+                  'Duplicate for same property and time period'}
+                {duplicateCheck.duplicateType === 'line-item' && 
+                  'Duplicate line items found in existing records'}
+              </div>
+              {duplicateCheck.conflictingRecords.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium">Conflicting records:</p>
+                  <ul className="text-sm text-red-600 ml-4">
+                    {duplicateCheck.conflictingRecords.map(record => (
+                      <li key={record.id}>• {record.fileName}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CSV Records List */}
+      {selectedProperty && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            CSV Files for {selectedProperty.name}
+          </h3>
+          
+          {csvRecords.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>No CSV files uploaded yet</p>
+              <p className="text-sm">Upload a CSV file to get started</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {csvRecords.map(record => (
+                <div key={record.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl">{getCSVTypeIcon(record.csvType)}</span>
+                    <div>
+                      <div className="font-medium text-gray-900">{record.fileName}</div>
+                      <div className="flex items-center space-x-2 text-sm text-gray-600">
+                        <span className={`px-2 py-1 rounded-full text-xs ${getCSVTypeColor(record.csvType)}`}>
+                          {record.csvType.replace('-', ' ')}
+                        </span>
+                        <span className="flex items-center">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          {record.uploadedAt.toLocaleDateString()}
+                        </span>
+                        <span>{record.metadata.totalRecords} records</span>
+                        {record.metadata.duplicateKeys.length > 0 && (
+                          <span className="flex items-center text-orange-600">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            {record.metadata.duplicateKeys.length} duplicates
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center text-gray-600">
-                    <Building2 className="w-4 h-4 mr-2" />
-                    <span>{property.type}</span>
-                  </div>
-                  <div className="text-gray-600">
-                    <span className="font-medium">{property.total_units}</span> units
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => {
+                        // Toggle active status
+                        propertyCSVStorageService.updateCSVRecord(record.id, {
+                          isActive: !record.isActive
+                        }).then(() => {
+                          loadCSVRecords(selectedProperty.id);
+                        });
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        record.isActive
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
+                      }`}
+                    >
+                      {record.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this CSV?')) {
+                          propertyCSVStorageService.deleteCSVRecord(record.id).then(() => {
+                            loadCSVRecords(selectedProperty.id);
+                          });
+                        }
+                      }}
+                      className="p-2 text-red-600 hover:bg-red-100 rounded-full"
+                    >
+                      <XCircle className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

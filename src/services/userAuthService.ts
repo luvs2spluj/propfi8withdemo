@@ -109,10 +109,10 @@ class UserAuthService {
       // Ensure user exists in our database
       try {
         const { data, error } = await supabase.rpc('ensure_user_exists', {
+          param_clerk_user_id: clerkUser.id,
           user_email: clerkUser.emailAddresses[0]?.emailAddress || '',
           user_first_name: clerkUser.firstName || '',
-          user_last_name: clerkUser.lastName || '',
-          clerk_user_id: clerkUser.id
+          user_last_name: clerkUser.lastName || ''
         });
 
         if (error) {

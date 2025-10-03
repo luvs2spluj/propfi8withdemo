@@ -11,10 +11,9 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { X, Plus, ChevronDown } from 'lucide-react';
+import { X, Plus, ChevronDown, Building2 } from 'lucide-react';
 import { BUCKET_DEFINITIONS, getBucketIcon, getBucketColor } from '../../types/bucketTypes';
-import { getCSVData } from '../../lib/supabase';
-import { userAuthService } from '../../services/userAuthService';
+import { propertyChartDataService, ConsolidatedChartData, PropertyChartData } from '../../services/propertyChartDataService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -32,17 +31,10 @@ interface MultiBucketChartProps {
   properties?: any[];
 }
 
-// interface BucketData { // Unused
-//   bucketId: string;
-//   label: string;
-//   color: string;
-//   data: number[];
-// }
-
 const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) => {
   const [selectedBuckets, setSelectedBuckets] = useState<string[]>(['total_income', 'total_expense', 'net_operating_income']);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [csvData, setCsvData] = useState<any[]>([]);
+  const [consolidatedData, setConsolidatedData] = useState<ConsolidatedChartData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Enhanced bucket matching logic based on account categories and names
@@ -75,136 +67,61 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
     }
   };
 
-  // Load CSV data
+  // Load property-based chart data
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoading(true);
         console.log('📊 Multi-Bucket Chart: Starting data load...');
         
-        // Get data from Supabase only
-        const currentUser = userAuthService.getCurrentUser();
-        const userId = currentUser?.id;
-        console.log('📊 Multi-Bucket Chart: Current user:', currentUser);
+        await propertyChartDataService.initialize();
+        const data = await propertyChartDataService.loadConsolidatedChartData();
+        console.log('📊 Multi-Bucket Chart: Property data loaded:', data);
         
-        const data = await getCSVData(userId);
-        console.log('📊 Multi-Bucket Chart: Supabase data:', data);
-        
-        console.log('📊 Multi-Bucket Chart: Final data:', data);
-        console.log('📊 Multi-Bucket Chart: Data structure sample:', data[0]);
-        setCsvData(data || []);
+        setConsolidatedData(data);
       } catch (error) {
-        console.error('Error loading CSV data:', error);
-        setCsvData([]);
+        console.error('Error loading property chart data:', error);
+        // Set empty data to prevent crashes
+        setConsolidatedData({
+          properties: [],
+          selectedProperty: null,
+          allMonths: [],
+          globalTotals: { income: 0, expense: 0, noi: 0 }
+        });
       } finally {
         setIsLoading(false);
       }
     };
+    
     loadData();
+    
+    // Subscribe to data changes
+    const unsubscribe = propertyChartDataService.subscribe((data) => {
+      setConsolidatedData(data);
+    });
+    
+    return unsubscribe;
   }, []);
 
-  // Process data for selected buckets
+  // Process data for selected buckets using property-based data
   const chartData = useMemo(() => {
-    console.log('📊 Multi-Bucket Chart: Processing chart data with', csvData.length, 'CSV files');
+    console.log('📊 Multi-Bucket Chart: Processing chart data with', consolidatedData?.properties.length || 0, 'properties');
     
-    if (!csvData.length) {
-      console.log('📊 Multi-Bucket Chart: No CSV data available');
+    if (!consolidatedData?.selectedProperty) {
+      console.log('📊 Multi-Bucket Chart: No selected property available');
       return { labels: [], datasets: [] };
     }
 
-    // Get all unique months from CSV data using time_series structure
-    const months = new Set<string>();
-    csvData.forEach((csv, csvIndex) => {
-      console.log(`📊 Multi-Bucket Chart: Processing CSV ${csvIndex}:`, csv.file_name || csv.fileName);
-      
-      if (csv.preview_data && Array.isArray(csv.preview_data)) {
-        // Handle array format (expected format)
-        csv.preview_data.forEach((row: any, rowIndex: number) => {
-            if (row.time_series) {
-              console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} has time_series:`, Object.keys(row.time_series));
-              Object.keys(row.time_series).forEach(month => {
-                // Skip non-monthly entries like "Total"
-                if (month.toLowerCase() !== 'total' && month.toLowerCase() !== 'sum' && month.toLowerCase() !== 'grand total') {
-                  months.add(month);
-                }
-              });
-            } else {
-              console.log(`📊 Multi-Bucket Chart: Row ${rowIndex} missing time_series:`, row);
-            }
-          });
-      } else {
-        console.log(`📊 Multi-Bucket Chart: CSV ${csvIndex} has non-array preview_data:`, typeof csv.preview_data);
-      }
-    });
+    const propertyData = consolidatedData.selectedProperty;
+    console.log('📊 Multi-Bucket Chart: Using property:', propertyData.propertyName);
 
-    const sortedMonths = Array.from(months).sort();
-    console.log('📊 Multi-Bucket Chart: Found months:', sortedMonths);
+    // Use the property chart data service to format data
+    const formattedData = propertyChartDataService.formatForMultiBucketChart(propertyData);
     
-    // If no months found, return empty chart data
-    if (sortedMonths.length === 0) {
-      console.log('📊 Multi-Bucket Chart: No valid time series data found, returning empty chart');
-      return {
-        labels: [],
-        datasets: []
-      };
-    }
+    console.log('📊 Multi-Bucket Chart: Formatted data:', formattedData);
 
-    // Process each selected bucket
-    const datasets = selectedBuckets.map(bucketId => {
-      const bucket = BUCKET_DEFINITIONS[bucketId];
-      if (!bucket) {
-        console.log(`📊 Multi-Bucket Chart: Bucket ${bucketId} not found in definitions`);
-        return null;
-      }
-
-      console.log(`📊 Multi-Bucket Chart: Processing bucket ${bucket.label} (${bucketId})`);
-      const data: number[] = [];
-      
-      sortedMonths.forEach(month => {
-        let total = 0;
-        
-        csvData.forEach(csv => {
-          if (csv.preview_data && Array.isArray(csv.preview_data)) {
-            csv.preview_data.forEach((row: any) => {
-              if (row.time_series && row.time_series[month]) {
-                // Check if this row matches the bucket
-                const accountName = row.account_name || row.accountName || '';
-                const amount = parseFloat(row.time_series[month]) || 0;
-                
-                if (matchesBucket(accountName, bucketId)) {
-                  console.log(`📊 Multi-Bucket Chart: Match found - ${accountName} (${amount}) for ${bucket.label} in ${month}`);
-                  total += amount;
-                }
-              }
-            });
-          }
-        });
-        
-        data.push(total);
-      });
-
-      console.log(`📊 Multi-Bucket Chart: ${bucket.label} data:`, data);
-
-      return {
-        label: bucket.label,
-        data,
-        borderColor: getBucketColor(bucketId).includes('green') ? '#10B981' : 
-                     getBucketColor(bucketId).includes('red') ? '#EF4444' : 
-                     getBucketColor(bucketId).includes('blue') ? '#3B82F6' : '#6B7280',
-        backgroundColor: getBucketColor(bucketId).includes('green') ? '#10B98120' : 
-                        getBucketColor(bucketId).includes('red') ? '#EF444420' : 
-                        getBucketColor(bucketId).includes('blue') ? '#3B82F620' : '#6B728020',
-        fill: false,
-        tension: 0.1,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      };
-    }).filter((dataset): dataset is NonNullable<typeof dataset> => dataset !== null);
-
-    return {
-      labels: sortedMonths,
-      datasets
-    };
-  }, [csvData, selectedBuckets]);
+    return formattedData;
+  }, [consolidatedData, selectedBuckets]);
 
   // Available buckets for selection
   const availableBuckets = Object.entries(BUCKET_DEFINITIONS)
@@ -297,9 +214,22 @@ const MultiBucketChart: React.FC<MultiBucketChartProps> = ({ properties = [] }) 
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Multi-Bucket Analysis
-          </h3>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Multi-Bucket Analysis
+            </h3>
+            {consolidatedData?.selectedProperty && (
+              <div className="flex items-center space-x-2 mt-1">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {consolidatedData.selectedProperty.propertyName}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({consolidatedData.selectedProperty.activeRecords} CSV files)
+                </span>
+              </div>
+            )}
+          </div>
           
           {/* Add Bucket Dropdown */}
           <div className="relative">

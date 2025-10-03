@@ -18,7 +18,12 @@ export type Page =
   | 'logo-test'
   | 'local-first'
   | 'file-manager'
-  | 'csv-timeseries';
+  | 'csv-timeseries'
+  | 'demo'
+  | 'debug'
+  | 'notebook'
+  | 'notebook-demo'
+  | 'csv-budget';
 
 export interface NavigationProps {
   currentPage: Page;

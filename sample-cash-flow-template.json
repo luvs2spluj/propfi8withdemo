@@ -1,0 +1,44 @@
+{
+  "name": "Cash Flow Template",
+  "description": "Monthly cash flow statement template",
+  "category": "cash_flow",
+  "headers": [
+    "Month",
+    "Revenue",
+    "Expenses",
+    "Net Income",
+    "Cash Flow"
+  ],
+  "requiredFields": [
+    "Month",
+    "Revenue",
+    "Expenses"
+  ],
+  "optionalFields": [
+    "Net Income",
+    "Cash Flow"
+  ],
+  "sampleData": [
+    {
+      "Month": "January",
+      "Revenue": "36500",
+      "Expenses": "28000",
+      "Net Income": "8500",
+      "Cash Flow": "8500"
+    },
+    {
+      "Month": "February", 
+      "Revenue": "37200",
+      "Expenses": "29200",
+      "Net Income": "8000",
+      "Cash Flow": "8000"
+    },
+    {
+      "Month": "March",
+      "Revenue": "38000",
+      "Expenses": "28500",
+      "Net Income": "9500",
+      "Cash Flow": "9500"
+    }
+  ]
+}

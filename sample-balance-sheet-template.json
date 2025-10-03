@@ -1,0 +1,51 @@
+{
+  "name": "Balance Sheet Template",
+  "description": "Standard balance sheet format for property management",
+  "category": "balance_sheet",
+  "headers": [
+    "Account Name",
+    "Balance",
+    "Category",
+    "Notes"
+  ],
+  "requiredFields": [
+    "Account Name",
+    "Balance"
+  ],
+  "optionalFields": [
+    "Category",
+    "Notes"
+  ],
+  "sampleData": [
+    {
+      "Account Name": "Total Assets",
+      "Balance": "1075350",
+      "Category": "Assets",
+      "Notes": "Current assets"
+    },
+    {
+      "Account Name": "Total Liabilities", 
+      "Balance": "324840",
+      "Category": "Liabilities",
+      "Notes": "Current liabilities"
+    },
+    {
+      "Account Name": "Total Equity",
+      "Balance": "750510",
+      "Category": "Equity", 
+      "Notes": "Owner equity"
+    },
+    {
+      "Account Name": "Cash and Cash Equivalents",
+      "Balance": "125000",
+      "Category": "Assets",
+      "Notes": "Operating cash"
+    },
+    {
+      "Account Name": "Accounts Receivable",
+      "Balance": "45000",
+      "Category": "Assets",
+      "Notes": "Rent receivable"
+    }
+  ]
+}

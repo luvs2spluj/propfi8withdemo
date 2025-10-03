@@ -1,0 +1,77 @@
+// Sample data for testing the Property CSV Management system
+export const sampleProperties = [
+  {
+    name: "123 Main Street Apartments",
+    address: "123 Main Street, Anytown, ST 12345",
+    propertyType: "residential" as const
+  },
+  {
+    name: "Downtown Office Building",
+    address: "456 Business Ave, Downtown, ST 54321", 
+    propertyType: "commercial" as const
+  },
+  {
+    name: "Mixed-Use Plaza",
+    address: "789 Plaza Way, City Center, ST 67890",
+    propertyType: "mixed-use" as const
+  }
+];
+
+export const sampleCSVData = {
+  "rent-roll": `Unit,Type,Rent,Occupied,Lease Start,Lease End
+101,1BR,1200,Yes,2024-01-01,2024-12-31
+102,1BR,1200,Yes,2024-02-01,2025-01-31
+103,2BR,1500,No,2024-01-01,2024-12-31
+104,2BR,1500,Yes,2024-03-01,2025-02-28
+201,1BR,1200,Yes,2024-01-01,2024-12-31
+202,1BR,1200,Yes,2024-02-01,2025-01-31`,
+
+  "cash-flow": `Account Name,Jan 2024,Feb 2024,Mar 2024,Apr 2024,May 2024,Jun 2024,Total
+Rental Income,7200,7200,7200,7200,7200,7200,43200
+Late Fees,50,25,75,0,100,50,300
+Other Income,200,150,300,250,175,225,1300
+TOTAL INCOME,7450,7375,7575,7450,7475,7475,44800
+Property Management,500,500,500,500,500,500,3000
+Maintenance,300,450,200,600,350,400,2300
+Utilities,400,350,450,380,420,390,2390
+Insurance,200,0,0,0,0,0,200
+Property Taxes,800,0,0,0,0,0,800
+TOTAL EXPENSES,2200,1300,1150,1480,1270,1290,8690
+NET OPERATING INCOME,5250,6075,6425,5970,6205,6185,36110`,
+
+  "budget": `Account Name,Aug 2024,Sep 2024,Oct 2024,Nov 2024,Dec 2024,Jan 2025,Feb 2025,Mar 2025,Apr 2025,May 2025,Jun 2025,Jul 2025,Total
+Rental Income,7500,7500,7500,7500,7500,7500,7500,7500,7500,7500,7500,7500,90000
+Late Fees,100,75,125,50,150,100,75,125,50,150,100,75,1125
+Other Income,300,250,400,350,275,325,300,250,400,350,275,325,3600
+TOTAL INCOME,7900,7825,8025,7900,7925,7925,7875,7875,7950,8000,7875,7900,94725
+Property Management,600,600,600,600,600,600,600,600,600,600,600,600,7200
+Maintenance,400,500,300,700,450,500,400,500,300,700,450,500,5350
+Utilities,450,400,550,480,520,490,450,400,550,480,520,490,5800
+Insurance,250,0,0,0,0,0,250,0,0,0,0,0,500
+Property Taxes,1000,0,0,0,0,0,1000,0,0,0,0,0,2000
+TOTAL EXPENSES,2700,1500,1450,1780,1570,1590,2700,1500,1450,1780,1570,1590,20850
+NET OPERATING INCOME,5200,6325,6575,6120,6355,6335,5175,6375,6500,6220,6305,6310,73875`
+};
+
+export const sampleDuplicateData = {
+  "duplicate-rent-roll": `Unit,Type,Rent,Occupied,Lease Start,Lease End
+101,1BR,1200,Yes,2024-01-01,2024-12-31
+102,1BR,1200,Yes,2024-02-01,2025-01-31
+103,2BR,1500,No,2024-01-01,2024-12-31
+104,2BR,1500,Yes,2024-03-01,2025-02-28
+201,1BR,1200,Yes,2024-01-01,2024-12-31
+202,1BR,1200,Yes,2024-02-01,2025-01-31`,
+
+  "duplicate-cash-flow": `Account Name,Jan 2024,Feb 2024,Mar 2024,Apr 2024,May 2024,Jun 2024,Total
+Rental Income,7200,7200,7200,7200,7200,7200,43200
+Late Fees,50,25,75,0,100,50,300
+Other Income,200,150,300,250,175,225,1300
+TOTAL INCOME,7450,7375,7575,7450,7475,7475,44800
+Property Management,500,500,500,500,500,500,3000
+Maintenance,300,450,200,600,350,400,2300
+Utilities,400,350,450,380,420,390,2390
+Insurance,200,0,0,0,0,0,200
+Property Taxes,800,0,0,0,0,0,800
+TOTAL EXPENSES,2200,1300,1150,1480,1270,1290,8690
+NET OPERATING INCOME,5250,6075,6425,5970,6205,6185,36110`
+};

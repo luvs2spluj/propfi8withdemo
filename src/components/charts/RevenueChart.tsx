@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,8 +11,8 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { getCSVData } from '../../lib/supabase';
-import { ChartBucketHeader } from '../BucketIcon';
+import { Building2 } from 'lucide-react';
+import { propertyChartDataService, ConsolidatedChartData } from '../../services/propertyChartDataService';
 
 ChartJS.register(
   CategoryScale,
@@ -25,310 +25,83 @@ ChartJS.register(
   Filler
 );
 
-interface PropertyData {
-  id: string;
-  date: string;
-  month?: string;
-  revenue: string;
-  occupancy_rate: string;
-  property_name: string;
-}
-
-interface Property {
-  id: string;
-  name: string;
-  address?: string;
-  type?: string;
-  total_units?: number;
-}
-
 interface RevenueChartProps {
-  properties: Property[];
+  className?: string;
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
-  const [chartData, setChartData] = useState<PropertyData[]>([]);
+const RevenueChart: React.FC<RevenueChartProps> = ({ className = '' }) => {
+  const [chartData, setChartData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedProperty, setSelectedProperty] = useState<string>('all');
-  const [metricType] = useState<'revenue' | 'occupancy'>('revenue');
+  const [consolidatedData, setConsolidatedData] = useState<ConsolidatedChartData | null>(null);
 
-  const processCSVDataForChart = (activeCSVs: any[]): PropertyData[] => {
-    const chartData: PropertyData[] = [];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        console.log('📈 Revenue Chart: Starting data load...');
+        
+        await propertyChartDataService.initialize();
+        const data = await propertyChartDataService.loadConsolidatedChartData();
+        console.log('📈 Revenue Chart: Property data loaded:', data);
+        
+        setConsolidatedData(data);
+        
+        if (data.selectedProperty) {
+          const formattedData = propertyChartDataService.formatForRevenueChart(data.selectedProperty);
+          setChartData(formattedData);
+        }
+      } catch (error) {
+        console.error('Error loading property chart data:', error);
+        setConsolidatedData({
+          properties: [],
+          selectedProperty: null,
+          allMonths: [],
+          globalTotals: { income: 0, expense: 0, noi: 0 }
+        });
+        setChartData(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    activeCSVs.forEach((csv: any) => {
-      const fileName = csv.file_name || csv.fileName;
-      const fileType = csv.file_type || csv.fileType;
-      const accountCategories = csv.account_categories || csv.accountCategories;
-      const previewData = csv.preview_data || csv.previewData;
-      
-      console.log(`📊 Processing CSV: ${fileName} (${fileType}) for chart data`);
-      
-      // For cash flow CSVs, prioritize the three key metrics
-      if (fileType === 'cash_flow') {
-        console.log('💰 Processing CASH FLOW CSV for key metrics chart...');
-        
-        const keyMetrics = [
-          { name: 'Total Income', type: 'income' },
-          { name: 'Total Expense', type: 'expense' },
-          { name: 'Net Operating Income', type: 'net_income' }
-        ];
-        
-        keyMetrics.forEach(metric => {
-          const accountData = previewData.find((item: any) => {
-            const accountName = item.account_name?.trim().toLowerCase() || '';
-            return accountName.includes(metric.name.toLowerCase());
-          });
-          
-          if (accountData && accountData.time_series) {
-            console.log(`🎯 Found key metric for chart: ${accountData.account_name}`);
-            
-            // Process time series data for this key metric
-            Object.entries(accountData.time_series).forEach(([month, value]) => {
-              // Skip non-monthly entries like "Total"
-              if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
-                return;
-              }
-              
-              if (typeof value === 'number') {
-                // Find existing data point for this month or create new one
-                let existingData = chartData.find(d => d.date === month);
-                if (!existingData) {
-                  existingData = {
-                    id: `${csv.id}-${month}`,
-                    date: month,
-                    month: month,
-                    revenue: '0',
-                    occupancy_rate: '0',
-                    property_name: 'Chico'
-                  };
-                  chartData.push(existingData);
-                }
-                
-                // Set the appropriate value based on metric type
-                if (metric.type === 'income') {
-                  existingData.revenue = value.toString();
-                } else if (metric.type === 'expense') {
-                  // Store expense as negative revenue for now (we'll handle this in chart display)
-                  existingData.revenue = (-value).toString();
-                } else if (metric.type === 'net_income') {
-                  existingData.revenue = value.toString();
-                }
-              }
-            });
-          }
-        });
-      } else {
-        // For other file types, use the original logic
-        Object.entries(accountCategories).forEach(([accountName, category]) => {
-          const accountData = Array.isArray(previewData) ? previewData.find((item: any) => 
-            item.account_name?.trim() === accountName
-          ) : null;
-          
-          if (accountData && accountData.time_series && category === 'income') {
-            // Process time series data for income accounts
-            Object.entries(accountData.time_series).forEach(([month, value]) => {
-              // Skip non-monthly entries like "Total"
-              if (month.toLowerCase() === 'total' || month.toLowerCase() === 'sum' || month.toLowerCase() === 'grand total') {
-                return;
-              }
-              
-              if (typeof value === 'number' && value > 0) {
-                // Find existing data point for this month or create new one
-                let existingData = chartData.find(d => d.date === month);
-                if (!existingData) {
-                  existingData = {
-                    id: `${csv.id}-${month}`,
-                    date: month,
-                    month: month,
-                    revenue: '0',
-                    occupancy_rate: '0',
-                    property_name: 'Chico'
-                  };
-                  chartData.push(existingData);
-                }
-                
-                // Add this account's revenue to the total for this month
-                const currentRevenue = parseFloat(existingData.revenue) || 0;
-                existingData.revenue = (currentRevenue + value).toString();
-              }
-            });
-          }
-        });
+    loadData();
+    
+    // Subscribe to data changes
+    const unsubscribe = propertyChartDataService.subscribe((data) => {
+      setConsolidatedData(data);
+      if (data.selectedProperty) {
+        const formattedData = propertyChartDataService.formatForRevenueChart(data.selectedProperty);
+        setChartData(formattedData);
       }
     });
     
-    // Sort by date
-    chartData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    console.log('📈 Processed chart data:', chartData);
-    return chartData;
-  };
-
-  const loadChartData = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      console.log('Loading chart data from ACTIVE CSVs only:', properties);
-      
-      if (properties.length > 0) {
-        const chicoProperty = properties[0]; // Should be Chico
-        console.log('Chico property:', chicoProperty);
-        
-        // Get data from ACTIVE CSVs only
-        let chartData = null;
-        
-        try {
-          // Get data from Supabase only
-          const activeCSVs = await getCSVData();
-          console.log('📊 Using Supabase data for chart:', activeCSVs.length, 'active CSVs');
-          
-          console.log('📊 Active CSVs for chart data:', activeCSVs.length);
-          
-          if (activeCSVs.length > 0) {
-            // Process CSV data to create chart data
-            const csvChartData = processCSVDataForChart(activeCSVs);
-            console.log('📈 CSV chart data processed:', csvChartData);
-            
-            if (csvChartData && csvChartData.length > 0) {
-              chartData = csvChartData;
-            }
-          }
-          
-          // If no CSV data, set empty chart
-          if (!chartData || chartData.length === 0) {
-            console.log('📊 No active CSV data found, setting empty chart');
-            setChartData([]);
-            setIsLoading(false);
-            return;
-          }
-          
-          // Set the chart data from CSVs
-          setChartData(chartData);
-          setIsLoading(false);
-          
-        } catch (error) {
-          console.error('Error processing CSV chart data:', error);
-          setChartData([]);
-          setIsLoading(false);
-        }
-      } else {
-        console.log('📊 No properties available for chart data');
-        setChartData([]);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('Error loading chart data:', error);
-      setChartData([]);
-      setIsLoading(false);
-    }
-  }, [properties]);
-
-  useEffect(() => {
-    if (properties.length > 0) {
-      loadChartData();
-    }
-  }, [properties, loadChartData]);
-
-  // Listen for data updates to refresh chart
-  useEffect(() => {
-    const handleDataUpdate = () => {
-      console.log('🔄 RevenueChart received data update event');
-      loadChartData();
-    };
-
-    window.addEventListener('dataUpdated', handleDataUpdate);
-    return () => window.removeEventListener('dataUpdated', handleDataUpdate);
-  }, [loadChartData]);
-
-  // Filter data based on selected property
-  const filteredData = selectedProperty === 'all' 
-    ? chartData 
-    : chartData.filter(item => item.property_name === selectedProperty);
+    return unsubscribe;
+  }, []);
 
   // Prepare chart data
-  const data = {
-    labels: filteredData.map(item => item.month || item.date),
-    datasets: [
-      {
-        label: metricType === 'revenue' ? 'Revenue' : 'Occupancy Rate',
-        data: filteredData.map(item => 
-          metricType === 'revenue' 
-            ? parseFloat(item.revenue) 
-            : parseFloat(item.occupancy_rate)
-        ),
-        borderColor: metricType === 'revenue' ? '#0EA5E9' : '#10B981',
-        backgroundColor: metricType === 'revenue' 
-          ? 'rgba(14, 165, 233, 0.1)' 
-          : 'rgba(16, 185, 129, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: metricType === 'revenue' ? '#0EA5E9' : '#10B981',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-    ],
-  };
+  const data = chartData || { labels: [], datasets: [] };
 
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        position: 'top' as const,
       },
-      tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: metricType === 'revenue' 
-          ? 'rgba(14, 165, 233, 0.5)' 
-          : 'rgba(16, 185, 129, 0.5)',
-        borderWidth: 1,
-        cornerRadius: 8,
-        displayColors: false,
-        callbacks: {
-          label: function(context: any) {
-            if (metricType === 'revenue') {
-              return `Revenue: $${context.parsed.y.toLocaleString()}`;
-            } else {
-              return `Occupancy: ${context.parsed.y.toFixed(1)}%`;
-            }
-          }
-        }
+      title: {
+        display: true,
+        text: 'Revenue Analysis',
       },
     },
     scales: {
-      x: {
-        grid: {
-          display: false,
-        },
-        ticks: {
-          color: '#6B7280',
-          font: {
-            size: 12,
-          },
-        },
-      },
       y: {
-        grid: {
-          color: 'rgba(107, 114, 128, 0.1)',
-        },
+        beginAtZero: true,
         ticks: {
-          color: '#6B7280',
-          font: {
-            size: 12,
-          },
           callback: function(value: any) {
-            if (metricType === 'revenue') {
-              return '$' + (value / 1000) + 'k';
-            } else {
-              return value.toFixed(1) + '%';
-            }
-          },
-        },
-      },
+            return '$' + value.toLocaleString();
+          }
+        }
+      }
     },
     interaction: {
       intersect: false,
@@ -338,39 +111,73 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ properties }) => {
 
   if (isLoading) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className={`card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${className}`}>
+        <div className="p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-gray-500">Loading revenue data...</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-      <ChartBucketHeader
-        chartId="revenue-chart"
-        chartName={metricType === 'revenue' ? 'Revenue Trend' : 'Occupancy Rate'}
-        className="mb-4"
-      />
-      <div className="flex items-center justify-end mb-4">
-        <select
-          value={selectedProperty}
-          onChange={(e) => setSelectedProperty(e.target.value)}
-          className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">All Properties</option>
-          {properties.map((property) => (
-            <option key={property.id} value={property.name}>
-              {property.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      
-      {/* Chart */}
-      <div className="h-64">
-        <Line data={data} options={options} />
+    <div className={`card bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${className}`}>
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Revenue Analysis
+            </h3>
+            {consolidatedData?.selectedProperty && (
+              <div className="flex items-center space-x-2 mt-1">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {consolidatedData.selectedProperty.propertyName}
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({consolidatedData.selectedProperty.activeRecords} CSV files)
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Property Selector */}
+          <div className="flex items-center justify-end mb-4">
+            <select
+              value={consolidatedData?.selectedProperty?.propertyId || 'all'}
+              onChange={(e) => {
+                if (e.target.value === 'all') {
+                  propertyChartDataService.setSelectedProperty(null);
+                } else {
+                  propertyChartDataService.setSelectedProperty(e.target.value);
+                }
+              }}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Properties</option>
+              {consolidatedData?.properties?.map((property) => (
+                <option key={property.id} value={property.id}>
+                  {property.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {/* Chart */}
+        <div className="h-64">
+          <Line data={data} options={options} />
+        </div>
+        
+        {/* No Data Message */}
+        {!consolidatedData?.selectedProperty && (
+          <div className="mt-4 text-center text-gray-500">
+            <p>No property selected or no data available.</p>
+            <p className="text-sm">Add properties and upload CSV files to see revenue data.</p>
+          </div>
+        )}
       </div>
     </div>
   );

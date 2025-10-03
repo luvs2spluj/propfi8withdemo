@@ -12,6 +12,7 @@ import RevenueChart from './charts/RevenueChart';
 import OccupancyChart from './charts/OccupancyChart';
 // import CashFlowChart from './charts/CashFlowChart';
 import MultiBucketChart from './charts/MultiBucketChart';
+import PropertySelector from './PropertySelector';
 import unifiedPropertyService from '../services/unifiedPropertyService';
 import { getCSVData, deleteCSVData, migrateLocalStorageToSupabase } from '../lib/supabase';
 
@@ -305,9 +306,9 @@ const Dashboard: React.FC = () => {
             console.log('⚠️ Key metrics not found, falling back to individual account categorization...');
             
             Object.entries(accountCategories).forEach(([accountName, category]) => {
-              const accountData = previewData.find((item: any) => 
+              const accountData = Array.isArray(previewData) ? previewData.find((item: any) => 
                 item.account_name?.trim() === accountName
-              );
+              ) : null;
               
               if (accountData && accountData.time_series) {
                 console.log(`🔍 Account: ${accountName} (${category})`);
@@ -340,9 +341,9 @@ const Dashboard: React.FC = () => {
         } else {
           // For other file types, use the original logic
           Object.entries(accountCategories).forEach(([accountName, category]) => {
-            const accountData = previewData.find((item: any) => 
+            const accountData = Array.isArray(previewData) ? previewData.find((item: any) => 
               item.account_name?.trim() === accountName
-            );
+            ) : null;
             
             if (accountData && accountData.time_series) {
               console.log(`🔍 Account: ${accountName} (${category})`);
@@ -538,6 +539,9 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Property Selector */}
+      <PropertySelector className="mb-6" />
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
