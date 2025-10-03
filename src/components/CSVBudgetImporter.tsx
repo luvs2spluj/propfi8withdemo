@@ -642,7 +642,7 @@ export default function CSVBudgetImporter({ onDataLoaded, className = '' }: CSVB
     }
   };
 
-  const handleTextParse = () => {
+  const handleTextParse = async () => {
     if (!rawText.trim()) return;
     
     setIsLoading(true);
